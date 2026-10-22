@@ -1,0 +1,226 @@
+services:
+
+  # ===========================================
+  # DATABASE - MongoDB
+  # ===========================================
+  na-mongodb:
+    image: mongo:7.0
+    container_name: 'na-mongodb'
+    restart: unless-stopped
+    environment:
+      - MONGO_INITDB_DATABASE=${MONGO_DATABASE}
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
+    volumes:
+      - ./mongodb/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+      - ./mongodb/volume:/data/db
+    # 🔒 KEIN ports-Mapping - nur intern erreichbar
+    networks:
+      - na-intranet
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging:
+      options:
+        max-size: "30m"
+        max-file: "5"
+
+  # ===========================================
+  # CACHE / SESSIONS - Redis
+  # ===========================================
+  na-redis:
+    image: redis:7.2-alpine
+    container_name: 'na-redis'
+    restart: unless-stopped
+    command:
+      - /usr/local/etc/redis/redis.conf
+    volumes:
+      - na-redis-data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    # 🔒 KEIN ports-Mapping
+    networks:
+      - na-intranet
+    logging:
+      options:
+        max-size: "30m"
+        max-file: "5"
+
+  # ===========================================
+  # AUTH - Ory Kratos (Admin-Login)
+  # ===========================================
+  na-kratos-pgdb:
+    image: postgres:16-alpine
+    container_name: 'na-kratos-pgdb'
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${KRATOS_DB_USER}
+      - POSTGRES_PASSWORD=${KRATOS_DB_PASSWORD}
+      - POSTGRES_DB=${KRATOS_DB_NAME}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - ./postgres/volume:/var/lib/postgresql/data
+    # 🔒 KEIN ports-Mapping
+    networks:
+      - na-intranet
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${KRATOS_DB_USER} -d ${KRATOS_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      options:
+        max-size: "30m"
+        max-file: "5"
+
+  na-kratos:
+    image: oryd/kratos:v1.1.0
+    container_name: 'na-kratos'
+    restart: unless-stopped
+    depends_on:
+      na-kratos-pgdb:
+        condition: service_healthy
+    environment:
+      - DSN=postgres://${KRATOS_DB_USER}:${KRATOS_DB_PASSWORD}@na-kratos-pgdb:5432/${KRATOS_DB_NAME}?sslmode=disable&max_conns=20&max_idle_conns=4
+    command: serve -c /etc/config/kratos/kratos.yml --dev --watch-courier
+    volumes:
+      - type: bind
+        source: ./auth-kratos/kratos-config
+        target: /etc/config/kratos
+    # 🔒 KEIN ports-Mapping (4433/4434 intern)
+    networks:
+      - na-intranet
+    logging:
+      options:
+        max-size: "30m"
+        max-file: "5"
+
+  # ===========================================
+  # AUTH GATEWAY - Ory Oathkeeper (prueft Kratos-Session)
+  # ===========================================
+  na-oathkeeper:
+    image: oryd/oathkeeper:v0.40.7
+    container_name: 'na-oathkeeper'
+    restart: unless-stopped
+    depends_on:
+      - na-kratos
+    command: serve proxy -c /etc/config/oathkeeper/oathkeeper.yml
+    environment:
+      - LOG_LEVEL=${OATHKEEPER_LOG_LEVEL}
+    volumes:
+      - type: bind
+        source: ./auth-oathkeeper/oathkeeper-config
+        target: /etc/config/oathkeeper
+    # 🔒 KEIN ports-Mapping (4455/4456 intern)
+    networks:
+      - na-intranet
+    logging:
+      options:
+        max-size: "30m"
+        max-file: "5"
+
+  # ===========================================
+  # MIGRATION (einmalig, vor Backend)
+  # ===========================================
+  na-migrate:
+    image: na-backend
+    container_name: 'na-migrate'
+    restart: "no"
+    depends_on:
+      na-mongodb:
+        condition: service_healthy
+    environment:
+      - MONGO_URI=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@na-mongodb:27017
+      - MONGO_DATABASE=${MONGO_DATABASE}
+      - TZ=${TZ}
+    command: ["python", "-m", "src.migrate"]
+    volumes:
+      - ../backend/src:/app/src:ro
+      - ../VERSION:/opt/app-version:ro
+    networks:
+      - na-intranet
+    logging:
+      options:
+        max-size: "30m"
+        max-file: "5"
+
+  # ===========================================
+  # BACKEND - FastAPI
+  # ===========================================
+  na-backend:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+      args:
+        INSTALL_DEV: "true"
+    image: na-backend
+    container_name: 'na-backend'
+    restart: unless-stopped
+    depends_on:
+      na-mongodb:
+        condition: service_healthy
+      na-migrate:
+        condition: service_completed_successfully
+    environment:
+      - APP_ENV=${APP_ENV}
+      - MONGO_URI=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@na-mongodb:27017
+      - MONGO_DATABASE=${MONGO_DATABASE}
+      - TZ=${TZ}
+    volumes:
+      # Dev: Quellcode bind-mounten, damit --reload greift.
+      - ../backend/src:/app/src
+    # 🔒 KEIN ports-Mapping - nur nginx erreicht das Backend
+    networks:
+      - na-intranet
+    logging:
+      options:
+        max-size: "30m"
+        max-file: "5"
+
+  # ===========================================
+  # FRONTEND - Vue SPA (nginx)
+  # ===========================================
+  na-frontend:
+    build:
+      context: ..
+      dockerfile: frontend/Dockerfile
+    image: na-frontend
+    container_name: 'na-frontend'
+    restart: unless-stopped
+    # 🔒 KEIN ports-Mapping - nur nginx
+    networks:
+      - na-intranet
+    logging:
+      options:
+        max-size: "30m"
+        max-file: "5"
+
+  # ===========================================
+  # NGINX - einziger externer Einstiegspunkt
+  # ===========================================
+  na-nginx:
+    image: nginx:1.27-alpine
+    container_name: 'na-nginx'
+    restart: unless-stopped
+    depends_on:
+      - na-backend
+      - na-frontend
+    ports:
+      - "${PUBLIC_HTTP_PORT:-8092}:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - na-intranet
+    logging:
+      options:
+        max-size: "30m"
+        max-file: "5"
+
+networks:
+  na-intranet:
+    driver: bridge
+
+volumes:
+  na-redis-data:

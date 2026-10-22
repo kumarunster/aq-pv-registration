@@ -1,0 +1,15 @@
+import puppeteer from 'puppeteer'
+const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] })
+const page = await browser.newPage()
+const errors = []
+page.on('console', (m) => console.log('CONSOLE[' + m.type() + ']:', m.text()))
+page.on('pageerror', (e) => console.log('PAGEERROR:', e.message))
+page.on('requestfailed', (r) => console.log('REQFAIL:', r.url(), r.failure()?.errorText))
+page.on('response', (r) => { if (r.status() >= 400) console.log('HTTP', r.status(), r.url()) })
+await page.goto('http://localhost:8092/installer/login', { waitUntil: 'networkidle2', timeout: 30000 })
+await new Promise(r => setTimeout(r, 5000))
+console.log('URL:', page.url())
+console.log('innerText-Auszug:', (await page.evaluate(() => document.body.innerText)).slice(0, 300))
+const inputs = await page.evaluate(() => [...document.querySelectorAll('input')].map(i => i.type).join(','))
+console.log('Inputs:', inputs || '(keine)')
+await browser.close()

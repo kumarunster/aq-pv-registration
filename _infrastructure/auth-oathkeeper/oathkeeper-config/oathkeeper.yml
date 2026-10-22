@@ -1,0 +1,69 @@
+log:
+  level: info
+  format: text
+
+serve:
+  proxy:
+    port: 4455
+    cors:
+      enabled: false
+  api:
+    port: 4456
+
+access_rules:
+  matching_strategy: regexp
+  repositories:
+    - file:///etc/config/oathkeeper/access-rules.yml
+
+errors:
+  fallback:
+    - json
+  handlers:
+    json:
+      enabled: true
+      config:
+        verbose: true
+    redirect:
+      enabled: true
+      config:
+        to: http://localhost:8092/admin/login
+        when:
+          - error: [unauthorized, forbidden]
+            request:
+              header:
+                accept: [text/html]
+
+authenticators:
+  noop:
+    enabled: true
+  anonymous:
+    enabled: true
+    config:
+      subject: guest
+  cookie_session:
+    enabled: true
+    config:
+      check_session_url: http://na-kratos:4433/sessions/whoami
+      preserve_path: true
+      extra_from: "identity"
+      subject_from: "id"
+      only:
+        - ory_kratos_session
+
+authorizers:
+  allow:
+    enabled: true
+  deny:
+    enabled: true
+
+mutators:
+  noop:
+    enabled: true
+  header:
+    enabled: true
+    config:
+      headers:
+        X-User-Id: "{{ print .Subject }}"
+        X-Kratos-Identity-ID: "{{ print .Extra.id }}"
+        X-Kratos-Identity-Email: "{{ print .Extra.traits.email }}"
+        X-Kratos-Identity-Schema: "{{ print .Extra.schema_id }}"

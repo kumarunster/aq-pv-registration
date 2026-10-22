@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# Node
+node_modules/
+dist/
+
+# Daten / Volumes (lokal gemountet)
+_infrastructure/mongodb/volume/
+_infrastructure/redis/
+*.sqlite
+*.sqlite-journal
+
+# Secrets - NIE committen
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Memory & Debug
+memory/
+*.png
+scripts/*.png
+# Debug-Screenshots
+scripts/*.png
+# Memory (Projekt-intern)
+memory/

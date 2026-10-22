@@ -1,0 +1,83 @@
+version: v1.1.0
+
+dsn: memory  # wird durch ENV DSN ueberschrieben
+
+serve:
+  public:
+    base_url: http://na-kratos:4433/
+    cors:
+      enabled: false
+  admin:
+    base_url: http://na-kratos:4434/
+
+selfservice:
+  default_browser_return_url: http://localhost:8092/admin/
+  allowed_return_urls:
+    - http://localhost:8092/
+    - http://localhost:8092
+
+  methods:
+    password:
+      enabled: true
+    link:
+      enabled: true
+
+  flows:
+    error:
+      ui_url: http://localhost:8092/admin/error
+
+    settings:
+      ui_url: http://localhost:8092/admin/settings
+      privileged_session_max_age: 15m
+
+    recovery:
+      enabled: true
+      ui_url: http://localhost:8092/admin/recovery
+      use: link
+
+    verification:
+      enabled: false
+
+    logout:
+      after:
+        default_browser_return_url: http://localhost:8092/admin/login
+
+    login:
+      ui_url: http://localhost:8092/admin/login
+      lifespan: 10m
+
+    registration:
+      # Selbstregistrierung AUS - Accounts werden per Kratos-Admin-API angelegt
+      enabled: false
+      ui_url: http://localhost:8092/admin/registration
+
+log:
+  level: info
+  format: text
+  leak_sensitive_values: false
+
+secrets:
+  cookie:
+    - e57f985212bded746654daa82318fa99
+  cipher:
+    - 036596e303e8e4f6487793eceb6622e7
+
+ciphers:
+  algorithm: xchacha20-poly1305
+
+hashers:
+  algorithm: bcrypt
+  bcrypt:
+    cost: 8
+
+identity:
+  default_schema_id: admin
+  schemas:
+    - id: admin
+      url: file:///etc/config/kratos/identity.admin.schema.json
+    - id: installer
+      url: file:///etc/config/kratos/identity.installer.schema.json
+
+courier:
+  smtp:
+    connection_uri: smtps://test:test@localhost:1025/?skip_ssl_verify=true

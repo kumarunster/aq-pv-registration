@@ -1,0 +1,13 @@
+import puppeteer from 'puppeteer'
+const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] })
+const page = await browser.newPage()
+await page.goto('http://localhost:8092/installer/login', { waitUntil: 'networkidle2' })
+console.log('URL:', page.url())
+const html = await page.content()
+console.log('HTML-Länge:', html.length)
+console.log('Hat input[type=email]?', html.includes('type="email"'))
+console.log('Hat input[type=password]?', html.includes('type="password"'))
+const inputs = await page.evaluate(() => [...document.querySelectorAll('input')].map(i => i.type + ' | ' + (i.placeholder || '')).join('\n'))
+console.log('Inputs:\n', inputs || '(keine)')
+await page.screenshot({ path: '/tmp/pptr-debug-login.png' })
+await browser.close()

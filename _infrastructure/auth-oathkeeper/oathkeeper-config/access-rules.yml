@@ -1,0 +1,88 @@
+# Zugriffsregeln
+# Grundsatz: Public-API ist oeffentlich (Health, Status),
+#            Admin-API erfordert gueltige Kratos-Session.
+
+- id: "healthz"
+  upstream:
+    url: "http://na-backend:8000"
+  match:
+    url: "http://<[^/]+>/healthz"
+    methods: ["GET"]
+  authenticators:
+    - handler: anonymous
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: noop
+
+# --- Oeffentlich: Status-API (Landing-Seite) ---
+- id: "public-status-api"
+  upstream:
+    url: "http://na-backend:8000"
+  match:
+    url: "http://<[^/]+>/api/status"
+    methods: ["GET"]
+  authenticators:
+    - handler: anonymous
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: noop
+
+# --- Oeffentlich: Swagger-Docs (nur in Dev) ---
+- id: "public-docs"
+  upstream:
+    url: "http://na-backend:8000"
+  match:
+    url: "http://<[^/]+>/api/(docs|openapi.json)(/.*)?"
+    methods: ["GET"]
+  authenticators:
+    - handler: anonymous
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: noop
+
+# --- Admin: Firmen + Kunden (Kratos-Session erforderlich) ---
+- id: "admin-api"
+  upstream:
+    url: "http://na-backend:8000"
+  match:
+    url: "http://<[^/]+>/api/admin/<.*>"
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"]
+  authenticators:
+    - handler: cookie_session
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: header
+      config:
+        headers:
+          X-Kratos-Identity-ID: "{{ print .Extra.id }}"
+          X-Kratos-Identity-Email: "{{ print .Extra.traits.email }}"
+          X-Kratos-Identity-Schema: "{{ print .Extra.schema_id }}"
+          X-User-Id: "{{ print .Subject }}"
+
+# --- Installer: eigene Kunden/Anlagen (Kratos-Session erforderlich) ---
+- id: "installer-api"
+  upstream:
+    url: "http://na-backend:8000"
+  match:
+    url: "http://<[^/]+>/api/installer/<.*>"
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"]
+  authenticators:
+    - handler: cookie_session
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: header
+      config:
+        headers:
+          X-Kratos-Identity-ID: "{{ print .Extra.id }}"
+          X-Kratos-Identity-Email: "{{ print .Extra.traits.email }}"
+          X-Kratos-Identity-Schema: "{{ print .Extra.schema_id }}"
+          X-User-Id: "{{ print .Subject }}"
+
+# HINWEIS: Admin nutzt den globalen header-Mutator in oathkeeper.yml.
+# Installer nutzt den rule-level Mutator hier.
+

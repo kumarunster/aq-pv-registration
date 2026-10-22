@@ -1,0 +1,35 @@
+{
+  "$id": "https://amelanq.com/schemas/na-installer.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Installer",
+  "type": "object",
+  "properties": {
+    "traits": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "title": "E-Mail",
+          "ory.sh/kratos": {
+            "credentials": {
+              "password": {
+                "identifier": true
+              }
+            }
+          }
+        },
+        "name": {
+          "type": "string",
+          "title": "Name"
+        },
+        "company": {
+          "type": "string",
+          "title": "Installationsfirma"
+        }
+      },
+      "required": ["email", "company"],
+      "additionalProperties": false
+    }
+  }
+}

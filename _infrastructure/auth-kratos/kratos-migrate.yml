@@ -1,0 +1,15 @@
+version: v1.1.0
+dsn: postgres://PLACEHOLDER@na-kratos-pgdb:5432/kratos?sslmode=disable
+serve:
+  public:
+    base_url: http://na-kratos:4433/
+  admin:
+    base_url: http://na-kratos:4434/
+identity:
+  default_schema_id: admin
+  schemas:
+    - id: admin
+      url: file:///etc/config/kratos/identity.admin.schema.json
+log:
+  level: info
+  format: text
