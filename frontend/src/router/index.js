@@ -36,6 +36,7 @@ const routes = [
       { path: 'kunden', name: 'installer-kunden', component: () => import('@/views/installer/KundenView.vue') },
     ],
   },
+  { path: '/lageplan', name: 'lageplan', component: () => import('@/views/lageplan/LageplanView.vue') },
   { path: '/:pathMatch(.*)*', name: 'notfound', component: () => import('@/views/NotFoundView.vue') },
 ]
 
