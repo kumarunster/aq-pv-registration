@@ -139,6 +139,11 @@ Fristen, Erinnerungen) werden **nicht** gebaut. Stattdessen:
 - **Installer-API 401**: Mutator setzt `X-Kratos-Identity-ID` nicht trotz gültiger Session (Phase 3a)
 - **Datenmodell-Ergänzungen**: Status, Fristen, Dokumente (Phase 5–7)
 - **Automatische Netzbetreiber-Zuordnung** aus Anlagen-Adresse (Phase 4)
+- **Browser-Rückwärtsnavigation nach Logout** (23.10.2026): Nach dem Abmelden darf über die
+  Browser-Zurück-Taste keine Seite mit Daten (z. B. `/installer/kunden`) mehr angezeigt
+  werden — auch nicht aus dem BFCache. Ein Layout-Guard (`beforeEach` mit Session-Check)
+  hat den Fall im Headless-Test abgedeckt, im echten Browser (Chromium, BFCache) tritt
+  das Verhalten weiterhin auf. Bewusst aufgeschoben — Kolya entscheidet, wann wir es angehen.
 - **Produktion**: Domain + TLS via nginx-proxy, Deployment-Strategie (später)
 
 ---

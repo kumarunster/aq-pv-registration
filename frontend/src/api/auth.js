@@ -1,36 +1,29 @@
-import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
 import client, { kratos } from '@/api/client'
 
-// Loescht alle Kratos-Cookies (Session + CSRF).
-//
-// WICHTIG: document.cookie ist hier LEER, weil die Kratos-Cookies als
-// HttpOnly gesetzt sind (nur der Server kann sie lesen/setzen). Sie koennen
-// also NICHT client-seitig geloescht werden!
-//
-// Der einzige Weg, sie zu entfernen: Kratos selbst muss sie mit
-// max-age=0 zuruecksetzen. Das passiert beim Login: der Login-POST
-// setzt ein neues ory_kratos_session + neues csrf_token_* (ersetzt
-// die alten Werte). Beim Logout gibt es in dieser Kratos-Version
-// KEINE moegliche API, die die eigene aktive Session beendet
-// (DELETE /sessions/{id} -> 400 "cannot revoke current session",
-// POST /sessions -> 405, Logout-Flow braucht Token aus der UI).
-//
-// Deshalb: beim Login werden die alten Cookies IMMER ersetzt
-// (neuer Login-Flow + neuer Login-POST). Das genuegt fuer den
-// geforderten Fall: "Login-Button klicken -> Credentials zum Backend
-// -> Login komplett durchlaufen, als ob keine Cookies gesetzt waeren."
-function clearKratosCookies() {
-  // HttpOnly-Cookies koennen nicht geloescht werden.
-  // Diese Funktion bleibt als No-Op fuer Dokumentationszwecke.
-  // (document.cookie ist bei HttpOnly-Cookies leer.)
-  document.cookie = 'ory_kratos_session=; path=/; max-age=0'
-  for (const c of document.cookie.split('; ')) {
-    const name = c.split('=')[0]
-    if (name.startsWith('csrf_token_')) {
-      document.cookie = `${name}=; path=/; max-age=0`
-    }
-  }
+/**
+ * Erzwingt serverseitig den Abbruch der aktiven Kratos-Session.
+ *
+ * Hintergrund: Kratos v1.1 erlaubt es nicht, die eigene aktive Session
+ * per API zu beenden (DELETE /sessions/{id} -> 400 "cannot revoke
+ * current session"). Außerdem ist der Session-Cookie HttpOnly und kann
+ * nicht clientseitig geloescht werden.
+ *
+ * Loesung: nginx hat einen Endpoint GET /logout, der den Cookie
+ * serverseitig mit Max-Age=0 zuruecksetzt. Der Cookie hat KEIN
+ * Domain-Attribut, daher reicht ein plain fetch (redirect: 'manual')
+ * aus derselben Origin, um ihn zu ersetzen.
+ *
+ * Der Query-Parameter `token` ist der Pfad, zu dem nginx danach
+ * redirectet (302) - bei uns immer die Login-Seite.
+ *
+ * WICHTIG: Danach muss der Login-Flow NEU gestartet werden, da der
+ * CSRF-Token des alten Flows mit der Session gueltig war.
+ */
+async function forceLogout(redirectTo = '/admin/login') {
+  await fetch('/logout?token=' + encodeURIComponent(redirectTo), {
+    method: 'GET',
+    redirect: 'manual',
+  })
 }
 
 const auth = {
@@ -42,13 +35,27 @@ const auth = {
       return null
     }
   },
+
+  /**
+   * Login: setzt die Session NEU, egal ob vorher eine existierte.
+   *
+   * Ablauf:
+   *  1) forceLogout -> alte Session-Cookies werden serverseitig
+   *     mit Max-Age=0 zurueckgesetzt. Danach ist der Werami-Status
+   *     garantiert 401, und der Login-Flow-GET liefert keinen
+   *     Redirect, sondern einen frischen Flow.
+   *  2) Login-Flow holen (JSON).
+   *  3) Login senden (POST). Der POST setzt frische
+   *     ory_kratos_session + csrf_token_* Cookies.
+   */
   async login(identifier, password, redirectTo = '/admin/') {
-    // Vor dem Login: alte Kratos-Cookies "loeschen" (No-Op wegen HttpOnly).
-    // Der Login-POST ersetzt die alten Cookies automatisch.
-    clearKratosCookies()
-    // 1) Login-Flow holen (JSON, sonst 303). Der Flow enthaelt den
-    //    csrf_token direkt in ui.nodes - in dieser Kratos-Version gibt
-    //    der Flow-Details-Endpunkt 403 zurueck, also nicht dorthin.
+    // 1) Alte Session serverseitig abbrechen.
+    //    Ohne diesen Schritt: Wenn eine Session existiert, leitet
+    //    Kratos den Login-Flow-GET um (303) und axios bekommt HTML
+    //    statt JSON -> flow.id fehlt -> POST 400.
+    await forceLogout(redirectTo)
+
+    // 2) Frischen Login-Flow holen (JSON).
     const flowRes = await kratos.get('/self-service/login/browser', {
       headers: { Accept: 'application/json' },
       params: { redirect_to: window.location.origin + redirectTo },
@@ -56,8 +63,8 @@ const auth = {
     const flowId = flowRes.data.id
     const csrfNode = (flowRes.data.ui?.nodes || []).find(n => n.attributes?.name === 'csrf_token')
     const csrfToken = csrfNode?.attributes?.value
-    // 2) Login senden - dieser POST ersetzt die alten Session-Cookies
-    //    durch neue (oder_kratos_session + csrf_token_*).
+
+    // 3) Login senden. Setzt frische Session-Cookies.
     const loginRes = await kratos.post(`/self-service/login?flow=${flowId}`, {
       method: 'password',
       identifier,
@@ -66,22 +73,13 @@ const auth = {
     })
     return loginRes.data
   },
-  async logout() {
-    // Kratos v1.1: Die eigene aktive Session kann NICHT per API geendigt
-    // werden (DELETE /sessions/{id} -> 400 "cannot revoke current session",
-    // POST /sessions -> 405). Der offizielle Weg ist der Browser-Logout-Flow:
-    //   GET  /self-service/logout?token=*** Token aus der Login-UI
-    //   POST /self-service/logout?flow=<id>
-    // Der Token ist uns nicht bekannt (wir sind eine SPA ohne Kratos-UI).
-    //
-    // Cookies koennen nicht client-seitig geloescht werden (HttpOnly).
-    // Die Session bleibt also aktiv, bis der Naechste Login sie ersetzt.
-    // Das genuegt fuer den geforderten Fall: Login-Button klicken ->
-    // Credentials zum Backend -> Login komplett durchlaufen.
-    //
-    // (Fuer ein sauberes Logout wuerde ein Reverse-Proxy-Endpoint
-    //  benoetigt, der den Session-Cookie server-seitig loescht.)
-    clearKratosCookies()
+
+  /**
+   * Logout: serverseitig Session-Cookie loeschen.
+   * Kein Redirect - die SPA uebernimmt die Navigation.
+   */
+  async logout(redirectTo = '/admin/login') {
+    await forceLogout(redirectTo)
   },
 }
 

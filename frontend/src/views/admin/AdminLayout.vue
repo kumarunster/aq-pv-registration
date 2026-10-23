@@ -1,59 +1,74 @@
 <template>
   <div class="min-h-screen bg-slate-950 text-slate-100">
-    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-10">
-      <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-        <RouterLink to="/" class="flex items-center gap-2">
-          <span class="text-xl">⚡</span>
-          <span class="font-semibold">Amelanq Netz-Anmeldung</span>
-        </RouterLink>
-        <nav class="flex items-center gap-1">
-          <RouterLink
-            to="/admin/firmen"
-            class="px-3 py-1.5 rounded-lg text-sm"
-            :class="isRoute('admin-firmen') ? 'bg-slate-800 text-amber-400' : 'text-slate-400 hover:bg-slate-800'"
-          >
-            🏢 Firmen
+    <header v-if="ready">
+      <div class="bg-slate-900 border-b border-slate-800 sticky top-0 z-10">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+          <RouterLink to="/" class="flex items-center gap-2">
+            <span class="text-xl">⚡</span>
+            <span class="font-semibold">Amelanq Netz-Anmeldung</span>
           </RouterLink>
-          <RouterLink
-            to="/admin/kunden"
-            class="px-3 py-1.5 rounded-lg text-sm"
-            :class="isRoute('admin-kunden') ? 'bg-slate-800 text-amber-400' : 'text-slate-400 hover:bg-slate-800'"
-          >
-            👤 Kunden
-          </RouterLink>
-          <button @click="logout" class="ml-2 px-3 py-1.5 rounded-lg text-sm text-slate-400 hover:text-red-400">
-            Abmelden
-          </button>
-        </nav>
+          <nav class="flex items-center gap-1">
+            <RouterLink
+              to="/admin/firmen"
+              class="px-3 py-1.5 rounded-lg text-sm"
+              :class="isRoute('admin-firmen') ? 'bg-slate-800 text-amber-400' : 'text-slate-400 hover:bg-slate-800'"
+            >
+              🏢 Firmen
+            </RouterLink>
+            <RouterLink
+              to="/admin/kunden"
+              class="px-3 py-1.5 rounded-lg text-sm"
+              :class="isRoute('admin-kunden') ? 'bg-slate-800 text-amber-400' : 'text-slate-400 hover:bg-slate-800'"
+            >
+              👤 Kunden
+            </RouterLink>
+            <button @click="logout" class="ml-2 px-3 py-1.5 rounded-lg text-sm text-slate-400 hover:text-red-400">
+              Abmelden
+            </button>
+          </nav>
+        </div>
       </div>
+      <main class="max-w-6xl mx-auto px-4 py-6">
+        <RouterView />
+      </main>
     </header>
-    <main class="max-w-6xl mx-auto px-4 py-6">
-      <RouterView />
-    </main>
+    <div v-else class="min-h-screen flex items-center justify-center text-slate-400">Prüfe Anmeldestatus…</div>
   </div>
 </template>
 
 <script setup>
-import { useRouter, useRoute } from 'vue-router'
+import { ref, onBeforeMount, onBeforeUnmount } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import auth from '@/api/auth'
 
 const router = useRouter()
 const route = useRoute()
+const ready = ref(false)
+
+let unguard = null
+
+onBeforeMount(() => {
+  // EIGENER Guard: Prüft die Session immer, bevor die Seite gerendert wird.
+  // Der zentrale beforeEnter reicht NICHT, weil die Browser-Zurück-Taste
+  // aus dem BFCache kommt und den Guard überspringt. Der eigene Guard
+  // läuft dagegen bei jedem Route-Event - auch beim Zurück-Klicken.
+  unguard = router.beforeEach(async (to) => {
+    if (to.meta.public) { ready.value = true; return }
+    const user = await auth.checkSession()
+    if (!user) { ready.value = false; return { name: 'admin-login' } }
+    ready.value = true
+  })
+})
+
+onBeforeUnmount(() => { if (unguard) unguard() })
 
 function isRoute(name) {
   return route.name === name
 }
 
 async function logout() {
-  // Serverseitig den Kratos-Session-Cookie loeschen.
-  // Der Nginx-Endpoint /logout setzt den Cookie mit Max-Age=0 zurueck
-  // (ersetzt den HttpOnly-Cookie im Browser) und leitet dann zur Login-Seite
-  // zurueck. Danach hart neu laden, damit der Guard die neue Session-Abfrage
-  // mit dem geleerten Cookie macht.
-  await fetch('/logout', { method: 'GET', credentials: 'same-origin' })
-  // hart neu laden (window.location.assign): der alte Vue-Routerguard und
-  // jeder zustandsbehaftete Client (der noch "angemeldet" glaubt) werden
-  // mit dem neuen Dokument ersetzt.
+  // Session-Cookie serverseitig loeschen, dann hart neu laden.
+  await auth.logout('/admin/login')
   window.location.assign('/admin/login')
 }
 </script>
