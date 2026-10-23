@@ -3,10 +3,10 @@
 Anmeldung von PV-Anlagen, Wallboxen und Wärmepumpen bei den
 Netzbetreibern in Deutschland.
 
-**Stand: 21.10.2026 · v0.3.0 · Status: Admin-Frontend + Installer-UI (Login + Kunden) umgesetzt, Installer-API-Auth (401 trotz gültiger Session) offen, Netzbetreiber-Suche + Antragsformular offen**
+**Stand: 23.10.2026 · v0.3.0 · Status: Admin-Frontend + Installer-UI (Login + Kunden) umgesetzt, Lageplan-Editor als Muss für die Anlagen-Anmeldung eingeplant (Roadmap: `docs/ROADMAP_LAGEPLAN.md`), Installer-API-Auth (401 trotz gültiger Session) offen, Netzbetreiber-Suche + Antragsformular offen**
 
-> Aktualisiert am 20.10.2026 nach Abgleich mit Code und Dev-Stack.
-> Vorgängerversion: 19.10.2026 (v0.2.0).
+> Aktualisiert am 23.10.2026: Lageplan-Roadmap eingelesen, als Phase 5e in die Haupt-Roadmap übernommen.
+> Vorgängerversion: 20.10.2026 (v0.3.0).
 
 ---
 
@@ -114,6 +114,51 @@ Fristen, Erinnerungen) werden **nicht** gebaut. Stattdessen:
 - [ ] Anlage + Netzbetreiber zuordnen
 - [ ] Antrag anlegen, Status verfolgen
 - [ ] Dokumente anhängen (Anlagenblatt, Netzzugangsvertrag, …)
+
+---
+
+## Phase 5e — Lageplan-Editor ⚠️ NEU / MUST (Stand 23.10.2026)
+
+**Kolya-Mandats (23.10.2026):** Der Lageplan-Editor ist ein **Muss** für die
+Anlagen-Anmeldung: der Nutzer muss beim Anlagen-Anlegen **online WYSIWYG**
+einen Lageplan erstellen können.
+
+**Detaillierte Roadmap:** [`docs/ROADMAP_LAGEPLAN.md`](ROADMAP_LAGEPLAN.md)
+(10 Phasen, Detailgrad 1:1 als Arbeitsanweisungen für den Coding-Agenten).
+
+### Kernprinzipien (Auszug, Details in der Detail-Roadmap)
+
+- Zeichnen im Browser (Konva.js + vue-konva, Vue 3 + TypeScript)
+- Zeichnungsdaten als versioniertes JSON, gemeinsames FE/BE-Datenmodell
+- PDF-Rendering **ausschließlich** im Python-Backend (WeasyPrint + Jinja2)
+- SVG-basierte Vektorannotationen, **kein** Canvas-Screenshot des Frontends
+- MVP: keine Datenbank, keine Benutzerverwaltung, keine externen Cloud-Dienste
+
+### Integration in die Anwendung (Kern der Aufgabe)
+
+- [ ] Editor wird in das **Anlagen-Formular** eingebunden (Kunden-Formular,
+      Anlagen-Abschnitt) — pro Anlage ein Lageplan
+- [ ] Hintergrundbild-Upload (Liegenschaftskarten-Screenshot: PNG/JPEG/WebP)
+- [ ] Zeichenwerkzeuge: Rechteck (mit/ohne Schraffur), Pfeil, Text mit Hintergrund
+- [ ] Auswahl/Transformieren, Undo/Redo, Zoom/Pan
+- [ ] JSON wird mit der Anlage persistiert (MongoDB-Dokument der Anlage)
+- [ ] PDF-Export: `POST /api/lageplan/render` → A4-PDF (serverseitig)
+- [ ] PDF in die Anlage anhängen (Dokumente, vgl. Phase 5)
+- [ ] Backend: WeasyPrint + Pillow im Docker-Backend (System-Dependencies dokumentieren)
+
+### Abnahme-Kriterien (kurz, vollständig in Detail-Roadmap Phase 1–10)
+
+- [ ] Anlage ohne Lageplan kann **nicht** angelegt werden (Pflichtfeld)
+- [ ] Lageplan online WYSIWYG erstellt, als JSON gespeichert, als A4-PDF exportiert
+- [ ] FE-Darstellung und PDF stimmen überein (visuelle Regressionstests)
+
+### Abhängigkeiten / Reihenfolge
+
+- Kommt **vor** Phase 6/7 (Status-Tracking/Export) und ist Teil von Phase 5
+  (Antragsformular: Dokumente anhängen)
+- Detail-Roadmap läuft in eigenen Phasen 1–10 (Projektgrundlage → Datenmodell
+  → Editor → Werkzeuge → Auswahl/Undo → SVG-Renderer → PDF → Import/Export
+  → QA → Doku)
 
 ---
 
