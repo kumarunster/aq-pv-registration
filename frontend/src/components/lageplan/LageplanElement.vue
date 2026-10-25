@@ -21,7 +21,7 @@
   <!-- Text -->
   <v-group v-else-if="element.kind === 'text'" :config="{ name: 'el-' + element.id, draggable: store?.activeTool === 'select' }" @click="emit('click', element)" @dragend="emit('dragend', element)" @transform="emit('transform', element)">
     <v-text
-      :config="{ text: element.text, x: element.x, y: element.y, fontSize: element.font_size, fill: element.fill, width: element.width || undefined, visible: !editing }"
+      :config="{ text: element.text, x: element.x, y: element.y, fontSize: element.font_size, fill: element.fill, width: element.width || undefined, visible: !editing, background: '#f8fafc', padding: 4 }"
       @dblclick="emit('edit', element)"
       @dbltap="emit('edit', element)"
     />

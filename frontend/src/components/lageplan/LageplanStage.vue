@@ -207,7 +207,7 @@ function onMouseDown(e) {
     // addElement liefert die neue ID zurück und setzt selectedId bereits selbst
     const id = props.store.addElement({
       kind: 'text', x: p.x, y: p.y, text: '', width: 160,
-      font_size: 12, fill: '#111827', label: '',
+      font_size: 24, fill: '#111827', label: '',
     })
     previewElement.value = null
     isDrawing.value = false

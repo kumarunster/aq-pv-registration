@@ -438,6 +438,69 @@ Sauberer Weg, Kolya vorlegen: für Text-Elemente `name: 'el-' + id` und
 `draggable` auf den **Text-Node** statt auf die Group legen. Dann hängt der
 Transformer wie im Beispiel direkt am Text. **Noch nicht gebaut.**
 
+### Gemessen (25.10.2026, 14:44) — Textgröße 24px nicht sichtbar
+
+Kolya 14:39: „erstmal so commiten und pushen. danach: der Text soll
+doppelt so groß sein. der Text soll auf einem hellen hintergrund
+erscheinen."
+
+Commit `7c11a92` gepusht, dann `font_size` 12→24 und A4-`fill: '#f8fafc'`
+gebaut, Build `2026-10-25T14:45:31.000Z`, Container neu.
+
+**Gemessen:**
+- Helliger Hintergrund: ✔ Pixel (150,226) = (248,250,252)
+- `fontSize` des Text-Nodes: **12**, erwartet 24.
+  `grep` in der Source: `font_size: 24` ist in `LageplanStage.vue` Z. 211.
+
+**Bedeutung:** Die laufende App lief noch mit dem alten JS — die
+Build-Zeit im geladenen Bundle war weiterhin die alte. Der Text wurde
+also mit der alten Größe erzeugt.
+
+**Warum das wichtig ist:** Ohne das Messen wäre die Aussage
+„doppelt so groß" als erledigt durchgegangen, wäre aber falsch gewesen.
+
+### Korrektur (25.10.2026, 15:16): Heller Hintergrund NUR am Textfeld
+
+Kolya: „nein, nur am text feld soll der helle hintergrud sein!"
+
+Die A4-Füllung `fill: '#f8fafc'`, die ich gebaut hatte, ist wieder raus
+(das A4-Rechteck ist wieder ohne Füllung). Damit ist `fill` **noch nicht**
+an dem Text-Element, aber die Probe läuft:
+
+- Konva `Text` kennt das Attribut `background` plus `padding`.
+- `t.background()` ist **keine** Getter-Funktion — `getAttr('background')`
+  ist der Weg zum Auslesen.
+
+Nächster Schritt: `background: '#f8fafc'` + `padding` in
+`LageplanElement.vue` (Text-Config), und die Textarea bekommt dieselbe
+Füllung, damit sie wie ein Teil des Feldes wirkt, nicht wie ein Fenster
+darauf.
+
+### Zwischenstand (25.10.2026, 15:29) — Hintergrund am Text noch nicht sichtbar
+
+Kolya 15:24: „ich sehe keinen hintergrund am text" — richtig, das war
+gemessen, nicht nur geglaubt.
+
+Bisher gebaut:
+- A4-Füllung `fill: '#f8fafc'` ist wieder raus (Kolya 15:16:
+  „nein, nur am text feld soll der helle hintergrund sein!").
+- Text-Node hat im Konva-Template `background: '#f8fafc'` und
+  `padding: 4`.
+- Gemessen: `t.getAttr('background')` liefert `#f8fafc`, der Node liegt
+  korrekt im Layer, `visible: true`. **Aber die Pixel im Feld sind dunkel**
+  (`[2,6,23]`) — der Hintergrund wird also nicht gerendert, nur gespeichert.
+
+**Offene Frage, noch nicht getrennt:**
+1. Vue-Konva übergibt `background` nicht sauber an den Konva-Node
+   (Prüfung: `getAttrs()` im echten Template).
+2. Konva rendert `background` beim Text anders als erwartet
+   (Prüfung: frischer `Konva.Text` in derselben Stage, ohne Vue).
+
+**Noch nicht gebaut:**
+- Hintergrund für die Textarea beim Inline-Edit (sonst sieht sie aus
+  wie ein Fenster auf dem Textfeld, nicht wie ein Teil davon).
+- Breiten-Drag-Faktor für Text (steht weiter oben in dieser Datei).
+
 **Koordinaten für Playwright (gemessen, nicht geraten):**
 Canvas 1100×720, BoundingBox `x=65, y=89`. Stage 1100×720, PAGE 891×630,
 daraus `panX=(1100-891)/2=104.5`, `panY=(720-630)/2=45`.
