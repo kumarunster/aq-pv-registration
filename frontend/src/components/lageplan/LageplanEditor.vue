@@ -2,7 +2,12 @@
   <div class="max-w-6xl mx-auto space-y-4">
     <!-- Kopfzeile -->
     <div class="flex flex-wrap items-center justify-between gap-2">
-      <h1 class="text-2xl font-bold text-white">📐 Lageplan-Editor</h1>
+      <div class="flex flex-col">
+        <h1 class="text-2xl font-bold text-white">📐 Lageplan-Editor</h1>
+        <span class="text-xs text-slate-500">
+          Build: {{ new Date(BUILD_TIME).toLocaleString('de-DE') }}
+        </span>
+      </div>
       <div class="flex flex-wrap gap-2">
         <button
           class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-sm hover:bg-slate-700"
@@ -135,6 +140,7 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { BUILD_TIME } from '@/build-time'
 import axios from 'axios'
 import { useLayoutStore } from './useLayoutStore.js'
 import LageplanStage from './LageplanStage.vue'

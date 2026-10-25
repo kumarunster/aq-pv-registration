@@ -1,5 +1,4 @@
 import { reactive, ref, computed } from 'vue'
-import { nanoid } from 'nanoid' // wir brauchen unique IDs; wir bauen sie selbst, nanoid nicht installiert
 
 let counter = 0
 function nextId() {
@@ -52,7 +51,10 @@ export function useLayoutStore() {
     layout.background_image_height = height
   }
 
-  return {
+  // reactive() packt die Refs aus: store.selectedId liefert den Wert,
+  // store.selectedId = x schreibt in den Ref. Ohne das vergleichen
+  // Templates Ref-Objekte gegen Strings.
+  return reactive({
     layout,
     selectedId,
     activeTool,
@@ -61,5 +63,5 @@ export function useLayoutStore() {
     removeElement,
     clearAll,
     setBackground,
-  }
+  })
 }

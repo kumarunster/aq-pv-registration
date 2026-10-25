@@ -2,7 +2,7 @@
   <div
     ref="containerRef"
     class="stage-container relative overflow-hidden bg-slate-950 rounded-xl border border-slate-800"
-    :style="{ height: stageHeight }"
+    :style="{ height: stageHeight + 'px' }"
   >
     <v-stage
       ref="stageRef"
@@ -11,8 +11,10 @@
       @mousedown="onMouseDown"
       @mousemove="onMouseMove"
       @mouseup="onMouseUp"
+      @click="handleStageClick"
+      @tap="handleStageClick"
     >
-      <v-layer>
+      <v-layer ref="layerRef">
         <!-- Hintergrundbild (falls vorhanden) -->
         <v-image
           v-if="backgroundImage"
@@ -41,10 +43,13 @@
           v-for="el in store.layout.elements"
           :key="el.id"
           :element="el"
+          :store="store"
           :selected="store.selectedId === el.id"
+          :editing="editingId === el.id"
           @click="onElementClick(el)"
           @dragend="onElementDragEnd(el)"
-          @transformend="onElementTransformEnd(el)"
+          @edit="startTextEdit(el)"
+          @transform="onTextTransform(el)"
         />
         <!-- Zeichen-Preview (während gezogen wird) -->
         <LageplanElement
@@ -52,6 +57,8 @@
           :element="previewElement"
           :selected="false"
         />
+        <!-- EIN Transformer für den ganzen Layer (Konva-Standard) -->
+        <v-transformer ref="trRef" :config="{ boundBoxFunc: boundBoxFunc }" />
       </v-layer>
     </v-stage>
 
@@ -80,8 +87,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onBeforeUnmount, watch } from 'vue'
-import { Stage as VStage, Layer as VLayer, Rect as VRect, Image as VImage } from 'vue-konva'
+import { ref, reactive, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { Stage as VStage, Layer as VLayer, Rect as VRect, Image as VImage, Transformer as VTransformer } from 'vue-konva'
 import LageplanElement from './LageplanElement.vue'
 
 const props = defineProps({
@@ -94,7 +101,16 @@ const PAGE_W = 297 * 3 // mm -> px (3 px/mm => 891 px)
 const PAGE_H = 210 * 3 // mm -> px (3 px/mm => 630 px)
 
 const stageRef = ref(null)
+const layerRef = ref(null)
+const trRef = ref(null)
 const containerRef = ref(null)
+// ID des Text-Elements, das gerade über die Textarea bearbeitet wird
+const editingId = ref(null)
+
+// Mindestgröße beim Skalieren
+function boundBoxFunc(oldBox, newBox) {
+  return newBox.width < 4 || newBox.height < 4 ? oldBox : newBox
+}
 
 // Zoom & Pan
 const scale = ref(1)
@@ -182,15 +198,23 @@ function onMouseDown(e) {
   } else if (tool === 'arrow') {
     previewElement.value = { id: 'preview', kind: 'arrow', x1: p.x, y1: p.y, x2: p.x, y2: p.y, stroke: '#1d4ed8', stroke_width: 1.5, arrowhead_size: 8, label: '' }
   } else if (tool === 'hatching') {
-    previewElement.value = { id: 'preview', kind: 'hatching', points: [[p.x, p.y]], fill: 'none', stroke: '#1d4ed8', stroke_width: 1, hatch_angle: 45, hatch_spacing: 4, label: '' }
+    // Schraffur: orange Linien auf transparentem Grund, Umriss ebenfalls orange.
+    // 'none' bleibt der Store-/Backend-Wert; LageplanElement macht daraus null für Konva.
+    previewElement.value = { id: 'preview', kind: 'hatching', points: [[p.x, p.y]], fill: 'none', stroke: '#f97316', stroke_width: 1, hatch_angle: 45, hatch_spacing: 4, label: '' }
   } else if (tool === 'text') {
-    // Text: ein Mal klicken platziert, zweimal schließt
-    const txt = prompt('Text:')
-    if (txt) {
-      props.store.addElement({ kind: 'text', x: p.x, y: p.y, text: txt, font_size: 12, fill: '#111827', label: txt })
-    }
+    // Leeres Text-Element anlegen und sofort im Canvas editieren
+    // (kein prompt() mehr). Bleibt es leer, wird es wieder entfernt.
+    // addElement liefert die neue ID zurück und setzt selectedId bereits selbst
+    const id = props.store.addElement({
+      kind: 'text', x: p.x, y: p.y, text: '', width: 160,
+      font_size: 12, fill: '#111827', label: '',
+    })
     previewElement.value = null
     isDrawing.value = false
+    nextTick(() => {
+      const created = props.store.layout.elements.find((e) => e.id === id)
+      if (created) startTextEdit(created, true)
+    })
   }
 }
 
@@ -208,11 +232,10 @@ function onMouseMove() {
     previewElement.value.x2 = p.x
     previewElement.value.y2 = p.y
   } else if (tool === 'hatching' && previewElement.value) {
-    if (previewElement.value.points.length < 2) {
-      previewElement.value.points.push([p.x, p.y])
-    } else {
-      previewElement.value.points[previewElement.value.points.length - 1] = [p.x, p.y]
-    }
+    // Wie beim Rechteck: aus Start- und Aktuellpunkt ein 4-Punkt-Polygon
+    const x1 = Math.min(s.x, p.x), y1 = Math.min(s.y, p.y)
+    const x2 = Math.max(s.x, p.x), y2 = Math.max(s.y, p.y)
+    previewElement.value.points = [[x1, y1], [x2, y1], [x2, y2], [x1, y2]]
   }
 }
 
@@ -223,6 +246,9 @@ function onMouseUp() {
   const el = previewElement.value
   previewElement.value = null
   if (!el) return
+  // Vorschau-ID verwerfen: sonst bekommt jedes Element die ID 'preview'
+  // und addElement vergibt wegen `element.id || nextId()` nie eine neue.
+  delete el.id
   // Mindestgröße prüfen
   if (tool === 'rect' && (el.width > 5 && el.height > 5)) {
     props.store.addElement(el)
@@ -233,20 +259,174 @@ function onMouseUp() {
       props.store.addElement(el)
     }
   } else if (tool === 'hatching' && el.points.length >= 3) {
-    props.store.addElement(el)
+    const xs = el.points.map((q) => q[0])
+    const ys = el.points.map((q) => q[1])
+    const w = Math.max(...xs) - Math.min(...xs)
+    const h = Math.max(...ys) - Math.min(...ys)
+    if (w > 5 && h > 5) props.store.addElement(el)
   }
 }
 
 function onElementClick(el) {
+  console.log('[LP] onElementClick', el.id, 'tool=', props.store.activeTool)
   if (props.store.activeTool === 'select') {
     props.store.selectedId = el.id
+    console.log('[LP] selectedId gesetzt ->', props.store.selectedId)
   }
 }
 function onElementDragEnd(el) {
-  // Konva hat x/y bereits aktualisiert
+  // Konva hat x/y bereits auf dem Node aktualisiert
 }
-function onElementTransformEnd(el) {
-  // Skalierung/Rotation wurde angewendet
+
+// --- Transformer an das ausgewählte Element hängen (Konva-Beispiel) ---
+function attachTransformer(id) {
+  const layerNode = layerRef.value?.getNode?.()
+  const trNode = trRef.value?.getNode?.()
+  if (!layerNode || !trNode) return
+  const node = id ? layerNode.findOne('.el-' + id) : null
+  // Text wird nur in der Breite gezogen (Umbruch statt Verzerrung),
+  // alles andere bekommt die vollen Anker.
+  const el = props.store.layout.elements.find((e) => e.id === id)
+  trNode.enabledAnchors(
+    el?.kind === 'text'
+      ? ['middle-left', 'middle-right']
+      : ['top-left', 'top-center', 'top-right', 'middle-left', 'middle-right', 'bottom-left', 'bottom-center', 'bottom-right']
+  )
+  trNode.nodes(node ? [node] : [])
+  trNode.moveToTop()
+  layerNode.batchDraw()
+}
+
+// Beim Ziehen an der Breite: scaleX in width zurückrechnen, scaleX zurücksetzen.
+// Dadurch bricht der Text um, statt in die Breite gezogen zu werden.
+function onTextTransform(el) {
+  const layerNode = layerRef.value?.getNode?.()
+  const group = layerNode?.findOne('.el-' + el.id)
+  const textNode = group?.findOne('Text')
+  if (!group || !textNode) return
+  const newWidth = Math.max(30, textNode.width() * group.scaleX())
+  el.width = newWidth
+  textNode.width(newWidth)
+  group.scaleX(1)
+  layerNode.batchDraw()
+}
+
+// Text direkt im Canvas bearbeiten: DOM-Textarea exakt über den Konva-Text legen.
+// Portiert aus Kolyas Konva-Beispiel; zusätzlich mit getAbsoluteScale(),
+// weil unsere Stage zoom- und verschiebbar ist.
+function startTextEdit(el, isNew = false) {
+  const layerNode = layerRef.value?.getNode?.()
+  const stageNode = stageRef.value?.getNode?.()
+  const group = layerNode?.findOne('.el-' + el.id)
+  const textNode = group?.findOne('Text')
+  if (!stageNode || !textNode) return
+
+  editingId.value = el.id
+  const trNode = trRef.value?.getNode?.()
+  trNode?.nodes([])
+  layerNode.batchDraw()
+
+  const scale = textNode.getAbsoluteScale().x
+  const pos = textNode.absolutePosition()
+  const stageBox = stageNode.container().getBoundingClientRect()
+
+  const ta = document.createElement('textarea')
+  document.body.appendChild(ta)
+  ta.value = el.text || ''
+  ta.style.position = 'absolute'
+  ta.style.top = stageBox.top + window.scrollY + pos.y + 'px'
+  ta.style.left = stageBox.left + window.scrollX + pos.x + 'px'
+  ta.style.width = (el.width || 160) * scale + 'px'
+  ta.style.fontSize = textNode.fontSize() * scale + 'px'
+  ta.style.fontFamily = textNode.fontFamily()
+  ta.style.lineHeight = textNode.lineHeight()
+  ta.style.color = textNode.fill()
+  ta.style.textAlign = textNode.align()
+  ta.style.border = 'none'
+  ta.style.padding = '0px'
+  ta.style.margin = '0px'
+  ta.style.overflow = 'hidden'
+  ta.style.background = 'none'
+  ta.style.outline = 'none'
+  ta.style.resize = 'none'
+  ta.style.zIndex = '50'
+  ta.style.transformOrigin = 'left top'
+  const rot = textNode.getAbsoluteRotation ? textNode.getAbsoluteRotation() : textNode.rotation()
+  ta.style.transform = rot ? 'rotateZ(' + rot + 'deg)' : ''
+  ta.style.height = 'auto'
+  ta.style.height = ta.scrollHeight + 3 + 'px'
+
+  let closed = false
+  function cleanup() {
+    if (closed) return
+    closed = true
+    window.removeEventListener('click', onOutside)
+    window.removeEventListener('touchstart', onOutside)
+    if (ta.parentNode) ta.parentNode.removeChild(ta)
+    editingId.value = null
+    nextTick(() => attachTransformer(props.store.selectedId))
+  }
+  function commit() {
+    const v = ta.value
+    cleanup()
+    const target = props.store.layout.elements.find((e) => e.id === el.id)
+    if (!target) return
+    if (!v.trim()) {
+      // leer gelassen -> neu angelegtes Element wieder entfernen
+      props.store.removeElement(target.id)
+      props.store.selectedId = null
+      return
+    }
+    target.text = v
+    target.label = v
+  }
+  function cancel() {
+    cleanup()
+    const target = props.store.layout.elements.find((e) => e.id === el.id)
+    if (target && isNew && !(target.text || '').trim()) {
+      props.store.removeElement(target.id)
+      props.store.selectedId = null
+    }
+  }
+  function onOutside(ev) {
+    if (ev.target !== ta) commit()
+  }
+
+  ta.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); commit(); return }
+    if (ev.key === 'Escape') { cancel(); return }
+    // Höhe mitwachsen lassen
+    requestAnimationFrame(() => {
+      ta.style.height = 'auto'
+      ta.style.height = ta.scrollHeight + 'px'
+    })
+  })
+  // Fokus erst setzen, wenn der auslösende Klick fertig verarbeitet ist —
+  // sonst zieht der Browser den Fokus gleich wieder auf <body> zurück
+  // (gemessen: document.activeElement war BODY, Tastatureingaben gingen ins Leere).
+  setTimeout(() => {
+    ta.focus()
+    ta.setSelectionRange(ta.value.length, ta.value.length)
+    window.addEventListener('click', onOutside)
+    window.addEventListener('touchstart', onOutside)
+  })
+}
+
+watch(
+  () => props.store.selectedId,
+  (id) => nextTick(() => attachTransformer(id))
+)
+
+// Klick auf Stage oder Hintergrundbild = Abwahl
+function handleStageClick(e) {
+  const stageNode = stageRef.value?.getNode?.()
+  const target = e.target
+  console.log('[LP] handleStageClick target=', target?.getClassName?.(), 'name=', target?.name?.(), 'isStage=', target === stageNode)
+  if (props.store.activeTool !== 'select') return
+  if (target === stageNode || target.getClassName?.() === 'Image') {
+    props.store.selectedId = null
+    console.log('[LP] abgewaehlt')
+  }
 }
 
 onMounted(() => {
