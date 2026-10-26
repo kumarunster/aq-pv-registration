@@ -301,13 +301,13 @@ function attachTransformer(id) {
 // Dadurch bricht der Text um, statt in die Breite gezogen zu werden.
 function onTextTransform(el) {
   const layerNode = layerRef.value?.getNode?.()
-  const group = layerNode?.findOne('.el-' + el.id)
-  const textNode = group?.findOne('Text')
-  if (!group || !textNode) return
-  const newWidth = Math.max(30, textNode.width() * group.scaleX())
+  const labelNode = layerNode?.findOne('.el-' + el.id)
+  const textNode = labelNode?.findOne('Text')
+  if (!labelNode || !textNode) return
+  const newWidth = Math.max(30, textNode.width() * labelNode.scaleX())
   el.width = newWidth
   textNode.width(newWidth)
-  group.scaleX(1)
+  labelNode.scaleX(1)
   layerNode.batchDraw()
 }
 
@@ -317,8 +317,8 @@ function onTextTransform(el) {
 function startTextEdit(el, isNew = false) {
   const layerNode = layerRef.value?.getNode?.()
   const stageNode = stageRef.value?.getNode?.()
-  const group = layerNode?.findOne('.el-' + el.id)
-  const textNode = group?.findOne('Text')
+  const labelNode = layerNode?.findOne('.el-' + el.id)
+  const textNode = labelNode?.findOne('Text')
   if (!stageNode || !textNode) return
 
   editingId.value = el.id

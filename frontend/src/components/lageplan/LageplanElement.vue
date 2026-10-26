@@ -18,19 +18,41 @@
     <v-path :config="{ sceneFunc: drawArrowHead, scaleX: 1, scaleY: 1 }" />
   </v-group>
 
-  <!-- Text -->
-  <v-group v-else-if="element.kind === 'text'" :config="{ name: 'el-' + element.id, draggable: store?.activeTool === 'select' }" @click="emit('click', element)" @dragend="emit('dragend', element)" @transform="emit('transform', element)">
+  <!-- Text: Konva.Label = Rect (Hintergrund) + Text, rendert zuverlässig -->
+  <v-label v-else-if="element.kind === 'text'" :config="{ name: 'el-' + element.id, x: element.x, y: element.y, draggable: store?.activeTool === 'select' }" @click="emit('click', element)" @dragend="emit('dragend', element)">
+    <v-rect
+      :config="{
+        width: textLabelWidth,
+        height: textLabelHeight,
+        fill: 'rgba(248, 250, 252, 0.92)',
+        cornerRadius: 4,
+        listening: false,
+      }"
+    />
     <v-text
-      :config="{ text: element.text, x: element.x, y: element.y, fontSize: element.font_size, fill: element.fill, width: element.width || undefined, visible: !editing, background: '#f8fafc', padding: 4 }"
+      :config="{
+        x: textPadding,
+        y: textPadding,
+        text: element.text,
+        fontSize: element.font_size,
+        fontFamily: 'Arial',
+        fill: element.fill,
+        width: element.width || 160,
+        lineHeight: 1.2,
+        wrap: 'word',
+        visible: !editing,
+        align: 'center',
+        verticalAlign: 'middle',
+      }"
       @dblclick="emit('edit', element)"
       @dbltap="emit('edit', element)"
     />
-  </v-group>
+  </v-label>
 </template>
 
 <script setup>
 import { computed } from 'vue'
-import { Group as VGroup, Rect as VRect, Line as VLine, Text as VText, Path as VPath } from 'vue-konva'
+import { Group as VGroup, Rect as VRect, Line as VLine, Text as VText, Path as VPath, Label as VLabel } from 'vue-konva'
 
 const props = defineProps({
   element: { type: Object, required: true },
@@ -41,6 +63,16 @@ const props = defineProps({
   editing: { type: Boolean, default: false },
 })
 const emit = defineEmits(['click', 'dragend', 'edit', 'transform'])
+
+// Konva.Label: Padding und Höhe für den Text-Block
+const textPadding = 8
+const textLineHeight = 1.2
+const textLabelWidth = computed(() => (props.element.width || 160) + textPadding * 2)
+const textLabelHeight = computed(() => {
+  const lines = props.element.text ? props.element.text.split('\n').length : 1
+  const fontSize = props.element.font_size || 24
+  return lines * fontSize * textLineHeight + textPadding * 2
+})
 
 const flatPoints = computed(() => {
   if (props.element.kind !== 'hatching') return []

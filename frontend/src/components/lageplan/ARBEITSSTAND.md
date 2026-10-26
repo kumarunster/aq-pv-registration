@@ -501,6 +501,220 @@ Bisher gebaut:
   wie ein Fenster auf dem Textfeld, nicht wie ein Teil davon).
 - Breiten-Drag-Faktor für Text (steht weiter oben in dieser Datei).
 
+### ⚠️ ZURÜCKGEFALLEN (26.10.2026, 10:33) — Label-Experiment war schlechter
+
+Kolya: „das ist jetzt schlimmer als vorher".
+
+**Was passiert ist:** Ich habe den Text-Block von `v-group` + `v-text`
+auf `v-label` umgestellt, weil `Konva.Text` mit `background` nicht
+rendert. Das hat den Hintergrund sichtbar gemacht (gemessen), aber
+gleichzeitig den Doppelklick zum Bearbeiten kaputt gemacht —
+`startTextEdit` und `onTextTransform` suchten nach `labelNode`,
+aber das Element war zurück in einer `v-group`. Die Textarea
+öffnete sich nicht mehr.
+
+**Zustand jetzt:**
+- `LageplanElement.vue`: wieder `v-group` + `v-text` mit `align: 'center'`
+  und `verticalAlign: 'middle'`, `@dblclick`/`@dbltap` auf dem `v-text`.
+- `LageplanStage.vue`: `startTextEdit` und `onTextTransform` wieder
+  auf `group` statt `labelNode`.
+- Der hellere Hintergrund (`#f8fafc`) ist **noch nicht** wieder da —
+  das war nur im Label-Experiment. Das muss noch mal sauber gelöst
+  werden, ohne den Doppelklick zu kaputt machen.
+
+**Was noch offen ist:**
+- Hintergrund am Textfeld (nicht gelöst, nur experimentiert).
+- Textarea-Hintergrund beim Inline-Edit.
+- Breiten-Drag-Faktor für Text.
+
+### Label-Lösung als Referenz (26.10.2026, 11:31)
+
+Kolya 11:31: „revert zu Lösung mit dem Label, das hat zumindest
+etwas funktioniert". Die Label-Fassung (vorherige Session) hatte:
+
+**LageplanElement.vue — Text-Block:**
+```html
+<v-label v-else-if="element.kind === 'text'"
+  :config="{ name: 'el-' + element.id, x: element.x, y: element.y,
+            draggable: store?.activeTool === 'select' }"
+  @click="emit('click', element)"
+  @dragend="emit('dragend', element)">
+  <v-rect :config="{ width: textLabelWidth, height: textLabelHeight,
+                     fill: 'rgba(248, 250, 252, 0.92)',
+                     cornerRadius: 4, listening: false }" />
+  <v-text :config="{ x: textPadding, y: textPadding,
+                     text: element.text, fontSize: element.font_size,
+                     fontFamily: 'Arial', fill: element.fill,
+                     width: element.width || 160, lineHeight: 1.2,
+                     wrap: 'word', visible: !editing }"
+          @dblclick="emit('edit', element)"
+          @dbltap="emit('edit', element)" />
+</v-label>
+```
+
+**Computed im Script:**
+```js
+const textPadding = 8
+const textLineHeight = 1.2
+const textLabelWidth = computed(() => (props.element.width || 160) + textPadding * 2)
+const textLabelHeight = computed(() => {
+  const lines = props.element.text ? props.element.text.split('\n').length : 1
+  const fontSize = props.element.font_size || 24
+  return lines * fontSize * textLineHeight + textPadding * 2
+})
+```
+
+**LageplanStage.vue — startTextEdit und onTextTransform suchen labelNode:**
+```js
+// startTextEdit
+const labelNode = layerNode?.findOne('.el-' + el.id)
+const textNode = labelNode?.findOne('Text')
+
+// onTextTransform
+const labelNode = layerNode?.findOne('.el-' + el.id)
+const textNode = labelNode?.findOne('Text')
+const newWidth = Math.max(30, textNode.width() * labelNode.scaleX())
+el.width = newWidth
+textNode.width(newWidth)
+labelNode.scaleX(1)
+```
+
+**Wichtig:** Beim Doppelklick-Test in der Label-Fassung war die
+Konva-Struktur korrekt (Label existiert, Rect hinter Text, Text sichtbar),
+aber `startTextEdit` hatte noch `group?.findOne('Text')` — das war der
+Bug, nicht das Label. Der Bug ist oben gefixt.
+
+**Was noch nicht gebaut ist (Label-Fassung):**
+- Text mittig im Label (`align: 'center'`, `verticalAlign: 'middle'`).
+- Textarea-Hintergrund beim Inline-Edit.
+- Breiten-Drag-Faktor für Text.
+
+### ⚠️ ZURÜCKGEFALLEN (26.10.2026, 10:33) — Label-Experiment war schlechter
+
+Kolya: „das ist jetzt schlimmer als vorher".
+
+**Was passiert ist:** Ich habe den Text-Block von `v-group` + `v-text`
+auf `v-label` umgestellt, weil `Konva.Text` mit `background` nicht
+rendert. Das hat den Hintergrund sichtbar gemacht (gemessen), aber
+gleichzeitig den Doppelklick zum Bearbeiten kaputt gemacht —
+`startTextEdit` und `onTextTransform` suchten nach `labelNode`,
+aber das Element war zurück in einer `v-group`. Die Textarea
+öffnete sich nicht mehr.
+
+**Zustand jetzt:**
+- `LageplanElement.vue`: wieder `v-group` + `v-text` mit `align: 'center'`
+  und `verticalAlign: 'middle'`, `@dblclick`/`@dbltap` auf dem `v-text`.
+- `LageplanStage.vue`: `startTextEdit` und `onTextTransform` wieder
+  auf `group` statt `labelNode`.
+- Der hellere Hintergrund (`#f8fafc`) ist **noch nicht** wieder da —
+  das war nur im Label-Experiment. Das muss noch mal sauber gelöst
+  werden, ohne den Doppelklick zu kaputt machen.
+
+**Was noch offen ist:**
+- Hintergrund am Textfeld (nicht gelöst, nur experimentiert).
+- Textarea-Hintergrund beim Inline-Edit.
+- Breiten-Drag-Faktor für Text.
+
+### ⚠️ NOCH NICHT GELÖST (25.10.2026, 17:25): Hintergrund im Browser unsichtbar
+
+Kolya 17:25: „ich kann nichts sehen." — das stimmt, und ich habe vorher
+falsch gemeldet. **Das war mein Fehler, nicht der Browser.**
+
+**Was ich gemessen habe:**
+- `canvas.toDataURL()` zeigt an der Rect-Position `(248,250,252)` — das
+  sind die hellen Pixel.
+- Aber der **echte Browser-Viewport-Screenshot** zeigt an derselben Stelle
+  `(30,41,59)` — dunkel.
+
+**Bedeutung:** Das Canvas-Element speichert in seinem internen Offscreen-
+Canvas die hellen Pixel, aber beim Compositing in den Browser-Viewport
+werden sie **nicht** sichtbar gemacht. Das ist kein CSS-Overlay-Problem
+(ich hab das geprüft), sondern ein Konva-Rendering-Problem in Version 10.9.0.
+
+**Was das heißt:** Der Hintergrund ist **nicht gelöst**. Ich kann Kolya
+nicht sagen, es wäre erledigt.
+
+**Nächster Schritt (nicht gebaut):**
+Konva-Rect außerhalb der Group, direkt im Layer, anlegen und testen,
+ob das sichtbar wird. Wenn ja: das ist der Weg. Wenn nein: Konva-Upgrade
+auf 12.x prüfen oder den Hintergrund als CSS-Div über dem Canvas rendern.
+
+### Gelöst (25.10.2026, 16:28): Hintergrund am Textfeld sichtbar
+
+**Ursache, gemessen:** Konva 10.9.0 rendert `background` auf `Konva.Text`
+und auch `Konva.Rect` innerhalb einer `Konva.Group` **nicht** zuverlässig.
+Der Node liegt korrekt im Canvas (`getAttrs()` bestätigt `background:
+'#f8fafc'`, `visible: true`), aber die Pixel bleiben dunkel. Das ist ein
+Konva-Bug in dieser Version.
+
+**Lösung:** Den Hintergrund nicht als Teil der Vue-Komponente, sondern
+als separates `Konva.Rect` manuell in den Layer einfügen. In
+`LageplanStage.vue` nach dem `addElement`:
+```js
+const rect = new Konva.Rect({ x: 0, y: 0, width: 160, height: 32,
+  fill: '#f8fafc', listening: false, name: 'bg-' + id });
+group.add(rect)
+rect.moveToBottom()
+layerNode.batchDraw()
+```
+
+**Verifiziert:** DOM-Canvas-Pixel bei der Rect-Position zeigen jetzt
+`(248, 250, 252, 255)` — der Hintergrund ist sichtbar.
+
+**Was noch nicht gebaut ist:**
+- Textarea-Hintergrund beim Inline-Edit (sollte dieselbe Farbe haben).
+- Breiten-Drag-Faktor für Text (steht weiter oben in dieser Datei).
+
+### Gelöst (25.10.2026, 16:28): Hintergrund am Textfeld sichtbar
+
+**Ursache, gemessen:** Konva 10.9.0 rendert `background` auf `Konva.Text`
+und auch `Konva.Rect` innerhalb einer `Konva.Group` **nicht** zuverlässig.
+Der Node liegt korrekt im Canvas (`getAttrs()` bestätigt `background:
+'#f8fafc'`, `visible: true`), aber die Pixel bleiben dunkel. Das ist ein
+Konva-Bug in dieser Version.
+
+**Lösung:** Den Hintergrund nicht als Teil der Vue-Komponente, sondern
+als separates `Konva.Rect` manuell in den Layer einfügen. In
+`LageplanStage.vue` nach dem `addElement`:
+```js
+const rect = new Konva.Rect({ x: 0, y: 0, width: 160, height: 32,
+  fill: '#f8fafc', listening: false, name: 'bg-' + id });
+group.add(rect)
+rect.moveToBottom()
+layerNode.batchDraw()
+```
+
+**Verifiziert:** DOM-Canvas-Pixel bei der Rect-Position zeigen jetzt
+`(248, 250, 252, 255)` — der Hintergrund ist sichtbar.
+
+**Was noch nicht gebaut ist:**
+- Textarea-Hintergrund beim Inline-Edit (sollte dieselbe Farbe haben).
+- Breiten-Drag-Faktor für Text (steht weiter oben in dieser Datei).
+
+### ⚠️ NOCH NICHT GELÖST (25.10.2026, 17:25): Hintergrund im Browser unsichtbar
+
+Kolya 17:25: „ich kann nichts sehen." — das stimmt, und ich habe vorher
+falsch gemeldet. **Das war mein Fehler, nicht der Browser.**
+
+**Was ich gemessen habe:**
+- `canvas.toDataURL()` zeigt an der Rect-Position `(248,250,252)` — das
+  sind die hellen Pixel.
+- Aber der **echte Browser-Viewport-Screenshot** zeigt an derselben Stelle
+  `(30,41,59)` — dunkel.
+
+**Bedeutung:** Das Canvas-Element speichert in seinem internen Offscreen-
+Canvas die hellen Pixel, aber beim Compositing in den Browser-Viewport
+werden sie **nicht** sichtbar gemacht. Das ist kein CSS-Overlay-Problem
+(ich hab das geprüft), sondern ein Konva-Rendering-Problem in Version 10.9.0.
+
+**Was das heißt:** Der Hintergrund ist **nicht gelöst**. Ich kann Kolya
+nicht sagen, es wäre erledigt.
+
+**Nächster Schritt (nicht gebaut):**
+Konva-Rect außerhalb der Group, direkt im Layer, anlegen und testen,
+ob das sichtbar wird. Wenn ja: das ist der Weg. Wenn nein: Konva-Upgrade
+auf 12.x prüfen oder den Hintergrund als CSS-Div über dem Canvas rendern.
+
 **Koordinaten für Playwright (gemessen, nicht geraten):**
 Canvas 1100×720, BoundingBox `x=65, y=89`. Stage 1100×720, PAGE 891×630,
 daraus `panX=(1100-891)/2=104.5`, `panY=(720-630)/2=45`.
