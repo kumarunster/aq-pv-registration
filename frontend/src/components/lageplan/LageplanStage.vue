@@ -306,42 +306,29 @@ function syncFromCanvas() {
     if (!node) continue
     // Rotation aus der Node lesen (relativ zum Layer)
     el.rotation = Math.round(node.rotation() * 10) / 10
-    const nodeX = node.x(), nodeY = node.y()
+    // WICHTIG: Nur die Group-Position nehmen (wie onElementDragEnd).
+    // Die inneren Shapes (Rect/Line) haben ihre eigenen x/y, die NICHТ
+    // addiert werden dürfen — sie sind relativ zur Group.
+    el.x = node.x()
+    el.y = node.y()
     if (el.kind === 'rect') {
+      // Breite/Höhe aus der Rect lesen (für den Fall dass sie geskalaht wurde)
       const rectNode = node.findOne('Rect')
       if (rectNode) {
-        el.x = nodeX + rectNode.x()
-        el.y = nodeY + rectNode.y()
+        el.width = Math.round(rectNode.width() * node.scaleX())
+        el.height = Math.round(rectNode.height() * node.scaleY())
       }
     } else if (el.kind === 'text') {
-      el.x = nodeX
-      el.y = nodeY
       const textNode = node.findOne('Text')
       if (textNode) {
         el.width = Math.round(textNode.width() * node.scaleX())
       }
     } else if (el.kind === 'arrow') {
-      const lineNode = node.findOne('Line')
-      if (lineNode) {
-        const pts = lineNode.points()
-        if (pts && pts.length >= 4) {
-          el.x1 = nodeX + pts[0]
-          el.y1 = nodeY + pts[1]
-          el.x2 = nodeX + pts[2]
-          el.y2 = nodeY + pts[3]
-        }
-      }
+      // Pfeil: Punkte sind absolut in der Zeichenfläche, NUR Rotation aus Group
+      // Position bleibt wie in onElementDragEnd (node.x/y)
     } else if (el.kind === 'hatching') {
-      const lineNode = node.findOne('Line')
-      if (lineNode) {
-        const pts = lineNode.points()
-        if (pts && pts.length >= 6) {
-          el.points = []
-          for (let i = 0; i < pts.length; i += 2) {
-            el.points.push([nodeX + pts[i], nodeY + pts[i + 1]])
-          }
-        }
-      }
+      // Schraffur: Punkte sind absolut in der Zeichenfläche
+      // Position bleibt wie in onElementDragEnd (node.x/y)
     }
   }
   return layoutCopy
