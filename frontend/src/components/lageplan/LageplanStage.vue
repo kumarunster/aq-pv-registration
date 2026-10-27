@@ -294,11 +294,8 @@ function onElementDragEnd(el) {
 }
 
 // Vor PDF-Export: alle Konva-Nodes abfragen und die echten Werte
-// (Position, Rotation, Scale) aus der Transformationsmatrix in den Store schreiben.
-// node.getTransform().getMatrix() gibt [a, b, c, d, e, f]:
-//   e, f = Translation (x, y)
-//   a = cos(r)*scaleX, b = -sin(r)*scaleY, c = sin(r)*scaleX, d = cos(r)*scaleY
-// -> Rotation = atan2(b, a), scaleX = sqrt(a^2+b^2), scaleY = sqrt(c^2+d^2)
+// (Position, Rotation, Scale) aus den Canvas-Nodes in eine Kopie
+// des Layouts schreiben. Der Store bleibt unverändert (kein Re-Render).
 function syncFromCanvas() {
   const layerNode = layerRef.value?.getNode?.()
   if (!layerNode) return null
@@ -309,22 +306,16 @@ function syncFromCanvas() {
     if (!node) continue
     // Rotation aus der Node lesen (relativ zum Layer)
     el.rotation = Math.round(node.rotation() * 10) / 10
-    const sx = node.scaleX()
-    const sy = node.scaleY()
-    // Position relativ zum Layer lesen
-    // Die Group (node) hat eigene x/y relativ zum Layer.
-    // Der Child-Node (Rect/Line) hat eigene x/y relativ zur Group.
-    // Layer-Position = node.x() + child.x()
-    let childX = 0, childY = 0
+    const nodeX = node.x(), nodeY = node.y()
     if (el.kind === 'rect') {
       const rectNode = node.findOne('Rect')
       if (rectNode) {
-        childX = node.x() + rectNode.x()
-        childY = node.y() + rectNode.y()
+        el.x = nodeX + rectNode.x()
+        el.y = nodeY + rectNode.y()
       }
     } else if (el.kind === 'text') {
-      childX = node.x()
-      childY = node.y()
+      el.x = nodeX
+      el.y = nodeY
       const textNode = node.findOne('Text')
       if (textNode) {
         el.width = Math.round(textNode.width() * node.scaleX())
@@ -334,10 +325,10 @@ function syncFromCanvas() {
       if (lineNode) {
         const pts = lineNode.points()
         if (pts && pts.length >= 4) {
-          el.x1 = node.x() + pts[0]
-          el.y1 = node.y() + pts[1]
-          el.x2 = node.x() + pts[2]
-          el.y2 = node.y() + pts[3]
+          el.x1 = nodeX + pts[0]
+          el.y1 = nodeY + pts[1]
+          el.x2 = nodeX + pts[2]
+          el.y2 = nodeY + pts[3]
         }
       }
     } else if (el.kind === 'hatching') {
@@ -347,13 +338,11 @@ function syncFromCanvas() {
         if (pts && pts.length >= 6) {
           el.points = []
           for (let i = 0; i < pts.length; i += 2) {
-            el.points.push([node.x() + pts[i], node.y() + pts[i + 1]])
+            el.points.push([nodeX + pts[i], nodeY + pts[i + 1]])
           }
         }
       }
     }
-    el.x = childX
-    el.y = childY
   }
   return layoutCopy
 }
