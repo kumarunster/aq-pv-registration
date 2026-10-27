@@ -66,12 +66,56 @@ def _wrap_html(svg: str, layout: Layout) -> str:
     """Bettet das SVG in eine A4-HTML-Vorlage fuer WeasyPrint."""
     from xml.sax.saxutils import escape
 
+    # A4-Porträt (210mm breit, 297mm hoch) wie im Ziel-PDF
+    title = escape(layout.title)
+    # Gemarkung/Flur/Flurstück aus metadata, falls vorhanden
+    metadata = layout.metadata or {}
+    gemarkung = metadata.get("gemarkung", "")
+    flur = metadata.get("flur", "")
+    flurstueck = metadata.get("flurstueck", "")
+    meta_line = ""
+    if gemarkung or flur or flurstueck:
+        parts = []
+        if gemarkung:
+            parts.append(f"Gemarkung: {escape(gemarkung)}")
+        if flur:
+            parts.append(f"Flur: {escape(flur)}")
+        if flurstueck:
+            parts.append(f"Flurstück: {escape(flurstueck)}")
+        meta_line = " — ".join(parts)
+
     return f'''<!DOCTYPE html>
 <html lang="de">
-<head><meta charset="utf-8"/></head>
-<body style="margin:0">
-  <div style="width: 210mm; height: 297mm; padding: 0; box-sizing: border-box; position: relative;">
-    {svg}
+<head>
+<meta charset="utf-8"/>
+<style>
+  @page {{
+    size: 210mm 297mm;
+    margin: 0;
+  }}
+  body {{
+    margin: 0;
+    padding: 0;
+    font-family: sans-serif;
+  }}
+</style>
+</head>
+<body>
+  <div style="width: 210mm; height: 297mm; position: relative;">
+    <!-- Header -->
+    <div style="position: absolute; top: 10mm; left: 10mm; right: 10mm;">
+      <div style="font-size: 14pt; font-weight: bold; line-height: 1.2;">{title}</div>
+      <div style="font-size: 9pt; color: #444; margin-top: 2mm;">{meta_line}</div>
+    </div>
+    <!-- N-Pfeil (Kompass) oben rechts -->
+    <div style="position: absolute; top: 12mm; right: 15mm; text-align: center;">
+      <div style="font-size: 10pt; font-weight: bold;">N</div>
+      <div style="font-size: 14pt;">↑</div>
+    </div>
+    <!-- Plan-Bereich: SVG (297x210mm) 1:1 auf A4-Quer, zentral auf Portraet-Seite -->
+    <div style="position: absolute; top: 60mm; left: 6.5mm; width: 297mm; height: 210mm;">
+      {svg}
+    </div>
   </div>
 </body>
 </html>'''

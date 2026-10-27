@@ -31,8 +31,8 @@
     />
     <v-text
       :config="{
-        x: textPadding,
-        y: textPadding,
+        x: 0,
+        y: 0,
         text: element.text,
         fontSize: element.font_size,
         fontFamily: 'Arial',

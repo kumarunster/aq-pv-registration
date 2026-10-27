@@ -51,6 +51,7 @@
       :stage-width="1100"
       :stage-height="720"
       @preview-text="onPlaceText"
+      @layout-change="onStageChange"
     />
 
     <!-- Eigenschaften-Panel -->
@@ -81,6 +82,7 @@
             <input
               v-model="store.selectedElement.text"
               class="mt-1 w-full px-2 py-1 rounded bg-slate-800 text-slate-200"
+              @change="onFieldChanged('text')"
             />
           </label>
           <label>
@@ -90,6 +92,7 @@
               type="number"
               min="2"
               class="mt-1 w-full px-2 py-1 rounded bg-slate-800 text-slate-200"
+              @change="onFieldChanged('font_size')"
             />
           </label>
         </template>
@@ -101,6 +104,7 @@
             v-model="store.selectedElement.fill"
             type="color"
             class="mt-1 w-full px-2 py-1 rounded bg-slate-800 text-slate-200"
+            @change="onFieldChanged('fill')"
           />
         </label>
         <label v-if="store.selectedElement.kind !== 'text'">
@@ -109,6 +113,7 @@
             v-model="store.selectedElement.stroke"
             type="color"
             class="mt-1 w-full px-2 py-1 rounded bg-slate-800 text-slate-200"
+            @change="onFieldChanged('stroke')"
           />
         </label>
 
@@ -119,6 +124,7 @@
             v-model="store.selectedElement.label"
             class="mt-1 w-full px-2 py-1 rounded bg-slate-800 text-slate-200"
             placeholder="z.B. Grundstück, PV-Feld, Nord"
+            @change="onFieldChanged('label')"
           />
         </label>
       </div>
@@ -139,7 +145,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import { BUILD_TIME } from '@/build-time'
 import axios from 'axios'
 import { useLayoutStore } from './useLayoutStore.js'
@@ -149,35 +155,83 @@ const store = useLayoutStore()
 const fileInput = ref(null)
 const pdfBusy = ref(false)
 
-// Undo/Redo-Stack (Layout-Snapshots)
+// Undo/Redo-Stack (Layout-Snapshots).
+// commitSnapshot() = 'Neue Änderung' -> alte Redo-Zweige verwerfen,
+// Aufnahme anhängen. snapshot() = 'Zustand wiederhergestellt' (Undo/Redo/
+// initiale Aufnahme) -> History nicht verändern.
 const history = ref([])
 const historyIndex = ref(-1)
 
-function snapshot() {
+function commitSnapshot() {
+  const snap = JSON.parse(JSON.stringify(store.layout))
   history.value = history.value.slice(0, historyIndex.value + 1)
-  history.value.push(JSON.parse(JSON.stringify(store.layout)))
+  history.value.push(snap)
+  if (history.value.length > 100) history.value.shift()
   historyIndex.value = history.value.length - 1
+}
+
+function restore(snap) {
+  // layout ist reactive: Array-Referenzen müssen bleiben, sonst verlieren
+  // die Stage-Komponenten ihre Beobachtung. content() schreibt die
+  // Snapshot-Daten in die vorhandenen Arrays, ersetzt aber die Referenzen.
+  const next = JSON.parse(JSON.stringify(snap))
+  const cur = store.layout
+  cur.title = next.title
+  cur.background_image_url = next.background_image_url
+  cur.background_image_width = next.background_image_width
+  cur.background_image_height = next.background_image_height
+  cur.metadata = next.metadata
+  cur.elements.length = 0
+  for (const el of next.elements) cur.elements.push(el)
+  if (store.selectedId && !next.elements.some((e) => e.id === store.selectedId)) {
+    store.selectedId = null
+  }
 }
 
 function undo() {
   if (historyIndex.value <= 0) return
   historyIndex.value -= 1
-  const snap = history.value[historyIndex.value]
-  store.layout = { ...snap, elements: snap.elements.map(e => ({ ...e })) }
-  store.selectedId = null
+  restore(history.value[historyIndex.value])
 }
 
 function redo() {
   if (historyIndex.value >= history.value.length - 1) return
   historyIndex.value += 1
-  const snap = history.value[historyIndex.value]
-  store.layout = { ...snap, elements: snap.elements.map(e => ({ ...e })) }
-  store.selectedId = null
+  restore(history.value[historyIndex.value])
+}
+
+// Panel-Änderungen (v-model schreibt direkt in store.selectedElement):
+// erst aufnehmen, wenn sich der Zustand wirklich geändert hat.
+function onFieldChanged() {
+  if (!store.selectedElement) return
+  const snap = JSON.parse(JSON.stringify(store.layout))
+  if (historyIndex.value >= 0 && JSON.stringify(snap) === JSON.stringify(history.value[historyIndex.value])) return
+  commitSnapshot()
 }
 
 onMounted(() => {
-  snapshot() // initiale Aufnahme
+  commitSnapshot() // initiale Aufnahme
+  window.addEventListener('keydown', onKeydown)
 })
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKeydown)
+})
+
+function onKeydown(e) {
+  if (!(e.ctrlKey || e.metaKey)) return
+  const k = e.key.toLowerCase()
+  if (k === 'z' && !e.shiftKey) {
+    e.preventDefault()
+    undo()
+  } else if (k === 'z' && e.shiftKey) {
+    e.preventDefault()
+    redo()
+  } else if (k === 'y') {
+    e.preventDefault()
+    redo()
+  }
+}
 
 function onImportImage() {
   fileInput.value?.click()
@@ -186,17 +240,27 @@ function onImportImage() {
 function onFileChosen(e) {
   const file = e.target.files?.[0]
   if (!file) return
-  const reader = new FileReader()
-  reader.onload = () => {
-    store.setBackground(reader.result, 0, 0)
-    snapshot()
+  const img = new Image()
+  const url = URL.createObjectURL(file)
+  img.onload = () => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      store.setBackground(reader.result, img.width, img.height)
+      commitSnapshot()
+    }
+    reader.readAsDataURL(file)
+    URL.revokeObjectURL(url)
   }
-  reader.readAsDataURL(file)
+  img.src = url
   e.target.value = ''
 }
 
 function onPlaceText() {
   // wird vom Stage-Component als Event „preview-text" ausgelöst
+}
+
+function onStageChange() {
+  commitSnapshot()
 }
 
 function onExportJson() {
@@ -233,6 +297,6 @@ async function onExportPdf() {
 function removeSelected() {
   if (!store.selectedId) return
   store.removeElement(store.selectedId)
-  snapshot()
+  commitSnapshot()
 }
 </script>

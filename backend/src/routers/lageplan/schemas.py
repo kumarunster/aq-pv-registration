@@ -79,6 +79,7 @@ class TextElement(BaseModel):
     font_size: float = Field(default=12.0, gt=0)
     fill: str = Field(default="#111827", pattern=r"^#[0-9a-fA-F]{6}$")
     label: str = Field(default="", max_length=200)
+    width: Optional[float] = Field(default=None, gt=0, description="Breite in px (Editor)")
 
 
 # Union aller Elementarten

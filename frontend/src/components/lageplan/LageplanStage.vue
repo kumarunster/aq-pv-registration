@@ -96,6 +96,7 @@ const props = defineProps({
   stageWidth: { type: Number, default: 1200 },
   stageHeight: { type: Number, default: 800 },
 })
+const emit = defineEmits(['layoutChange'])
 
 const PAGE_W = 297 * 3 // mm -> px (3 px/mm => 891 px)
 const PAGE_H = 210 * 3 // mm -> px (3 px/mm => 630 px)
@@ -215,6 +216,7 @@ function onMouseDown(e) {
       const created = props.store.layout.elements.find((e) => e.id === id)
       if (created) startTextEdit(created, true)
     })
+    emit('layoutChange')
   }
 }
 
@@ -252,18 +254,23 @@ function onMouseUp() {
   // Mindestgröße prüfen
   if (tool === 'rect' && (el.width > 5 && el.height > 5)) {
     props.store.addElement(el)
+    emit('layoutChange')
   } else if (tool === 'arrow') {
     const dx = el.x2 - el.x1
     const dy = el.y2 - el.y1
     if (Math.sqrt(dx * dx + dy * dy) > 5) {
       props.store.addElement(el)
+      emit('layoutChange')
     }
   } else if (tool === 'hatching' && el.points.length >= 3) {
     const xs = el.points.map((q) => q[0])
     const ys = el.points.map((q) => q[1])
     const w = Math.max(...xs) - Math.min(...xs)
     const h = Math.max(...ys) - Math.min(...ys)
-    if (w > 5 && h > 5) props.store.addElement(el)
+    if (w > 5 && h > 5) {
+      props.store.addElement(el)
+      emit('layoutChange')
+    }
   }
 }
 
@@ -272,10 +279,18 @@ function onElementClick(el) {
   if (props.store.activeTool === 'select') {
     props.store.selectedId = el.id
     console.log('[LP] selectedId gesetzt ->', props.store.selectedId)
+    attachTransformer(el.id)
   }
 }
 function onElementDragEnd(el) {
-  // Konva hat x/y bereits auf dem Node aktualisiert
+  // Konva hat die Position auf dem Node geändert; zurück in den Store.
+  const layerNode = layerRef.value?.getNode?.()
+  const node = layerNode?.findOne('.el-' + el.id)
+  if (!node) return
+  el.x = node.x()
+  el.y = node.y()
+  attachTransformer(el.id)
+  emit('layoutChange')
 }
 
 // --- Transformer an das ausgewählte Element hängen (Konva-Beispiel) ---
@@ -371,6 +386,7 @@ function startTextEdit(el, isNew = false) {
     cleanup()
     const target = props.store.layout.elements.find((e) => e.id === el.id)
     if (!target) return
+    emit('layoutChange')
     if (!v.trim()) {
       // leer gelassen -> neu angelegtes Element wieder entfernen
       props.store.removeElement(target.id)
