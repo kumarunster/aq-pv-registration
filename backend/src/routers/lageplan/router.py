@@ -9,12 +9,16 @@ Endpunkte:
 """
 from __future__ import annotations
 
+import logging
+
 import httpx
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
 from src.config import settings
 from src.routers.lageplan.schemas import Layout
 from src.services.lageplan.svg_renderer import render_svg
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/lageplan", tags=["lageplan"])
 
@@ -46,8 +50,18 @@ async def generate_pdf(layout: Layout) -> Response:
       3. Die Vorlage geht an den WeasyPrint-Service.
       4. WeasyPrint liefert das fertige A4-PDF.
     """
-    svg = render_svg(layout)
-    html = _wrap_html(svg, layout)
+    logger.info("PDF-Export: %d Elemente, Title=%r", len(layout.elements), layout.title)
+    try:
+        svg = render_svg(layout)
+    except Exception as e:
+        logger.exception("SVG-Renderfehler bei PDF-Export")
+        raise HTTPException(status_code=500, detail=f"SVG-Renderfehler: {e.__class__.__name__}: {e}")
+
+    try:
+        html = _wrap_html(svg, layout)
+    except Exception as e:
+        logger.exception("HTML-Vorlagenfehler bei PDF-Export")
+        raise HTTPException(status_code=500, detail=f"HTML-Vorlagenfehler: {e.__class__.__name__}: {e}")
 
     async with httpx.AsyncClient(timeout=60.0) as client:
         try:
@@ -56,9 +70,12 @@ async def generate_pdf(layout: Layout) -> Response:
                 json={"html": html},
             )
         except httpx.RequestError as e:
+            logger.exception("WeasyPrint nicht erreichbar")
             raise HTTPException(status_code=502, detail=f"WeasyPrint nicht erreichbar: {e}")
         if r.status_code != 200:
-            raise HTTPException(status_code=502, detail=f"WeasyPrint Fehler: {r.text[:300]}")
+            logger.error("WeasyPrint lieferte HTTP %d: %s", r.status_code, r.text[:500])
+            raise HTTPException(status_code=502, detail=f"WeasyPrint Fehler (HTTP {r.status_code}): {r.text[:300]}")
+        logger.info("PDF-Export erfolgreich: %d Bytes", len(r.content))
         return Response(content=r.content, media_type="application/pdf")
 
 

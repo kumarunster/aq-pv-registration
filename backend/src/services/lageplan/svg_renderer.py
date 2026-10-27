@@ -59,13 +59,19 @@ def _mm2(points) -> str:
 
 
 def _render_element(el) -> str:
+    rot = getattr(el, 'rotation', 0) or 0.0
     if isinstance(el, RectElement):
-        return (
+        cx = _mm(el.x) + _mm(el.width) / 2
+        cy = _mm(el.y) + _mm(el.height) / 2
+        body = (
             f'<rect x="{_mm(el.x):.3f}" y="{_mm(el.y):.3f}" '
             f'width="{_mm(el.width):.3f}" height="{_mm(el.height):.3f}" '
             f'fill="{el.fill}" stroke="{el.stroke}" stroke-width="{el.stroke_width / 3.0:.3f}"/>'
             + (_label(el, _mm(el.x) + 1, _mm(el.y) + 3) if el.label else "")
         )
+        if rot:
+            return f'<g transform="rotate({rot:.3f} {cx:.3f} {cy:.3f})">{body}</g>'
+        return body
     if isinstance(el, HatchingElement):
         pts = _mm2(el.points)
         body = (
@@ -73,24 +79,33 @@ def _render_element(el) -> str:
             f'stroke="{el.stroke}" stroke-width="{el.stroke_width / 3.0:.3f}"/>'
         )
         body += _hatch_lines(el)
+        cx_px, cy_px = _centroid(el.points)
+        cx, cy = _mm(cx_px), _mm(cy_px)
         if el.label:
-            cx, cy = _mm(*_centroid(el.points))
             body += _label(el, cx, cy)
+        if rot:
+            return f'<g transform="rotate({rot:.3f} {cx:.3f} {cy:.3f})">{body}</g>'
         return f'<g>{body}</g>'
     if isinstance(el, ArrowElement):
         arrow = _arrow_head(el)
-        return (
+        body = (
             f'<line x1="{_mm(el.x1):.3f}" y1="{_mm(el.y1):.3f}" '
             f'x2="{_mm(el.x2):.3f}" y2="{_mm(el.y2):.3f}" '
             f'stroke="{el.stroke}" stroke-width="{el.stroke_width / 3.0:.3f}"/>'
             f'<polygon points="{arrow}" fill="{el.stroke}"/>'
             + (_label(el, _mm(el.x2) + 1, _mm(el.y2)) if el.label else "")
         )
+        if rot:
+            cx = (_mm(el.x1) + _mm(el.x2)) / 2
+            cy = (_mm(el.y1) + _mm(el.y2)) / 2
+            return f'<g transform="rotate({rot:.3f} {cx:.3f} {cy:.3f})">{body}</g>'
+        return body
     if isinstance(el, TextElement):
         font_mm = _mm(el.font_size)
-        width_mm = _mm(getattr(el, 'width', 160))
+        width_px = getattr(el, 'width', None) or 160
+        width_mm = _mm(width_px)
         height_mm = _mm(32)
-        return (
+        body = (
             f'<g>'
             f'<rect x="{_mm(el.x):.3f}" y="{_mm(el.y):.3f}" '
             f'width="{width_mm:.3f}" height="{height_mm:.3f}" '
@@ -101,6 +116,11 @@ def _render_element(el) -> str:
             f'text-anchor="middle" fill="{el.fill}">{escape(el.text)}</text>'
             f'</g>'
         )
+        if rot:
+            cx = _mm(el.x) + width_mm / 2
+            cy = _mm(el.y) + height_mm / 2
+            return f'<g transform="rotate({rot:.3f} {cx:.3f} {cy:.3f})">{body}</g>'
+        return body
     return ""
 
 

@@ -40,6 +40,7 @@ class RectElement(BaseModel):
     stroke: str = Field(default="#1d4ed8", pattern=r"^#[0-9a-fA-F]{6}$")
     stroke_width: float = Field(default=1.0, gt=0)
     label: str = Field(default="", max_length=200)
+    rotation: float = Field(default=0.0, description="Rotation in Grad um den Mittelpunkt")
 
 
 class HatchingElement(BaseModel):
@@ -53,6 +54,7 @@ class HatchingElement(BaseModel):
     hatch_angle: float = Field(default=45.0)
     hatch_spacing: float = Field(default=4.0, gt=0)
     label: str = Field(default="", max_length=200)
+    rotation: float = Field(default=0.0, description="Rotation in Grad um den Mittelpunkt")
 
 
 class ArrowElement(BaseModel):
@@ -67,6 +69,7 @@ class ArrowElement(BaseModel):
     stroke_width: float = Field(default=1.5, gt=0)
     arrowhead_size: float = Field(default=8.0, gt=0)
     label: str = Field(default="", max_length=200)
+    rotation: float = Field(default=0.0, description="Rotation in Grad um den Mittelpunkt")
 
 
 class TextElement(BaseModel):
@@ -80,6 +83,7 @@ class TextElement(BaseModel):
     fill: str = Field(default="#111827", pattern=r"^#[0-9a-fA-F]{6}$")
     label: str = Field(default="", max_length=200)
     width: Optional[float] = Field(default=None, gt=0, description="Breite in px (Editor)")
+    rotation: float = Field(default=0.0, description="Rotation in Grad um den Mittelpunkt")
 
 
 # Union aller Elementarten

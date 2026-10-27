@@ -47,6 +47,7 @@
 
     <!-- Editor-Stage -->
     <LageplanStage
+      ref="stageRef"
       :store="store"
       :stage-width="1100"
       :stage-height="720"
@@ -153,6 +154,7 @@ import LageplanStage from './LageplanStage.vue'
 
 const store = useLayoutStore()
 const fileInput = ref(null)
+const stageRef = ref(null)
 const pdfBusy = ref(false)
 
 // Undo/Redo-Stack (Layout-Snapshots).
@@ -276,7 +278,11 @@ function onExportJson() {
 async function onExportPdf() {
   pdfBusy.value = true
   try {
-    const res = await axios.post('/api/lageplan/pdf', store.layout, {
+    // Vor dem Export: alle Konva-Nodes abfragen und die echten
+    // Positionen/Rotationen/Skalierungen aus der Transformationsmatrix
+    // in eine Kopie des Layouts schreiben (Store bleibt unverändert).
+    const exportLayout = stageRef.value?.syncFromCanvas?.() || store.layout
+    const res = await axios.post('/api/lageplan/pdf', exportLayout, {
       responseType: 'blob',
       timeout: 90000,
     })
