@@ -85,11 +85,12 @@ def _wrap_html(svg: str, layout: Layout) -> str:
 
     # A4-Porträt (210mm breit, 297mm hoch) wie im Ziel-PDF
     title = escape(layout.title)
-    # Gemarkung/Flur/Flurstück aus metadata, falls vorhanden
+    # Gemarkung/Flur/Flurstück + Adresse aus metadata, falls vorhanden
     metadata = layout.metadata or {}
-    gemarkung = metadata.get("gemarkung", "")
-    flur = metadata.get("flur", "")
-    flurstueck = metadata.get("flurstueck", "")
+    adresse = (metadata.get("adresse") or "").strip()
+    gemarkung = (metadata.get("gemarkung") or "").strip()
+    flur = (metadata.get("flur") or "").strip()
+    flurstueck = (metadata.get("flurstueck") or "").strip()
     meta_line = ""
     if gemarkung or flur or flurstueck:
         parts = []
@@ -100,6 +101,8 @@ def _wrap_html(svg: str, layout: Layout) -> str:
         if flurstueck:
             parts.append(f"Flurstück: {escape(flurstueck)}")
         meta_line = " — ".join(parts)
+    # Adresse als eigene Zeile, nur wenn vorhanden
+    address_line = f"<div style=\"font-size: 9pt; color: #444; margin-top: 2mm;\">{escape(adresse)}</div>" if adresse else ""
 
     return f'''<!DOCTYPE html>
 <html lang="de">
@@ -122,6 +125,7 @@ def _wrap_html(svg: str, layout: Layout) -> str:
     <!-- Header -->
     <div style="position: absolute; top: 10mm; left: 10mm; right: 10mm;">
       <div style="font-size: 14pt; font-weight: bold; line-height: 1.2;">{title}</div>
+      {address_line}
       <div style="font-size: 9pt; color: #444; margin-top: 2mm;">{meta_line}</div>
     </div>
     <!-- N-Pfeil (Kompass) oben rechts -->

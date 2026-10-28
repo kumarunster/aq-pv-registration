@@ -317,6 +317,12 @@ function toISO(d) {
 }
 
 async function save() {
+  // PV-Anlagen benötigen einen Lageplan (Pflichtfeld, Roadmap Phase 5e)
+  const pvWithout = form.plants.filter(p => p.anlagetyp === 'pv' && !p.lageplan)
+  if (pvWithout.length) {
+    alert(`PV-Anlage(n) ohne Lageplan: ${pvWithout.map((p,i)=>`Anlage ${form.plants.indexOf(p)+1}`).join(', ')}. Bitte zuerst den Lageplan erstellen.`)
+    return
+  }
   saving.value = true
   try {
     const payload = {

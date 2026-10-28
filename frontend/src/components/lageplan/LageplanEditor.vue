@@ -55,6 +55,58 @@
       @layout-change="onStageChange"
     />
 
+    <!-- Projektdaten (für PDF-Header) -->
+    <div class="bg-slate-900 rounded-xl p-4 border border-slate-800 space-y-3">
+      <h3 class="text-sm font-semibold text-white">📝 Projektdaten (PDF-Header)</h3>
+      <div class="grid grid-cols-2 gap-3 text-sm">
+        <label class="col-span-2">
+          <span class="text-slate-400">Titel</span>
+          <input
+            v-model="store.layout.title"
+            class="mt-1 w-full px-2 py-1 rounded bg-slate-800 text-slate-200"
+            placeholder="z.B. Lageplan PV-Anlage Musterstraße 5"
+            @change="onMetaChanged"
+          />
+        </label>
+        <label class="col-span-2">
+          <span class="text-slate-400">Adresse</span>
+          <input
+            v-model="meta.adresse"
+            class="mt-1 w-full px-2 py-1 rounded bg-slate-800 text-slate-200"
+            placeholder="Straße, PLZ Ort"
+            @change="onMetaChanged"
+          />
+        </label>
+        <label>
+          <span class="text-slate-400">Gemarkung</span>
+          <input
+            v-model="meta.gemarkung"
+            class="mt-1 w-full px-2 py-1 rounded bg-slate-800 text-slate-200"
+            placeholder="z.B. Musterort"
+            @change="onMetaChanged"
+          />
+        </label>
+        <label>
+          <span class="text-slate-400">Flur</span>
+          <input
+            v-model="meta.flur"
+            class="mt-1 w-full px-2 py-1 rounded bg-slate-800 text-slate-200"
+            placeholder="z.B. 3"
+            @change="onMetaChanged"
+          />
+        </label>
+        <label class="col-span-2">
+          <span class="text-slate-400">Flurstück</span>
+          <input
+            v-model="meta.flurstueck"
+            class="mt-1 w-full px-2 py-1 rounded bg-slate-800 text-slate-200"
+            placeholder="z.B. 123/2"
+            @change="onMetaChanged"
+          />
+        </label>
+      </div>
+    </div>
+
     <!-- Eigenschaften-Panel -->
     <div
       v-if="store.selectedElement"
@@ -152,10 +204,22 @@ import axios from 'axios'
 import { useLayoutStore } from './useLayoutStore.js'
 import LageplanStage from './LageplanStage.vue'
 
+const props = defineProps({
+  // Bestehendes Layout (z. B. aus Anlagen-Formular). Wird beim Mount geladen.
+  initialLayout: { type: Object, default: null },
+})
 const store = useLayoutStore()
 const fileInput = ref(null)
 const stageRef = ref(null)
 const pdfBusy = ref(false)
+
+// Projektdaten für den PDF-Header (Adresse, Gemarkung/Flur/Flurstück).
+// Direkt in store.layout.metadata gehalten, damit JSON-Export und PDF mitnehmen.
+const meta = computed(() => {
+  const m = store.layout.metadata
+  if (!m) store.layout.metadata = {}
+  return store.layout.metadata
+})
 
 // Undo/Redo-Stack (Layout-Snapshots).
 // commitSnapshot() = 'Neue Änderung' -> alte Redo-Zweige verwerfen,
@@ -211,7 +275,26 @@ function onFieldChanged() {
   commitSnapshot()
 }
 
+// Meta-Daten (Titel/Adresse/Gemarkung/…) sind Teil des Layouts,
+// also identisch als Undo-Snapshot aufzunehmen.
+function onMetaChanged() {
+  const snap = JSON.parse(JSON.stringify(store.layout))
+  if (historyIndex.value >= 0 && JSON.stringify(snap) === JSON.stringify(history.value[historyIndex.value])) return
+  commitSnapshot()
+}
+
 onMounted(() => {
+  // Bestehendes Layout (z. B. aus Anlage) in den Store laden
+  if (props.initialLayout) {
+    const l = props.initialLayout
+    store.layout.title = l.title || 'Lageplan'
+    store.layout.background_image_url = l.background_image_url || null
+    store.layout.background_image_width = l.background_image_width || null
+    store.layout.background_image_height = l.background_image_height || null
+    store.layout.metadata = l.metadata || {}
+    store.layout.elements.length = 0
+    for (const el of (l.elements || [])) store.layout.elements.push(el)
+  }
   commitSnapshot() // initiale Aufnahme
   window.addEventListener('keydown', onKeydown)
 })
@@ -305,4 +388,26 @@ function removeSelected() {
   store.removeElement(store.selectedId)
   commitSnapshot()
 }
+
+// Exponiert das aktuelle Layout (inkl. Canvas-Sync) für den Parent.
+function getLayout() {
+  // Echte Node-Positionen aus dem Canvas übernehmen
+  const stage = stageRef.value
+  if (stage?.syncFromCanvas) {
+    const layout = stage.syncFromCanvas()
+    // Store zurücksetzen auf die gecachten Werte (für Undo/Redo)
+    store.layout.title = layout.title
+    store.layout.background_image_url = layout.background_image_url
+    store.layout.background_image_width = layout.background_image_width
+    store.layout.background_image_height = layout.background_image_height
+    store.layout.metadata = layout.metadata
+    store.layout.elements.length = 0
+    for (const el of layout.elements) store.layout.elements.push(el)
+    return layout
+  }
+  return JSON.parse(JSON.stringify(store.layout))
+}
+
+// Parent-Komponente kann getLayout() per ref aufrufen
+defineExpose({ getLayout })
 </script>

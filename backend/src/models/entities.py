@@ -1,6 +1,6 @@
 """Pydantic-Modelle fuer Firmen, Kunden und Anlagen.
 
-Stand: v0.2.0 - Datenmodell nach Kolya-Spezifikation (19.10.2026).
+Stand: v0.3.1 - Lageplan + Dokumente an Anlage (28.10.2026).
 """
 
 from datetime import date, datetime
@@ -14,6 +14,30 @@ class Anlagetyp(str, Enum):
     PV = "pv"
     WALLBOX = "wallbox"
     WAERMEPUMPE = "waermepumpe"
+
+
+# ---------------------------------------------------------------- Lageplan
+
+class LageplanDocument(BaseModel):
+    """Lageplan-JSON (spiegelt backend/src/routers/lageplan/schemas.py::Layout).
+
+    Wird als komplettes Layout-Objekt gespeichert (title, background,
+    elements, metadata).
+    """
+    title: str = "Lageplan"
+    background_image_url: Optional[str] = None
+    background_image_width: Optional[float] = None
+    background_image_height: Optional[float] = None
+    elements: list[dict] = []
+    metadata: dict = {}
+
+
+class DocumentRef(BaseModel):
+    """Referenz auf ein gespeichertes Dokument (z. B. PDF)."""
+    name: str
+    url: str
+    content_type: str = "application/pdf"
+    created_at: Optional[datetime] = None
 
 
 # ---------------------------------------------------------------- Firmen
@@ -118,6 +142,8 @@ class PlantCreate(BaseModel):
     mstr_eeg: Optional[str] = None
     mstr_see_battery: Optional[str] = None
     notes: Optional[str] = None
+    lageplan: Optional[LageplanDocument] = None
+    documents: list[DocumentRef] = []
 
 
 class PlantUpdate(BaseModel):
@@ -134,6 +160,8 @@ class PlantUpdate(BaseModel):
     mstr_eeg: Optional[str] = None
     mstr_see_battery: Optional[str] = None
     notes: Optional[str] = None
+    lageplan: Optional[LageplanDocument] = None
+    documents: Optional[list[DocumentRef]] = None
 
 
 # ---------------------------------------------------------------- Health
