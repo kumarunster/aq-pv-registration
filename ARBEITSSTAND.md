@@ -1,77 +1,90 @@
 # ARBEITSSTAND - Amelanq Netz-Anmeldung
 
-**Stand: 21.10.2026, 12:20 · v0.3.0**
+**Stand: 28.10.2026, 12:15 · v0.3.0 · Branch `feature/lageplan-editor`**
 
 ---
 
-## 1. Was heute umgesetzt wurde
+## 1. Lageplan-Editor — heute fertiggestellt (28.10.2026)
 
-### Roadmap neu aufgebaut (docs/ROADMAP.md)
-- Vorher: flache "Schritte"-Liste, veraltet (19.10.2026).
-- Jetzt: Phasen 0–7 mit Status, Abnahme-Kriterien und Querschnitt.
-- **Kolya-Entscheidung 20.10.2026:** Netzbetreiber-Profile (manuelle Stammdaten,
-  Fristen, Erinnerungen) werden NICHT gebaut.
-- Stattdessen **Phase 4 — Automatische Zuordnung**:
-  - **4b. Automatische Netzbetreiber-Suche** anhand der Anlagen-Adresse
-    (Datenquelle zu klären: Bundesnetzregister / Netzentstehungsregister /
-    Postleitzahl-Map als Start; Backend-Service + Mongo-Cache;
-    automatisch ausgefüllt, manuell überschreibbar).
+### ✅ PDF-Export komplett verifiziert
+- **Commit `cd03538`** — `syncFromCanvas`: lokale Positionen + Rotation aus Konva-Node
+  (Group-Transformation statt globaler Matrix; `offset.x += node.x`).
+- **Commit `20cd247`** — `syncFromCanvas`: nur Group-Position, keine Addition
+  innerer Shapes (verhinderte Doppelverschiebung).
+- **Commit `e4f086a`** — `syncFromCanvas`: Punkte als `[x,y]`-Arrays statt
+  `{x,y}`-Objekte (Backend erwartet `list[tuple[float, float]]`; vorher
+  Pydantic 422 `tuple_type`).
+- **Commit `43897f1`** — `_hatch_lines`: Schraffur-Linien über Polygonkanten
+  statt Bounding-Box.
+  - Vorher: `d`-Iteration über BBox (`min_x−max_y` … `max_x−min_y`) + AABB-Heuristik
+    → bei schiefen Polygonen nur 13 Linien in der unteren linken Ecke statt ~70.
+  - Jetzt: `d` über `min/max(y−x)` der Ecken, parametrischer Kanten-Schnitt
+    (t ∈ [0,1]), Entdopplung an Ecken, paarweise Verbindung (auch konkave
+    Polygone). Punkte px, `hatch_spacing` mm → px (×3), Ausgabe mm.
+  - **Verifiziert gegen Kolyas Polygon** (520,136)–(926,146)–(882,558)–(476,548) px:
+    70 Linien, Abdeckung x 159.1–308.4 mm / y 45.4–186.1 mm = Polygon komplett gefüllt.
+- **Kolya-Abnahme 28.10.:** „jetzt hat es endlich funktioniert mit dem
+  schraffierten Rechteck" — rect, hatching, arrow, N-Pfeil, Hintergrund
+  alle an der richtigen Stelle im PDF.
 
-- ✅ Installer-UI (Phase 3b) steht: `views/installer/LoginView.vue`,
-  `InstallerLayout.vue`, `KundenView.vue`; Router-Einträge `/installer/login`,
-  `/installer` mit Auth-Guard. Frontend neu gebaut, na-frontend neu gestartet,
-  `http://<host>:8092/installer/login` liefert 200 (SPA rendert Login-Formular).
+### Alle 4 Commits auf `origin/feature/lageplan-editor`
+```
+43897f1 fix(lageplan): Schraffur-Linien über Polygonkanten statt Bounding-Box
+e4f086a fix(lageplan): syncFromCanvas - Punkte als [x,y]-Arrays statt {x,y}-Objekte
+20cd247 fix(lageplan): syncFromCanvas - nur Group-Position, keine Addition innerer Shapes
+cd03538 fix(lageplan): syncFromCanvas - lokale Positionen + Rotation aus Node
+```
 
-### Installer-Auth (Phase 3a) — partiell
-- ✅ Kratos-Identity `installer@amelanq.com` (Schema `installer`),
-  Passwort `Installer1234!` per Admin-API gesetzt (PUT ok, pw version 0).
-- ✅ Login via Kratos 200, whoami 200, identity.id korrekt.
-- ❌ `GET /api/installer/customers` → 401 trotz gültiger Session:
-  Oathkeeper-Mutator setzt `X-Kratos-Identity-ID` nicht ans Backend.
-  Ursache offen, Oathkeeper-Logs noch nicht ausgewertet.
-- ⚠️ `check_session_url` wurde heute zwischen 4433/4434 hin- und hergeschaltet;
-  aktueller Wert: `http://na-kratos:4433/sessions/whoami` (wie Zeiterfassung).
-- ⚠️ Die `installer-api`-Regel wurde um 16:00 durch eine sed-Bearbeitung
-  beschädigt (Mutator-`fields:`-Block ging verloren) und wurde danach
-  per Python-Skript 1:1 aus der Admin-Regel wiederhergestellt.
+### Einheiten (wichtig für alle künftigen Lageplan-Arbeit)
+- Zeichenfläche: 891×630 px = 297×210 mm (A4 quer), **1 SVG-Einheit = 1 mm**
+- Canvas-Punkte aus Konva: **px**
+- `hatch_spacing`: **mm** (Default 4)
+- Backend `svg_renderer.py`: nimmt px-Punkte, gibt mm-SVG aus (`_mm = v/3`)
+- Frontend `LageplanElement.vue`: Canvas rendert in px mit `MM_PX = 3`
 
-## 2. Was NICHT gebaut wurde (gegenüber Roadmap)
+## 2. Infrastruktur-Zustand (28.10.2026)
 
-- Phase 4b (Netzbetreiber-Suche): nur in Roadmap festgehalten, kein Code.
-- Tests: nur `backend/tests/test_healthz.py`.
-- Netzbetreiber-Profile: bewusst verworfen (Kolya-Entscheidung).
+- Dev-Stack Port 8092 (na-*): nginx, oathkeeper, kratos, kratos-pgdb,
+  backend, frontend, mongodb, redis, weasyprint alle up.
+- **na-backend:** healthy, Code via Bind-Mount (`backend/src` → `/app/src`),
+  Uvicorn `--reload` — Datei-Änderung = sofort aktiv, kein Rebuild nötig.
+- **na-frontend:** Bild wird bei `docker compose build` gebacken —
+  nach Frontend-Änderungen: `npm run build` (optional) + `docker compose build
+  --no-cache na-frontend` + `docker compose up -d na-frontend`.
+  BUILD_TIME im ausgelieferten Bundle prüfen (war der Stolperstein am 28.10.:
+  Frontend-Bild vom 27.10. lief weiter, während Backend-Änderungen live waren).
+- **na-weasyprint:** eigenständiger Service, intern (kein Host-Port),
+  `POST /render` mit `{html}` → A4-PDF.
 
-## 3. Offene Fragen / Blocker
+## 3. Offene Punkte (nicht heute angefasst)
 
-1. **Installer-API 401**: Oathkeeper-Logs bei einem Installer-Request
-   auswerten (wird die `installer-api`-Regel gematcht? granted/denied?) —
-   wurde noch nicht gefahren.
-2. **Netzbetreiber-Datenquelle**: welche Quelle nutzen?
-   - Bundesnetzregister / Netzentstehungsregister (API-Status prüfen)
-   - Netzbetreiber-Versorgungsverzeichnis
-   - Fallback: manuell gepflegte PLZ→Netzbetreiber-Map in MongoDB
-   → Kolya-Entscheidung abwarten, KEINE Quelle annehmen.
-3. Installer-Passwort: nur im Dev-Stack gesetzt, nicht in `.env`/Doku
-   (bewusst; kein Prod-Bezug).
+1. **Installer-API 401** (Oathkeeper-Mutator setzt
+   `X-Kratos-Identity-ID` nicht ans Backend) — siehe Stand 21.10.,
+   Oathkeeper-Logauswertung noch nie gefahren.
+2. **Phase 4b Netzbetreiber-Suche**: Datenquelle mit Kolya klären
+   (Bundesnetzregister / Netzentstehungsregister / PLZ-Map), dann Service.
+3. **Lageplan: Speichern/Integration** in Anlagen-Formular (Phase 8 der
+   Lageplan-Roadmap im `router.py`-Header) — noch nicht gestartet.
+4. **Lageplan-Eckfall bei 45°-Kanten:** Kante parallel zu Schraffurlinie
+   wird übersprungen (denom ≈ 0) — bei exakt 45°-Kanten fehlt eine Randlinie.
+   Falls Kolya es bemerkt: parallel-Spezialfall ergänzen.
 
-## 4. Infrastruktur-Zustand (20.10.2026 ~18:10)
+## 4. Arbeitsregeln (bewährt am 28.10.)
 
-- Dev-Stack läuft auf Port 8092 (na-*); Kratos, Oathkeeper, Backend,
-  Frontend, MongoDB, Redis, PgDb alle up.
-- Ports: nur na-nginx 8092 extern (Regel eingehalten).
-- Oathkeeper neu gestartet nach letzter Config-Änderung.
+- **Nichts ungefragt anlegen** — erst fragen, dann Code.
+- **Vor „fertig" die Ausgabe prüfen**: SVG-/PDF-Ausgabe konkret testen
+  (Linien-Anzahl, mm-Abdeckung gegen Polygon-BBox), nicht behaupten.
+- **Frontend-Änderungen**: immer `docker compose build` + Neu-Start,
+  BUILD_TIME im ausgelieferten Bundle verifizieren — Host-Build allein reicht nicht.
+- **Backend-Änderungen**: Bind-Mount + `--reload`, `docker restart` genügt;
+  Container-Quellcode == Host-Quellcode verifizieren.
+- Bilder: `view_image` mit `path` testen, bevor „keine Bilderkennung".
+- **Kein Raten** — URL/Feature/ID erst im Code/Stack verifizieren.
+- **Production tabu** (timesheets.amelanq.com); hier nur Dev (8092).
 
-## 5. Arbeitsregeln für die Fortsetzung
+## 5. Nächste Schritte (Reihenfolge, erst nach Kolya-Freigabe)
 
-- **Kein Raten:** keine URL/Feature/ID behaupten, ohne es im Code/Stack
-  verifiziert zu haben. (Zwei Vorfälle heute: `/installer`-Login und
-  erfundene "ZEBRID-ID" — beide waren Halluzinationen.)
-- **Nichts ungefragt anlegen:** Code/Views erst nach Kolya-Freigabe.
-- Produktion (timesheets.amelanq.com o.ä.) bleibt tabu; hier nur Dev.
-- Tagesnotiz: `memory/2026-10-20.md` wird parallel gepflegt.
-
-## 6. Nächste Schritte (Reihenfolge, erst nach Kolya-Freigabe)
-
-1. Installer-API 401: Oathkeeper-Logs bei einem Installer-Request auswerten (EIN Lauf)
-2. Abnahme Phase 3c: Login → 200, Kunden-CRUD mit Session, `created_by`-Filter
-3. Netzbetreiber-Suche: Datenquelle mit Kolya klären, dann Service + Cache
+1. Lageplan in Anlagen-Formular integrieren (speichern/laden, Phase 8) —
+   wenn Kolya es will.
+2. Installer-API 401: Oathkeeper-Logs bei EINEM Installer-Request auswerten.
+3. Netzbetreiber-Suche: Datenquelle mit Kolya klären.
