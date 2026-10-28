@@ -6,8 +6,21 @@
 
 ## 1. Lageplan-Editor — heute fertiggestellt (28.10.2026)
 
-### ✅ PDF-Export komplett verifiziert
-- **Commit `cd03538`** — `syncFromCanvas`: lokale Positionen + Rotation aus Konva-Node
+### ✅ Hauptintegration (Commit `686983a`, 28.10. ~19:45)
+- **Editor im Anlagen-Formular:** `FormCustomer.vue` hat pro Anlage einen
+  📐-Abschnitt (Status ✓/leer, Button Erstellen/Bearbeiten → Fullscreen-Dialog).
+  Titel + Adresse aus Kundendaten vorbefüllt; `getLayout()` übernimmt die
+  Konva-Node-Positionen beim Schließen. **PV ohne Lageplan = Speichern abgebrochen** (Pflichtfeld).
+- **Mongo-Persistenz:** `PlantCreate`/`PlantUpdate` +`lageplan: Optional[LageplanDocument]`
+  +`documents: list[DocumentRef]`; inline in `customers.plants` (list[dict]) →
+  keine Migration nötig.
+- **PDF-Header:** `_wrap_html` zeigt jetzt Titel, **Adresse** (metadata.adresse)
+  und „Gemarkung: X — Flur: Y — Flurstück: Z" (pdftotext verifiziert).
+- **Editor-Panel:** Projektdaten (Titel/Adresse/Gemarkung/Flur/Flurstück) in
+  `metadata`; `initialLayout`-Prop lädt gespeicherten Plan; `defineExpose({getLayout})`.
+
+### ✅ PDF-Export verifiziert (vorher)
+- **Commit `cd03538`** — `syncFromCanvas`: lokale Positionen + Rotation aus Konva-Node.
   (Group-Transformation statt globaler Matrix; `offset.x += node.x`).
 - **Commit `20cd247`** — `syncFromCanvas`: nur Group-Position, keine Addition
   innerer Shapes (verhinderte Doppelverschiebung).
@@ -27,8 +40,10 @@
   schraffierten Rechteck" — rect, hatching, arrow, N-Pfeil, Hintergrund
   alle an der richtigen Stelle im PDF.
 
-### Alle 4 Commits auf `origin/feature/lageplan-editor`
+### Alle Commits auf `origin/feature/lageplan-editor` und `main`
 ```
+686983a feat(lageplan): Hauptintegration — Editor in Anlagen-Formular + Mongo-Persistenz
+2665bb9 docs: ARBEITSSTAND 28.10.2026 (Lageplan-PDF fertig, nächste Schritte)
 43897f1 fix(lageplan): Schraffur-Linien über Polygonkanten statt Bounding-Box
 e4f086a fix(lageplan): syncFromCanvas - Punkte als [x,y]-Arrays statt {x,y}-Objekte
 20cd247 fix(lageplan): syncFromCanvas - nur Group-Position, keine Addition innerer Shapes
@@ -84,7 +99,10 @@ cd03538 fix(lageplan): syncFromCanvas - lokale Positionen + Rotation aus Node
 
 ## 5. Nächste Schritte (Reihenfolge, erst nach Kolya-Freigabe)
 
-1. Lageplan in Anlagen-Formular integrieren (speichern/laden, Phase 8) —
-   wenn Kolya es will.
-2. Installer-API 401: Oathkeeper-Logs bei EINEM Installer-Request auswerten.
-3. Netzbetreiber-Suche: Datenquelle mit Kolya klären.
+1. **Kolya-Test der Integration:** Kunde anlegen → PV-Anlage → Lageplan
+   erstellen → speichern → in Mongo prüfen (`customers.plants[*].lageplan`)
+   + PDF aus dem Formular exportieren.
+2. **Dokumente an Anlage hängen:** PDF-Export aus dem Formular direkt als
+   `DocumentRef` speichern (Upload-Service + `documents`-Feld nutzen;
+   Aktuell wird nur das JSON gespeichert, das PDF wird on-the-fly erzeugt).
+3. **Installer-API 401:** Oathkeeper-Logs bei EINEM Installer-Request auswerten.
