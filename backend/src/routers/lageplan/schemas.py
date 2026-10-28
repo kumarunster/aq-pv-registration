@@ -29,13 +29,19 @@ class ElementKind(str, Enum):
 
 
 class RectElement(BaseModel):
-    """Rechteck-Element (x, y, width, height in mm)."""
+    """Rechteck-Element.
+
+    Zwei Modi:
+      - Klassisch: x, y, width, height (+ rotation)
+      - Polygon:  points (4 Eckpunkte aus dem Canvas, keine Rotation)
+    """
     id: str = Field(..., min_length=1)
     kind: Literal[ElementKind.RECT] = ElementKind.RECT
-    x: float = Field(..., ge=0)
-    y: float = Field(..., ge=0)
-    width: float = Field(..., gt=0)
-    height: float = Field(..., gt=0)
+    x: Optional[float] = Field(default=None, ge=0)
+    y: Optional[float] = Field(default=None, ge=0)
+    width: Optional[float] = Field(default=None, gt=0)
+    height: Optional[float] = Field(default=None, gt=0)
+    points: Optional[list[tuple[float, float]]] = Field(default=None, min_length=4, max_length=4)
     fill: str = Field(default="#dbeafe", pattern=r"^#[0-9a-fA-F]{6}$")
     stroke: str = Field(default="#1d4ed8", pattern=r"^#[0-9a-fA-F]{6}$")
     stroke_width: float = Field(default=1.0, gt=0)

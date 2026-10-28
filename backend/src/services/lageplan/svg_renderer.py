@@ -61,6 +61,21 @@ def _mm2(points) -> str:
 def _render_element(el) -> str:
     rot = getattr(el, 'rotation', 0) or 0.0
     if isinstance(el, RectElement):
+        # Polygon-Modus: 4 Eckpunkte aus dem Canvas (keine Rotation).
+        # getScenePoints() liefert exakt die gerenderten Ecken ->
+        # Canvas und PDF stimmen garantiert überein.
+        if el.points:
+            pts = _mm2(el.points)
+            body = (
+                f'<polygon points="{pts}" fill="{el.fill}" '
+                f'stroke="{el.stroke}" stroke-width="{el.stroke_width / 3.0:.3f}" stroke-linejoin="round"/>'
+            )
+            cx_px, cy_px = _centroid(el.points)
+            cx, cy = _mm(cx_px), _mm(cy_px)
+            if el.label:
+                body += _label(el, cx - 10, cy + 2)
+            return f'<g>{body}</g>'
+        # Klassischer Modus: x, y, width, height (+ rotation um Mittelpunkt)
         cx = _mm(el.x) + _mm(el.width) / 2
         cy = _mm(el.y) + _mm(el.height) / 2
         body = (
@@ -76,15 +91,15 @@ def _render_element(el) -> str:
         pts = _mm2(el.points)
         body = (
             f'<polygon points="{pts}" fill="{el.fill}" '
-            f'stroke="{el.stroke}" stroke-width="{el.stroke_width / 3.0:.3f}"/>'
+            f'stroke="{el.stroke}" stroke-width="{el.stroke_width / 3.0:.3f}" stroke-linejoin="round"/>'
         )
         body += _hatch_lines(el)
         cx_px, cy_px = _centroid(el.points)
         cx, cy = _mm(cx_px), _mm(cy_px)
         if el.label:
             body += _label(el, cx, cy)
-        if rot:
-            return f'<g transform="rotate({rot:.3f} {cx:.3f} {cy:.3f})">{body}</g>'
+        # Rotation wird NICHT mehr angewendet: Die Punkte aus dem Canvas
+        # sind bereits die tatsächlichen, transformierten Eckpunkte.
         return f'<g>{body}</g>'
     if isinstance(el, ArrowElement):
         arrow = _arrow_head(el)

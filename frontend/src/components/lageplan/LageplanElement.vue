@@ -1,12 +1,12 @@
 <template>
-  <!-- Rechteck -->
-  <v-group v-if="element.kind === 'rect'" :config="{ name: 'el-' + element.id, draggable: store?.activeTool === 'select' }" @click="emit('click', element)" @dragend="emit('dragend', element)">
-    <v-rect :config="{ x: element.x, y: element.y, width: element.width, height: element.height, fill: element.fill, stroke: element.stroke, strokeWidth: element.stroke_width }" />
-    <v-text v-if="element.label" :config="{ text: element.label, x: element.x + 4, y: element.y + 4, fontSize: 12, fill: '#1e3a8a', listening: false }" />
+  <!-- Rechteck: Gruppe trägt die Position (el.x/el.y), Rect ist lokal bei 0,0 -->
+  <v-group v-if="element.kind === 'rect'" :config="{ name: 'el-' + element.id, x: element.x, y: element.y, rotation: element.rotation || 0, draggable: store?.activeTool === 'select' }" @click="emit('click', element)" @dragend="emit('dragend', element)">
+    <v-rect :config="{ x: 0, y: 0, width: element.width, height: element.height, fill: element.fill, stroke: element.stroke, strokeWidth: element.stroke_width }" />
+    <v-text v-if="element.label" :config="{ text: element.label, x: 4, y: 4, fontSize: 12, fill: '#1e3a8a', listening: false }" />
   </v-group>
 
-  <!-- Schraffur -->
-  <v-group v-else-if="element.kind === 'hatching'" :config="{ name: 'el-' + element.id, draggable: store?.activeTool === 'select' }" @click="emit('click', element)" @dragend="emit('dragend', element)">
+  <!-- Schraffur: Gruppe trägt die Position (0,0), Punkte sind absolut in der Zeichenfläche -->
+  <v-group v-else-if="element.kind === 'hatching'" :config="{ name: 'el-' + element.id, x: 0, y: 0, rotation: element.rotation || 0, draggable: store?.activeTool === 'select' }" @click="emit('click', element)" @dragend="emit('dragend', element)">
     <v-line :config="{ points: flatPoints, closed: true, fill: konvaFill, stroke: element.stroke, strokeWidth: element.stroke_width, lineJoin: 'round' }" />
     <!-- Schraffur-Linien (vereinfacht: diagonale Linien im Polygon-Bounding-Box) -->
     <v-line v-for="(line, i) in hatchLines" :key="i" :config="{ points: line, stroke: element.stroke, strokeWidth: 0.5, opacity: 0.6 }" />

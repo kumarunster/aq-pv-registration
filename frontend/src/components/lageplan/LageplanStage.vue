@@ -296,39 +296,92 @@ function onElementDragEnd(el) {
 // Vor PDF-Export: alle Konva-Nodes abfragen und die echten Werte
 // (Position, Rotation, Scale) aus den Canvas-Nodes in eine Kopie
 // des Layouts schreiben. Der Store bleibt unverändert (kein Re-Render).
+// WICHTIG: Die Konva-Node-Position ist relativ zur Stage (pan/zoom).
+// Das Store-Element ist in Zeichenflächen-Koordinaten (0-891 x 0-630).
+// Wir müssen die Stage-Transformation rückwärts rechnen.
 function syncFromCanvas() {
   const layerNode = layerRef.value?.getNode?.()
-  if (!layerNode) return null
+  const stageNode = stageRef.value?.getNode?.()
+  if (!layerNode || !stageNode) return null
   // Kopie des Layouts erstellen, damit der Store nicht mutiert wird
   const layoutCopy = JSON.parse(JSON.stringify(props.store.layout))
+  // Stage-Transformation: Pan + Zoom. Konva getAbsolutePosition() liefert
+  // Positionen in Stage-Koordinaten; Zeichenfläche = (abs - pan) / scale.
+  const panX = stageNode.x(), panY = stageNode.y()
+  const zoom = stageNode.scaleX()
+  const toCanvas = (abs) => ({ x: (abs.x - panX) / zoom, y: (abs.y - panY) / zoom })
+
   for (const el of layoutCopy.elements) {
     const node = layerNode.findOne('.el-' + el.id)
     if (!node) continue
-    // Rotation aus der Node lesen (relativ zum Layer)
-    el.rotation = Math.round(node.rotation() * 10) / 10
-    // WICHTIG: Nur die Group-Position nehmen (wie onElementDragEnd).
-    // Die inneren Shapes (Rect/Line) haben ihre eigenen x/y, die NICHТ
-    // addiert werden dürfen — sie sind relativ zur Group.
-    el.x = node.x()
-    el.y = node.y()
+
     if (el.kind === 'rect') {
-      // Breite/Höhe aus der Rect lesen (für den Fall dass sie geskalaht wurde)
+      // Lokale Eckpunkte (0,0)-(w,h) -> getAbsoluteTransform() -> Canvas-Koordinaten.
+      // getAbsoluteTransform() existiert in Konva 10 (getScenePoints() existiert nicht).
       const rectNode = node.findOne('Rect')
       if (rectNode) {
-        el.width = Math.round(rectNode.width() * node.scaleX())
-        el.height = Math.round(rectNode.height() * node.scaleY())
+        const w = rectNode.width()
+        const h = rectNode.height()
+        const t = rectNode.getAbsoluteTransform()
+        const local = [[0, 0], [w, 0], [w, h], [0, h]]
+        const m = t.getMatrix ? t.getMatrix() : [1, 0, 0, 1, 0, 0]
+        el.points = local.map((p) => {
+          const pt = toCanvas({
+            x: m[0] * p[0] + m[2] * p[1] + m[4],
+            y: m[1] * p[0] + m[3] * p[1] + m[5],
+          })
+          return [pt.x, pt.y]
+        })
+        delete el.rotation
+        delete el.x
+        delete el.y
+        delete el.width
+        delete el.height
       }
-    } else if (el.kind === 'text') {
-      const textNode = node.findOne('Text')
-      if (textNode) {
-        el.width = Math.round(textNode.width() * node.scaleX())
-      }
-    } else if (el.kind === 'arrow') {
-      // Pfeil: Punkte sind absolut in der Zeichenfläche, NUR Rotation aus Group
-      // Position bleibt wie in onElementDragEnd (node.x/y)
     } else if (el.kind === 'hatching') {
-      // Schraffur: Punkte sind absolut in der Zeichenfläche
-      // Position bleibt wie in onElementDragEnd (node.x/y)
+      const lineNode = node.findOne('Line')
+      if (lineNode) {
+        const localPts = lineNode.points()
+        if (localPts && localPts.length >= 6) {
+          const t = lineNode.getAbsoluteTransform()
+          const local = []
+          for (let i = 0; i < localPts.length; i += 2) local.push([localPts[i], localPts[i + 1]])
+          const m = t.getMatrix ? t.getMatrix() : [1, 0, 0, 1, 0, 0]
+          el.points = local.map((p) => {
+            const pt = toCanvas({
+              x: m[0] * p[0] + m[2] * p[1] + m[4],
+              y: m[1] * p[0] + m[3] * p[1] + m[5],
+            })
+            return [pt.x, pt.y]
+          })
+          delete el.rotation
+        }
+      }
+    } else {
+      // arrow/text: Position + Rotation wie gehabt (Line-Start und Text-Top
+      // stimmen in Konva und Backend überein)
+      el.rotation = Math.round(node.rotation() * 10) / 10
+      if (el.kind === 'text') {
+        const p = toCanvas(node.getAbsolutePosition())
+        el.x = p.x
+        el.y = p.y
+        const textNode = node.findOne('Text')
+        if (textNode) {
+          el.width = Math.round(textNode.width() * node.scaleX())
+        }
+      } else if (el.kind === 'arrow') {
+        const lineNode = node.findOne('Line')
+        if (lineNode) {
+          const pts = lineNode.points()
+          if (pts && pts.length >= 4) {
+            const p = toCanvas(lineNode.getAbsolutePosition())
+            el.x1 = p.x + pts[0] * node.scaleX()
+            el.y1 = p.y + pts[1] * node.scaleY()
+            el.x2 = p.x + pts[2] * node.scaleX()
+            el.y2 = p.y + pts[3] * node.scaleY()
+          }
+        }
+      }
     }
   }
   return layoutCopy
