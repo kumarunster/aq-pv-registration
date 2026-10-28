@@ -164,27 +164,50 @@ def _centroid(points: list[tuple[float, float]]) -> tuple[float, float]:
 
 
 def _hatch_lines(el: HatchingElement) -> str:
-    xs = [p[0] for p in el.points]
-    ys = [p[1] for p in el.points]
-    min_x, max_x = min(xs), max(xs)
-    min_y, max_y = min(ys), max(ys)
+    """45°-Schraffurlinien y = x + d, geschnitten mit den Polygon-Kanten.
+
+    Punkte liegen in Editor-Pixeln (3 px/mm); hatch_spacing ist in mm.
+    Ergebnis-Linien werden in mm ausgegeben (1 SVG-Einheit = 1 mm).
+    """
+    pts = [(p[0], p[1]) for p in el.points]
+    n = len(pts)
+    spacing_px = el.hatch_spacing * 3.0
+    # d = y - x: gültiger Bereich über alle Ecken
+    d_min = min(y - x for x, y in pts)
+    d_max = max(y - x for x, y in pts)
     lines: list[str] = []
-    d = min_x - max_y
-    while d < max_x - min_y:
-        candidates = []
-        if min_y <= min_x + d <= max_y:
-            candidates.append((min_x, min_x + d))
-        if min_y <= max_x + d <= max_y:
-            candidates.append((max_x, max_x + d))
-        if min_x <= min_y - d <= max_x:
-            candidates.append((min_y - d, min_y))
-        if min_x <= max_y - d <= max_x:
-            candidates.append((max_y - d, max_y))
-        if len(candidates) >= 2:
-            (x1, y1), (x2, y2) = candidates[0], candidates[-1]
+    d = d_min
+    while d <= d_max + 1e-6:
+        # Schnittpunkt von y = x + d mit jeder Kante (parametrisch, t in [0,1])
+        hits: list[tuple[float, float]] = []
+        for i in range(n):
+            ax, ay = pts[i]
+            bx, by = pts[(i + 1) % n]
+            # ay + t*(by-ay) = ax + t*(bx-ax) + d
+            # => t*((by-ay)-(bx-ax)) = d + ax - ay
+            denom = (by - ay) - (bx - ax)
+            if abs(denom) < 1e-12:
+                continue  # Kante parallel zu den Schraffurlinien
+            t = (d + ax - ay) / denom
+            if -1e-6 <= t <= 1 + 1e-6:
+                x = ax + t * (bx - ax)
+                y = ay + t * (by - ay)
+                hits.append((x, y))
+        # Entdoppeln (Ecken werden von zwei Kanten gleichzeitig getroffen)
+        hits.sort()
+        uniq: list[tuple[float, float]] = []
+        for h in hits:
+            if not uniq or abs(h[0] - uniq[-1][0]) > 0.01 or abs(h[1] - uniq[-1][1]) > 0.01:
+                uniq.append(h)
+        # Aufeinanderfolgende Treffer paarweise verbinden (auch konkave Polygone)
+        for i in range(0, len(uniq) - 1, 2):
+            (x1, y1), (x2, y2) = uniq[i], uniq[i + 1]
+            if abs(x1 - x2) < 0.05 and abs(y1 - y2) < 0.05:
+                continue  # degeneriertes Segment
             lines.append(
-                f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" '
+                f'<line x1="{_mm(x1):.3f}" y1="{_mm(y1):.3f}" '
+                f'x2="{_mm(x2):.3f}" y2="{_mm(y2):.3f}" '
                 f'stroke="{el.stroke}" stroke-width="0.2" opacity="0.6"/>'
             )
-        d += el.hatch_spacing
+        d += spacing_px
     return "".join(lines)
