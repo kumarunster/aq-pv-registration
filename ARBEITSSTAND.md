@@ -99,24 +99,26 @@ cd03538 fix(lageplan): syncFromCanvas - lokale Positionen + Rotation aus Node
 
 ## 5. Nächste Schritte (Reihenfolge, erst nach Kolya-Freigabe)
 
-1. **Lageplan-Integration in Anlagen-Formular** (erst als Plan notiert, noch
-   nicht gebaut): `FormCustomer.vue`/`PlantForm` bekommt pro Anlage einen
-   📐-Abschnitt (Status ✓/leer + „Erstellen“/„Bearbeiten“-Button) und öffnet
-   den `LageplanEditor` in einem Fullscreen-Dialog (initialLayout aus der
-   Anlage, Titel/Adresse vorbefüllt, `getLayout()` beim Schließen →
-   `plant.lageplan`). PV ohne Lageplan = Speichern abgebrochen (Pflichtfeld,
-   Logik steht schon im save() — UI fehlt).
-2. ✅ **Anlage: Adress- + Grundstückdaten übernehmen** (Commit 64f2c95):
-   - 📍 Anlage-Adresse (Straße+Nr, PLZ, Ort, Telefon, E-Mail, IBAN) —
-     separate Felder `plant.address_*` (Anlage kann anderes Grundstück haben).
-   - 🏡 Grundstück (Gemarkung, Flur, Flurstück) — separate Felder
-     `plant.gemarkung`/`flur`/`flurstueck`.
-   - Prefill: neue Anlage erbt die Adresse aus den Kundendaten.
-   - Backend: PlantCreate/PlantUpdate um die Felder erweitert (optional).
+1. ✅ **Lageplan-Integration in Anlagen-Formular** (Commit ac6cc6d):
+   - PlantForm: pro Anlage „📐 Lageplan"-Block (Status ✓/leer, Erstellen/
+     Bearbeiten, PV: Pflichtfeld-Badge).
+   - Fullscreen-Dialog mit LageplanEditor; initialLayout lädt gespeicherten
+     Plan; Titel/Adresse (Kunde oder Anlage)/Gemarkung/Flur/Flurstück in
+     metadata vorbefüllt. Beim Schließen: getLayout() -> syncFromCanvas()
+     -> plant.lageplan; metadata aktuell gehalten (PDF-Header).
+2. ✅ **Anlage: Adress- + Grundstückdaten übernehmen** (Commits 64f2c95,
+   484f131, 2c2c23e):
+   - Checkbox „Adresse vom Kunden übernehmen" (Default an): an => Adresszeilen
+     ausgeblendet + Kundendaten werden verwendet; aus => eigene Felder
+     (Straße+Hausnr volle Breite, PLZ/Ort eigene Zeile). IBAN/Telefon/E-Mail
+     nicht Teil der Adresse.
+   - 🏡 Grundstück (Gemarkung, Flur, Flurstück) — separate Felder.
+   - Backend: PlantCreate/PlantUpdate: address_from_customer + address_* +
+     gemarkung/flur/flurstueck (optional).
 3. **Kolya-Test der Integration:** Kunde anlegen → PV-Anlage → Adresse/
    Grundstück ausfüllen → Lageplan erstellen → speichern → in Mongo prüfen
-   (`customers.plants[*].lageplan`, `address_*`, `gemarkung`) + PDF aus dem
-   Formular exportieren.
+   (`customers.plants[*].lageplan`, `address_from_customer`, `gemarkung`)
+   + PDF aus dem Formular exportieren.
 4. **Dokumente an Anlage hängen:** PDF-Export aus dem Formular direkt als
    `DocumentRef` speichern (Upload-Service + `documents`-Feld nutzen;
    Aktuell wird nur das JSON gespeichert, das PDF wird on-the-fly erzeugt).
