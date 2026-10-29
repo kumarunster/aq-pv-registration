@@ -110,12 +110,12 @@ const emptyPlant = () => ({
   kw: '',
   kwh: '',
   // Anlage-Adresse (wie beim Kunden, aber pro Anlage)
+  address_from_customer: true,
   address_street: '',
   address_plz: '',
   address_city: '',
   phone: '',
   email: '',
-  iban: '',
   // Grundstueckdaten (separate Felder)
   gemarkung: '',
   flur: '',
@@ -151,35 +151,37 @@ const PlantForm = defineComponent({
       set('inverters', [...p.plant.inverters])
     }
     return () => h('div', { class: 'space-y-4' }, [
-      // 📍 Anlage-Adresse (wie beim Kunden, separate Felder)
+      // 📍 Anlage-Adresse
       h('div', { class: 'bg-slate-900 rounded-lg p-3 border border-slate-700' }, [
-        h('h4', { class: 'text-xs font-semibold text-slate-400 mb-2' }, '📍 Anlage-Adresse'),
-        h('div', { class: 'grid grid-cols-1 md:grid-cols-3 gap-2' }, [
-          h('div', { class: 'md:col-span-2' }, [
-            h('label', { class: 'block text-xs text-slate-500 mb-1' }, 'Straße + Nr'),
-            h('input', { class: 'input', value: p.plant.address_street, onInput: (e) => set('address_street', e.target.value) }),
-          ]),
-          h('div', [
-            h('label', { class: 'block text-xs text-slate-500 mb-1' }, 'PLZ'),
-            h('input', { class: 'input', value: p.plant.address_plz, onInput: (e) => set('address_plz', e.target.value) }),
-          ]),
-          h('div', [
-            h('label', { class: 'block text-xs text-slate-500 mb-1' }, 'Ort'),
-            h('input', { class: 'input', value: p.plant.address_city, onInput: (e) => set('address_city', e.target.value) }),
-          ]),
-          h('div', [
-            h('label', { class: 'block text-xs text-slate-500 mb-1' }, 'Telefon'),
-            h('input', { class: 'input', value: p.plant.phone, onInput: (e) => set('phone', e.target.value) }),
-          ]),
-          h('div', [
-            h('label', { class: 'block text-xs text-slate-500 mb-1' }, 'E-Mail'),
-            h('input', { class: 'input', type: 'email', value: p.plant.email, onInput: (e) => set('email', e.target.value) }),
-          ]),
-          h('div', { class: 'md:col-span-3' }, [
-            h('label', { class: 'block text-xs text-slate-500 mb-1' }, 'IBAN'),
-            h('input', { class: 'input', value: p.plant.iban, placeholder: 'DE00 0000 0000 …', onInput: (e) => set('iban', e.target.value) }),
+        h('div', { class: 'flex items-center justify-between mb-2' }, [
+          h('h4', { class: 'text-xs font-semibold text-slate-400' }, '📍 Anlage-Adresse'),
+          h('label', { class: 'flex items-center gap-1.5 text-xs text-slate-400 cursor-pointer' }, [
+            h('input', {
+              type: 'checkbox',
+              checked: p.plant.address_from_customer,
+              onChange: (e) => set('address_from_customer', e.target.checked),
+              class: 'accent-amber-500 w-3.5 h-3.5',
+            }),
+            'Adresse vom Kunden übernehmen',
           ]),
         ]),
+        // Adresszeilen nur anzeigen, wenn das Häkchen NICHT gesetzt ist
+        ...(!p.plant.address_from_customer
+          ? [h('div', { class: 'grid grid-cols-1 md:grid-cols-3 gap-2' }, [
+              h('div', { class: 'md:col-span-2' }, [
+                h('label', { class: 'block text-xs text-slate-500 mb-1' }, 'Straße + Nr'),
+                h('input', { class: 'input', value: p.plant.address_street, onInput: (e) => set('address_street', e.target.value) }),
+              ]),
+              h('div', [
+                h('label', { class: 'block text-xs text-slate-500 mb-1' }, 'PLZ'),
+                h('input', { class: 'input', value: p.plant.address_plz, onInput: (e) => set('address_plz', e.target.value) }),
+              ]),
+              h('div', [
+                h('label', { class: 'block text-xs text-slate-500 mb-1' }, 'Ort'),
+                h('input', { class: 'input', value: p.plant.address_city, onInput: (e) => set('address_city', e.target.value) }),
+              ]),
+            ])]
+          : [h('div', { class: 'text-xs text-slate-500' }, 'Adresse wird vom Kunden übernommen: ', h('span', { class: 'text-slate-300' }, p.plant.address_street ? `${p.plant.address_street}, ${p.plant.address_plz} ${p.plant.address_city}` : '…'))]),
       ]),
 
       // 🏡 Grundstueckdaten (separate Felder)
@@ -349,13 +351,11 @@ onMounted(() => {
       ? props.initial.plants.map(p => ({
           ...emptyPlant(),
           ...p,
-          // Anlage-Adresse: aus Kundendaten vorbefuellen (optional ueberschreiben)
-          address_street: p.address_street || props.initial.address_street || '',
-          address_plz: p.address_plz || props.initial.address_plz || '',
-          address_city: p.address_city || props.initial.address_city || '',
-          phone: p.phone || props.initial.phone || '',
-          email: p.email || props.initial.email || '',
-          iban: p.iban || props.initial.iban || '',
+          // Adresse: Häkchen => Adresse vom Kunden, sonst eigene Felder
+          address_from_customer: p.address_from_customer !== false,
+          address_street: p.address_from_customer === false ? (p.address_street || '') : '',
+          address_plz: p.address_from_customer === false ? (p.address_plz || '') : '',
+          address_city: p.address_from_customer === false ? (p.address_city || '') : '',
           panels: p.panels || emptyPlant().panels,
           battery: p.battery || null,
           inverters: p.inverters || [],
@@ -412,13 +412,11 @@ async function save() {
         kwp: p.kwp || null,
         kw: p.kw || null,
         kwh: p.kwh || null,
-        // Anlage-Adresse (separate Felder)
-        address_street: p.address_street || null,
-        address_plz: p.address_plz || null,
-        address_city: p.address_city || null,
-        phone: p.phone || null,
-        email: p.email || null,
-        iban: p.iban || null,
+        // Anlage-Adresse (separate Felder, nur wenn Häkchen NICHT gesetzt)
+        address_from_customer: p.address_from_customer !== false,
+        address_street: p.address_from_customer === false ? (p.address_street || null) : null,
+        address_plz: p.address_from_customer === false ? (p.address_plz || null) : null,
+        address_city: p.address_from_customer === false ? (p.address_city || null) : null,
         // Grundstueckdaten
         gemarkung: p.gemarkung || null,
         flur: p.flur || null,

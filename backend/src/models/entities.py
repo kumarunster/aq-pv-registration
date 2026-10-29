@@ -138,13 +138,12 @@ class PlantCreate(BaseModel):
     kwp: Optional[str] = None
     kw: Optional[str] = None
     kwh: Optional[str] = None
-    # Anlage-Adresse (wie beim Kunden, aber pro Anlage)
+    # Anlage-Adresse: address_from_customer=true => Adresse kommt vom Kunden,
+    # address_*-Felder bleiben leer. address_from_customer=false => eigene Adress-Felder.
+    address_from_customer: bool = True
     address_street: Optional[str] = None
     address_plz: Optional[str] = None
     address_city: Optional[str] = None
-    phone: Optional[str] = None
-    email: Optional[str] = None
-    iban: Optional[str] = None
     # Grundstueckdaten (separate Felder)
     gemarkung: Optional[str] = None
     flur: Optional[str] = None
@@ -168,12 +167,10 @@ class PlantUpdate(BaseModel):
     kw: Optional[str] = None
     kwh: Optional[str] = None
     # Anlage-Adresse
+    address_from_customer: Optional[bool] = None
     address_street: Optional[str] = None
     address_plz: Optional[str] = None
     address_city: Optional[str] = None
-    phone: Optional[str] = None
-    email: Optional[str] = None
-    iban: Optional[str] = None
     # Grundstueckdaten
     gemarkung: Optional[str] = None
     flur: Optional[str] = None
