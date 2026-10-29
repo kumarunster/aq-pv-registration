@@ -5,6 +5,8 @@ Oathkeeper praegelt die Kratos-Session per header_mutator
 strikt auf created_by = <Identity-ID>.
 """
 
+from __future__ import annotations
+
 import logging
 from fastapi import APIRouter, HTTPException, Header
 

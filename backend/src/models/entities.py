@@ -73,28 +73,6 @@ class CompanyUpdate(BaseModel):
 
 # ---------------------------------------------------------------- Kunde
 
-class CustomerCreate(BaseModel):
-    firstname: str
-    lastname: str
-    address_street: str
-    address_plz: str
-    address_city: str
-    phone: Optional[str] = None
-    email: Optional[str] = None
-    iban: Optional[str] = None
-
-
-class CustomerUpdate(BaseModel):
-    firstname: Optional[str] = None
-    lastname: Optional[str] = None
-    address_street: Optional[str] = None
-    address_plz: Optional[str] = None
-    address_city: Optional[str] = None
-    phone: Optional[str] = None
-    email: Optional[str] = None
-    iban: Optional[str] = None
-
-
 # ---------------------------------------------------------------- Anlage
 
 class PanelInfo(BaseModel):
@@ -133,7 +111,7 @@ class PlantCreate(BaseModel):
     als der Kunde — daher eigene Adress-Felder (address_*).
     """
     anlagetyp: Anlagetyp
-    company_id: str
+    company_id: Optional[str] = None
     commission_date: Optional[date] = None
     kwp: Optional[str] = None
     kw: Optional[str] = None
@@ -184,6 +162,31 @@ class PlantUpdate(BaseModel):
     notes: Optional[str] = None
     lageplan: Optional[LageplanDocument] = None
     documents: Optional[list[DocumentRef]] = None
+
+
+class CustomerCreate(BaseModel):
+    firstname: str
+    lastname: str
+    address_street: str
+    address_plz: str
+    address_city: str
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    iban: Optional[str] = None
+    plants: Optional[list["PlantCreate"]] = None
+
+
+class CustomerUpdate(BaseModel):
+    firstname: Optional[str] = None
+    lastname: Optional[str] = None
+    address_street: Optional[str] = None
+    address_plz: Optional[str] = None
+    address_city: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    iban: Optional[str] = None
+    plants: Optional[list["PlantUpdate"]] = None
+
 
 
 # ---------------------------------------------------------------- Health
