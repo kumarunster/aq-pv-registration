@@ -16,7 +16,7 @@
       <div v-else-if="customers.length === 0" class="bg-slate-900 rounded-xl p-6 text-center text-slate-400">
         Noch keine Kunden angelegt.
       </div>
-      <div v-for="c in customers" :key="c._id" class="bg-slate-900 rounded-xl p-4 border border-slate-800">
+      <div v-for="c in customers" :key="c._id" class="bg-slate-900 rounded-xl p-4 border border-slate-800 hover:border-amber-500/50 cursor-pointer transition-colors" @click="editCustomer(c)">
         <div class="flex items-start justify-between">
           <div>
             <h3 class="font-semibold text-lg">{{ c.firstname }} {{ c.lastname }}</h3>
@@ -45,7 +45,7 @@
               </div>
             </div>
           </div>
-          <div class="flex gap-2">
+          <div class="flex gap-2" @click.stop>
             <button @click="editCustomer(c)" class="text-slate-400 hover:text-amber-400 text-sm px-2">✏️ Bearbeiten</button>
             <button @click="deleteCustomer(c)" class="text-slate-400 hover:text-red-400 text-sm px-2">🗑️</button>
           </div>
