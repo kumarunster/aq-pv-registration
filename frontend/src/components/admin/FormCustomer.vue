@@ -74,7 +74,7 @@
           <span class="text-sm font-semibold">Anlage {{ i + 1 }}</span>
           <button type="button" @click="removePlant(i)" class="text-slate-400 hover:text-red-400 text-sm">🗑️ Entfernen</button>
         </div>
-        <PlantForm :plant="p" :onUpdate="updatePlant" :index="i" />
+        <PlantForm :plant="p" :onUpdate="updatePlant" :index="i" @open-lageplan="openLageplan(i)" />
       </div>
     </section>
 
@@ -87,11 +87,36 @@
       </button>
     </div>
   </form>
+
+  <!-- 📐 Lageplan-Editor: Fullscreen-Dialog -->
+  <Teleport to="body">
+    <div v-if="lageplanDialog" class="fixed inset-0 z-50 bg-slate-950 overflow-y-auto">
+      <div class="max-w-7xl mx-auto p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-lg font-bold">📐 Lageplan — Anlage {{ lageplanDialog.plantIndex + 1 }}</h2>
+          <button type="button" @click="closeLageplan" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm">
+            ✖️ Schließen (ohne Speichern)
+          </button>
+        </div>
+        <LageplanEditor ref="lageplanEditorRef" :initial-layout="lageplanDialog.initialLayout" />
+        <div class="flex gap-2 mt-3 pb-6">
+          <button type="button" @click="saveLageplan" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded-lg text-sm">
+            ✅ Lageplan speichern
+          </button>
+          <button type="button" @click="closeLageplan" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm">
+            Abbrechen
+          </button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, h, defineComponent } from 'vue'
 import client from '@/api/client'
+import LageplanEditor from '@/components/lageplan/LageplanEditor.vue'
+import { useLayoutStore } from '@/components/lageplan/useLayoutStore.js'
 
 const props = defineProps({
   companies: { type: Array, default: () => [] },
@@ -133,7 +158,8 @@ const emptyPlant = () => ({
 const PlantForm = defineComponent({
   name: 'PlantForm',
   props: ['plant', 'index', 'onUpdate'],
-  setup(p) {
+  emits: ['open-lageplan'],
+  setup(p, { emit }) {
     function set(key, val) {
       p.onUpdate(p.index, key, val)
     }
@@ -321,6 +347,29 @@ const PlantForm = defineComponent({
         h('label', { class: 'block text-sm text-slate-400 mb-1' }, 'Notizen'),
         h('textarea', { class: 'input', rows: 2, value: p.plant.notes, onInput: (e) => set('notes', e.target.value) }),
       ]),
+
+      // 📐 Lageplan (PV: Pflichtfeld, sonst optional)
+      h('div', { class: 'bg-slate-900 rounded-lg p-3 border border-slate-700' }, [
+        h('div', { class: 'flex items-center justify-between' }, [
+          h('div', { class: 'flex items-center gap-2' }, [
+            h('h4', { class: 'text-xs font-semibold text-slate-400' }, '📐 Lageplan'),
+            p.plant.anlagetyp === 'pv'
+              ? h('span', { class: 'text-[10px] bg-red-900 text-red-300 px-1.5 py-0.5 rounded' }, 'Pflichtfeld')
+              : null,
+          ]),
+          h('div', { class: 'flex items-center gap-3' }, [
+            h('span', {
+              class: 'text-xs',
+              style: p.plant.lageplan ? 'color: #4ade80' : 'color: #64748b',
+            }, p.plant.lageplan ? '✓ erfasst' : 'noch leer'),
+            h('button', {
+              type: 'button',
+              onClick: () => emit('open-lageplan', p.index),
+              class: 'px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs rounded-lg',
+            }, p.plant.lageplan ? 'Bearbeiten' : 'Erstellen'),
+          ]),
+        ]),
+      ]),
     ])
   },
 })
@@ -338,6 +387,11 @@ const form = reactive({
   plants: [],
 })
 const saving = ref(false)
+
+// 📐 Lageplan-Dialog (Fullscreen)
+const lageplanDialog = ref(null) // { plantIndex, initialLayout }
+const lageplanEditorRef = ref(null)
+const layoutStore = useLayoutStore()
 
 onMounted(() => {
   if (props.initial) {
@@ -376,6 +430,54 @@ function removePlant(i) {
 
 function updatePlant(i, key, val) {
   form.plants[i][key] = val
+}
+
+// 📐 Lageplan: Dialog öffnen/schließen
+function plantAddressLine(p) {
+  if (!p) return ''
+  return [p.address_street, p.address_plz, p.address_city].filter(Boolean).join(', ')
+}
+
+function openLageplan(i) {
+  const p = form.plants[i]
+  if (!p) return
+  // Adresse: Häkchen => Kundendaten, sonst eigene Adressfelder
+  const adresse = p.address_from_customer !== false
+    ? plantAddressLine(form)
+    : plantAddressLine(p)
+  const title = `Lageplan ${p.anlagetyp === 'pv' ? 'PV-Anlage' : p.anlagetyp} ${form.lastname || ''} ${form.firstname || ''}`.trim()
+  const existing = p.lageplan || null
+  const initialLayout = existing ? { ...existing } : { title, background_image_url: null, background_image_width: null, background_image_height: null, elements: [], metadata: {} }
+  // Titel/Adresse/Grundstueck immer frisch vorbefuellen (auch ueber alten metadata)
+  initialLayout.title = title
+  initialLayout.metadata = { ...(existing?.metadata || {}), adresse, gemarkung: p.gemarkung || '', flur: p.flur || '', flurstueck: p.flurstueck || '' }
+  // Store zuruecksetzen (modulweit geteilt!) damit der Editor frisch startet
+  layoutStore.clearAll()
+  layoutStore.layout.background_image_url = initialLayout.background_image_url
+  layoutStore.layout.background_image_width = initialLayout.background_image_width
+  layoutStore.layout.background_image_height = initialLayout.background_image_height
+  lageplanDialog.value = { plantIndex: i, initialLayout }
+}
+
+function saveLageplan() {
+  if (!lageplanDialog.value) return
+  const i = lageplanDialog.value.plantIndex
+  const editor = lageplanEditorRef.value
+  const layout = editor ? editor.getLayout() : null
+  if (layout) {
+    // Adresse/Grundstueck aktuell in den metadata spiegeln (PDF-Header)
+    const p = form.plants[i]
+    if (p && layout.metadata) {
+      const adresse = p.address_from_customer !== false ? plantAddressLine(form) : plantAddressLine(p)
+      layout.metadata = { ...layout.metadata, adresse, gemarkung: p.gemarkung || '', flur: p.flur || '', flurstueck: p.flurstueck || '' }
+    }
+    form.plants[i].lageplan = layout
+  }
+  lageplanDialog.value = null
+}
+
+function closeLageplan() {
+  lageplanDialog.value = null
 }
 
 // Datum TT.MM.JJJJ -> ISO
