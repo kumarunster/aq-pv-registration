@@ -139,8 +139,9 @@ async def get_unit(zerez_id: str) -> dict | None:
     return doc
 
 
-async def search(query: str, limit: int = 10) -> list[dict]:
-    """Volltext-ähnliche Suche über unitCode/modelName/certificateNumber."""
+async def search(query: str, limit: int = 50) -> list[dict]:
+    """Suche über unitCode/modelName/certificateNumber/Hersteller.
+    Vorsortierung: maxActivePower absteigend, dann ratedVoltage absteigend."""
     db = database.get_db()
     q = query.strip()
     if not q:
@@ -148,16 +149,19 @@ async def search(query: str, limit: int = 10) -> list[dict]:
     import re
     # LIKE '%q%': Pattern kann ueberall im Wert vorkommen, case-insensitiv
     pattern = re.escape(q)
+    # Mehr holen als nötig, damit die Sortierung vor dem Cutoff wirksam ist
     docs = await db["zerez_units"].find(
         {"$or": [{"unitCode": {"$regex": pattern, "$options": "i"}},
                 {"modelName": {"$regex": pattern, "$options": "i"}},
                 {"certificateNumber": {"$regex": pattern, "$options": "i"}},
                 {"certificateHolderName": {"$regex": pattern, "$options": "i"}}]}
-    ).limit(limit).to_list(limit)
+    ).to_list(limit * 5)
     # Remove _id (ObjectId) before returning to avoid JSON encoding errors
     for doc in docs:
         doc.pop('_id', None)
-    return docs
+    # Vorsortierung: kW absteigend, dann Voltage absteigend (None am Ende)
+    docs.sort(key=lambda d: (-(d.get("maxActivePower") or 0), -(d.get("ratedVoltage") or 0)))
+    return docs[:limit]
 
 
 async def start_background_if_needed() -> None:

@@ -216,7 +216,7 @@ const PlantForm = defineComponent({
         zerezTimer = setTimeout(async () => {
           try {
             const results = await zerezSearch(v, p.isInstaller)
-            zerezResults.value = results.slice(0, 8)
+            zerezResults.value = results.slice(0, 50)
           } catch (err) {
             zerezResults.value = []
           } finally {
