@@ -164,16 +164,6 @@ const PlantForm = defineComponent({
     function set(key, val) {
       p.onUpdate(p.index, key, val)
     }
-    function statusLabel(s) {
-      return { in_pruefung: 'In Prüfung', angemeldet: 'Angemeldet', abgeschlossen: 'Abgeschlossen' }[s] || s
-    }
-    function statusBadgeClass(s) {
-      return {
-        in_pruefung: 'bg-yellow-900 text-yellow-300',
-        angemeldet: 'bg-blue-900 text-blue-300',
-        abgeschlossen: 'bg-green-900 text-green-300',
-      }[s] || 'bg-slate-700 text-slate-300'
-    }
     function addInverter() {
       const inv = { manufacturer: '', type: '', kw: '', zerez_id: '' }
       p.plant.inverters.push(inv)
@@ -187,6 +177,61 @@ const PlantForm = defineComponent({
       p.plant.inverters[i][key] = val
       set('inverters', [...p.plant.inverters])
     }
+    // Status-Stepper: 4 Schritte
+    const STATUS_STEPS = [
+      { key: 'in_pruefung',    label: 'In Prüfung',  color: 'bg-yellow-500 border-yellow-500 text-yellow-300' },
+      { key: 'angemeldet',     label: 'Angemeldet',   color: 'bg-blue-500 border-blue-500 text-blue-300' },
+      { key: 'abgeschlossen',  label: 'Abgeschlossen', color: 'bg-green-500 border-green-500 text-green-300' },
+    ]
+    function statusStepper(plant, setFn, isInstaller) {
+      const currentIdx = STATUS_STEPS.findIndex(st => st.key === plant.status)
+      // -1 = not set, 0 = in_pruefung, 1 = angemeldet, 2 = abgeschlossen
+      const steps = [
+        { key: null, label: 'Angelegt', color: 'bg-slate-500 border-slate-500 text-slate-300' },
+        ...STATUS_STEPS,
+      ]
+      // Build the stepper: circles connected by lines
+      const children = []
+      steps.forEach((st, i) => {
+        const isActive = i === currentIdx + 1  // current step (1-indexed)
+        const isDone = i < currentIdx + 1 && currentIdx >= 0  // completed
+        const isClickable = !isInstaller && st.key !== null
+        // Circle
+        children.push(
+          h('div', {
+            class: 'relative flex flex-col items-center flex-1',
+            key: st.key || 'start',
+            style: isClickable ? 'cursor:pointer' : '',
+            onClick: isClickable ? () => setFn('status', st.key) : undefined,
+          }, [
+            h('div', {
+              class: 'w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-colors ' +
+                (isActive ? st.color : isDone ? 'bg-green-700 border-green-600 text-green-200' : 'bg-slate-800 border-slate-600 text-slate-500'),
+            }, isDone && !isActive ? '✓' : (i + 1)),
+            h('span', {
+              class: 'text-[10px] mt-1 text-slate-400 whitespace-nowrap',
+            }, st.label),
+          ])
+        )
+        // Connector line (not after last)
+        if (i < steps.length - 1) {
+          const lineActive = i < currentIdx  // line is "done" if step i is completed
+          children.push(
+            h('div', {
+              class: 'flex-1 h-0.5 mx-1 -mt-5',
+              style: {
+                backgroundColor: lineActive ? '#22c55e' : '#334155',
+              },
+            })
+          )
+        }
+      })
+      return h('div', { class: 'bg-slate-900 rounded-lg p-3 border border-slate-700' }, [
+        h('h4', { class: 'text-xs font-semibold text-slate-400 mb-2' }, '📊 Fortschritt'),
+        h('div', { class: 'flex items-center' }, children),
+      ])
+    }
+
     return () => h('div', { class: 'space-y-4' }, [
       // 📍 Anlage-Adresse
       h('div', { class: 'bg-slate-900 rounded-lg p-3 border border-slate-700' }, [
@@ -359,27 +404,8 @@ const PlantForm = defineComponent({
         h('textarea', { class: 'input', rows: 2, value: p.plant.notes, onInput: (e) => set('notes', e.target.value) }),
       ]),
 
-      // Status (Admin: Select, Installer: read-only Badge)
-      p.isInstaller
-        ? (p.plant.status
-            ? h('div', [
-                h('span', { class: 'text-sm text-slate-400 mr-2' }, 'Status:'),
-                h('span', { class: 'px-2 py-0.5 rounded text-xs ' + statusBadgeClass(p.plant.status) }, statusLabel(p.plant.status)),
-              ])
-            : h('div', { class: 'text-sm text-slate-500' }, 'Status: nicht gesetzt'))
-        : h('div', [
-            h('label', { class: 'block text-sm text-slate-400 mb-1' }, 'Status'),
-            h('select', {
-              class: 'input',
-              value: p.plant.status || '',
-              onChange: (e) => set('status', e.target.value || null),
-            }, [
-              h('option', { value: '' }, '— nicht gesetzt —'),
-              h('option', { value: 'in_pruefung' }, 'In Prüfung'),
-              h('option', { value: 'angemeldet' }, 'Angemeldet'),
-              h('option', { value: 'abgeschlossen' }, 'Abgeschlossen'),
-            ]),
-          ]),
+      // Status (Progress-Stepper)
+      statusStepper(p.plant, set, p.isInstaller),
 
       // 📐 Lageplan (PV: Pflichtfeld, sonst optional)
       h('div', { class: 'bg-slate-900 rounded-lg p-3 border border-slate-700' }, [

@@ -44,7 +44,15 @@
             <div v-if="c.plants && c.plants.length" class="mt-3">
               <div v-for="(p, i) in c.plants" :key="i" class="text-sm text-slate-400 bg-slate-800 rounded-lg px-3 py-2 mb-2">
                 <span class="text-amber-400 font-medium">{{ anlagetypLabel(p.anlagetyp) }}</span>
-                <span v-if="p.status" :class="'ml-2 px-1.5 py-0.5 rounded text-xs ' + statusBadgeClass(p.status)">{{ statusLabel(p.status) }}</span>
+                <span v-if="p.status" class="ml-2">
+                  <span class="text-xs text-slate-500">Fortschritt: </span>
+                  <span class="inline-flex items-center gap-0.5">
+                    <span v-for="(step, si) in progressSteps(p.status)" :key="si"
+                      :class="'w-2 h-2 rounded-full ' + (si < progressIdx(p.status) ? 'bg-green-500' : si === progressIdx(p.status) ? step.dot : 'bg-slate-600')"
+                      :title="step.label"></span>
+                  </span>
+                  <span class="ml-1 text-xs text-slate-400">{{ statusLabel(p.status) }}</span>
+                </span>
                 <span v-if="p.kwp"> · {{ p.kwp }} kWp</span>
                 <span v-if="p.kw"> · {{ p.kw }} kW</span>
                 <span v-if="p.kwh"> · {{ p.kwh }} kWh</span>
@@ -103,12 +111,17 @@ function statusLabel(s) {
   return { in_pruefung: 'In Prüfung', angemeldet: 'Angemeldet', abgeschlossen: 'Abgeschlossen' }[s] || s
 }
 
-function statusBadgeClass(s) {
-  return {
-    in_pruefung: 'bg-yellow-900 text-yellow-300',
-    angemeldet: 'bg-blue-900 text-blue-300',
-    abgeschlossen: 'bg-green-900 text-green-300',
-  }[s] || 'bg-slate-700 text-slate-300'
+const STEPS = [
+  { key: 'in_pruefung', label: 'In Prüfung', dot: 'bg-yellow-500' },
+  { key: 'angemeldet', label: 'Angemeldet', dot: 'bg-blue-500' },
+  { key: 'abgeschlossen', label: 'Abgeschlossen', dot: 'bg-green-500' },
+]
+function progressSteps(current) {
+  const idx = STEPS.findIndex(s => s.key === current)
+  return STEPS.map((s, i) => ({ ...s, dot: i <= idx ? s.dot : 'bg-slate-600' }))
+}
+function progressIdx(current) {
+  return STEPS.findIndex(s => s.key === current)
 }
 
 function formatDate(d) {
