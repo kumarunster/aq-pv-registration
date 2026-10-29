@@ -233,6 +233,9 @@ const PlantForm = defineComponent({
     }
 
     return () => h('div', { class: 'space-y-4' }, [
+      // 📊 Fortschritt (ganz oben)
+      statusStepper(p.plant, set, p.isInstaller),
+
       // 📍 Anlage-Adresse
       h('div', { class: 'bg-slate-900 rounded-lg p-3 border border-slate-700' }, [
         h('div', { class: 'flex items-center justify-between mb-2' }, [
@@ -403,9 +406,6 @@ const PlantForm = defineComponent({
         h('label', { class: 'block text-sm text-slate-400 mb-1' }, 'Notizen'),
         h('textarea', { class: 'input', rows: 2, value: p.plant.notes, onInput: (e) => set('notes', e.target.value) }),
       ]),
-
-      // Status (Progress-Stepper)
-      statusStepper(p.plant, set, p.isInstaller),
 
       // 📐 Lageplan (PV: Pflichtfeld, sonst optional)
       h('div', { class: 'bg-slate-900 rounded-lg p-3 border border-slate-700' }, [
