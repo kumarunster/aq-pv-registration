@@ -198,15 +198,16 @@ const PlantForm = defineComponent({
 
     // 📋 ZEREZ Typeahead für Inverter-Hersteller
     const zerezQuery = ref('')
+    const activeZerezIndex = ref(-1)
     const zerezResults = ref([])
     const zerezOpen = ref(false)
     const zerezLoading = ref(false)
-    const activeZerezIndex = ref(-1)
 
     let zerezTimer = null
     function onZerezInput(i, e) {
       const v = e.target.value
       setInverter(i, 'manufacturer', v)
+      activeZerezIndex.value = i
       zerezQuery.value = v
       clearTimeout(zerezTimer)
       if (v.length >= 3) {
@@ -512,14 +513,14 @@ const PlantForm = defineComponent({
         : null,
 
       // Wechselrichter (alle Anlagetypen)
-      h('div', { class: 'bg-slate-900 rounded-lg p-3 border border-slate-700' }, [
+      h('div', { class: 'relative bg-slate-900 rounded-lg p-3 border border-slate-700' }, [
         h('div', { class: 'flex items-center justify-between mb-2' }, [
           h('h4', { class: 'text-xs font-semibold text-slate-400' }, 'Wechselrichter / Ladepunkte'),
           h('button', { type: 'button', onClick: addInverter, class: 'text-xs text-amber-400' }, '+ Hinzufügen'),
         ]),
         p.plant.inverters.map((inv, i) =>
           h('div', { class: 'grid grid-cols-1 md:grid-cols-5 gap-2 mb-2', key: i }, [
-            h('div', { class: 'relative' }, [
+            h('div', [
               h('input', {
                 class: 'input',
                 placeholder: 'Hersteller (min. 3 Zeichen)',
@@ -528,39 +529,6 @@ const PlantForm = defineComponent({
                 onFocus: () => { if (zerezQuery.value.length >= 3) zerezOpen.value = true },
                 onBlur: () => setTimeout(closeZerez, 200),
               }),
-              zerezOpen.value && zerezResults.value.length
-                ? h('div', {
-                    class: 'absolute z-50 mt-1 w-full bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-64 overflow-y-auto',
-                    onClick: (e) => e.stopPropagation(),
-                  }, [
-                    zerezLoading.value
-                      ? h('div', { class: 'p-2 text-xs text-slate-400' }, 'Lade…')
-                      : h('table', { class: 'w-full text-xs' }, [
-                          h('thead', [
-                            h('tr', { class: 'text-slate-500 border-b border-slate-700' }, [
-                              h('th', { class: 'p-1.5 text-left' }, 'Hersteller'),
-                              h('th', { class: 'p-1.5 text-left' }, 'Model'),
-                              h('th', { class: 'p-1.5 text-left' }, 'kW'),
-                              h('th', { class: 'p-1.5 text-left' }, 'ZEREZ-ID'),
-                              h('th', { class: 'p-1.5 text-left' }, 'Voltage'),
-                            ]),
-                          ]),
-                          h('tbody', zerezResults.value.map((r, ri) =>
-                            h('tr', {
-                              key: ri,
-                              class: 'cursor-pointer hover:bg-slate-700',
-                              onClick: () => selectZerez(i, r),
-                            }, [
-                              h('td', { class: 'p-1.5' }, r.certificateHolderName || '–'),
-                              h('td', { class: 'p-1.5' }, r.modelName || '–'),
-                              h('td', { class: 'p-1.5' }, r.maxActivePower != null ? r.maxActivePower : '–'),
-                              h('td', { class: 'p-1.5' }, r.unitCode || '–'),
-                              h('td', { class: 'p-1.5' }, r.ratedVoltage != null ? r.ratedVoltage : '–'),
-                            ])
-                          )),
-                        ]),
-                  ])
-                : null,
             ]),
             h('input', { class: 'input', placeholder: 'Typ', value: inv.type, onInput: (e) => setInverter(i, 'type', e.target.value) }),
             h('input', { class: 'input', placeholder: 'kW', value: inv.kw, onInput: (e) => setInverter(i, 'kw', e.target.value) }),
@@ -569,6 +537,43 @@ const PlantForm = defineComponent({
           ])
         ),
         p.plant.inverters.length === 0 ? h('div', { class: 'text-slate-500 text-xs' }, 'Kein Wechselrichter erfasst.') : null,
+        // ZEREZ Typeahead: full-width overlay über der gesamten Inverter-Sektion
+        (zerezOpen.value && (zerezResults.value.length || zerezLoading.value))
+          ? h('div', {
+              class: 'absolute left-0 right-0 z-50 bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-64 overflow-y-auto',
+              style: { top: '100%', margin: '0 -0.75rem -0.75rem -0.75rem' },
+              onClick: (e) => e.stopPropagation(),
+            }, [
+              zerezLoading.value
+                ? h('div', { class: 'p-2 text-xs text-slate-400' }, 'Lade…')
+                : zerezResults.value.length
+                  ? h('table', { class: 'w-full text-xs' }, [
+                      h('thead', [
+                        h('tr', { class: 'text-slate-500 border-b border-slate-700' }, [
+                          h('th', { class: 'p-1.5 text-left' }, 'Hersteller'),
+                          h('th', { class: 'p-1.5 text-left' }, 'Model'),
+                          h('th', { class: 'p-1.5 text-left' }, 'kW'),
+                          h('th', { class: 'p-1.5 text-left' }, 'ZEREZ-ID'),
+                          h('th', { class: 'p-1.5 text-left' }, 'Voltage'),
+                        ]),
+                      ]),
+                      h('tbody', zerezResults.value.map((r, ri) =>
+                        h('tr', {
+                          key: ri,
+                          class: 'cursor-pointer hover:bg-slate-700',
+                          onClick: () => selectZerez(activeZerezIndex.value, r),
+                        }, [
+                          h('td', { class: 'p-1.5' }, r.certificateHolderName || '–'),
+                          h('td', { class: 'p-1.5' }, r.modelName || '–'),
+                          h('td', { class: 'p-1.5' }, r.maxActivePower != null ? r.maxActivePower : '–'),
+                          h('td', { class: 'p-1.5' }, r.unitCode || '–'),
+                          h('td', { class: 'p-1.5' }, r.ratedVoltage != null ? r.ratedVoltage : '–'),
+                        ])
+                      )),
+                    ])
+                  : h('div', { class: 'p-2 text-xs text-slate-400' }, 'Keine Treffer.'),
+            ])
+          : null,
       ]),
 
       // Speicher (PV + Wärmepumpe)
