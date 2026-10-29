@@ -133,6 +133,8 @@ class PlantCreate(BaseModel):
     mstr_eeg: Optional[str] = None
     mstr_see_battery: Optional[str] = None
     notes: Optional[str] = None
+    # Status (Admin gesetzt: in_pruefung | angemeldet | abgeschlossen)
+    status: Optional[str] = None
     lageplan: Optional[LageplanDocument] = None
     documents: list[DocumentRef] = []
 

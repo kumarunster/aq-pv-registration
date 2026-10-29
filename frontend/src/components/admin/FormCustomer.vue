@@ -74,7 +74,7 @@
           <span class="text-sm font-semibold">Anlage {{ i + 1 }}</span>
           <button type="button" @click="removePlant(i)" class="text-slate-400 hover:text-red-400 text-sm">🗑️ Entfernen</button>
         </div>
-        <PlantForm :plant="p" :onUpdate="updatePlant" :index="i" @open-lageplan="openLageplan(i)" />
+        <PlantForm :plant="p" :onUpdate="updatePlant" :index="i" :isInstaller="isInstaller()" @open-lageplan="openLageplan(i)" />
       </div>
     </section>
 
@@ -152,16 +152,27 @@ const emptyPlant = () => ({
   mstr_eeg: '',
   mstr_see_battery: '',
   notes: '',
+  status: null,
 })
 
 // PlantForm als inline-Komponente (klein genug für dieses Formular)
 const PlantForm = defineComponent({
   name: 'PlantForm',
-  props: ['plant', 'index', 'onUpdate'],
+  props: ['plant', 'index', 'onUpdate', 'isInstaller'],
   emits: ['open-lageplan'],
   setup(p, { emit }) {
     function set(key, val) {
       p.onUpdate(p.index, key, val)
+    }
+    function statusLabel(s) {
+      return { in_pruefung: 'In Prüfung', angemeldet: 'Angemeldet', abgeschlossen: 'Abgeschlossen' }[s] || s
+    }
+    function statusBadgeClass(s) {
+      return {
+        in_pruefung: 'bg-yellow-900 text-yellow-300',
+        angemeldet: 'bg-blue-900 text-blue-300',
+        abgeschlossen: 'bg-green-900 text-green-300',
+      }[s] || 'bg-slate-700 text-slate-300'
     }
     function addInverter() {
       const inv = { manufacturer: '', type: '', kw: '', zerez_id: '' }
@@ -348,6 +359,28 @@ const PlantForm = defineComponent({
         h('textarea', { class: 'input', rows: 2, value: p.plant.notes, onInput: (e) => set('notes', e.target.value) }),
       ]),
 
+      // Status (Admin: Select, Installer: read-only Badge)
+      p.isInstaller
+        ? (p.plant.status
+            ? h('div', [
+                h('span', { class: 'text-sm text-slate-400 mr-2' }, 'Status:'),
+                h('span', { class: 'px-2 py-0.5 rounded text-xs ' + statusBadgeClass(p.plant.status) }, statusLabel(p.plant.status)),
+              ])
+            : h('div', { class: 'text-sm text-slate-500' }, 'Status: nicht gesetzt'))
+        : h('div', [
+            h('label', { class: 'block text-sm text-slate-400 mb-1' }, 'Status'),
+            h('select', {
+              class: 'input',
+              value: p.plant.status || '',
+              onChange: (e) => set('status', e.target.value || null),
+            }, [
+              h('option', { value: '' }, '— nicht gesetzt —'),
+              h('option', { value: 'in_pruefung' }, 'In Prüfung'),
+              h('option', { value: 'angemeldet' }, 'Angemeldet'),
+              h('option', { value: 'abgeschlossen' }, 'Abgeschlossen'),
+            ]),
+          ]),
+
       // 📐 Lageplan (PV: Pflichtfeld, sonst optional)
       h('div', { class: 'bg-slate-900 rounded-lg p-3 border border-slate-700' }, [
         h('div', { class: 'flex items-center justify-between' }, [
@@ -532,6 +565,7 @@ async function save() {
         mstr_eeg: p.mstr_eeg || null,
         mstr_see_battery: p.mstr_see_battery || null,
         notes: p.notes || null,
+        status: p.status || null,
         lageplan: p.lageplan || null,
         documents: p.documents || [],
       }))

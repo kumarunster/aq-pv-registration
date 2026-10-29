@@ -28,6 +28,7 @@
             <div v-if="c.plants && c.plants.length" class="mt-3">
               <div v-for="(p, i) in c.plants" :key="i" class="text-sm text-slate-400 bg-slate-800 rounded-lg px-3 py-2 mb-2">
                 <span class="text-amber-400 font-medium">{{ anlagetypLabel(p.anlagetyp) }}</span>
+                <span v-if="p.status" :class="'ml-2 px-1.5 py-0.5 rounded text-xs ' + statusBadgeClass(p.status)">{{ statusLabel(p.status) }}</span>
                 <span v-if="p.kwp"> · {{ p.kwp }} kWp</span>
                 <span v-if="p.kw"> · {{ p.kw }} kW</span>
                 <span v-if="p.kwh"> · {{ p.kwh }} kWh</span>
@@ -77,6 +78,18 @@ async function load() {
 
 function anlagetypLabel(t) {
   return { pv: 'PV', wallbox: 'Wallbox', waermepumpe: 'Wärmepumpe' }[t] || t
+}
+
+function statusLabel(s) {
+  return { in_pruefung: 'In Prüfung', angemeldet: 'Angemeldet', abgeschlossen: 'Abgeschlossen' }[s] || s
+}
+
+function statusBadgeClass(s) {
+  return {
+    in_pruefung: 'bg-yellow-900 text-yellow-300',
+    angemeldet: 'bg-blue-900 text-blue-300',
+    abgeschlossen: 'bg-green-900 text-green-300',
+  }[s] || 'bg-slate-700 text-slate-300'
 }
 
 function formatDate(d) {
