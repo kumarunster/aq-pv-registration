@@ -134,6 +134,8 @@ async def sync() -> dict:
 async def get_unit(zerez_id: str) -> dict | None:
     db = database.get_db()
     doc = await db["zerez_units"].find_one({"zerez_id": zerez_id})
+    if doc:
+        doc.pop('_id', None)  # Remove ObjectId before JSON encoding
     return doc
 
 
@@ -150,6 +152,9 @@ async def search(query: str, limit: int = 10) -> list[dict]:
                 {"modelName": {"$regex": pattern, "$options": "i"}},
                 {"certificateNumber": {"$regex": pattern, "$options": "i"}}]}
     ).limit(limit).to_list(limit)
+    # Remove _id (ObjectId) before returning to avoid JSON encoding errors
+    for doc in docs:
+        doc.pop('_id', None)
     return docs
 
 
