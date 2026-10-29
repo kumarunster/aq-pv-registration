@@ -146,11 +146,13 @@ async def search(query: str, limit: int = 10) -> list[dict]:
     if not q:
         return []
     import re
+    # LIKE '%q%': Pattern kann ueberall im Wert vorkommen, case-insensitiv
     pattern = re.escape(q)
     docs = await db["zerez_units"].find(
         {"$or": [{"unitCode": {"$regex": pattern, "$options": "i"}},
                 {"modelName": {"$regex": pattern, "$options": "i"}},
-                {"certificateNumber": {"$regex": pattern, "$options": "i"}}]}
+                {"certificateNumber": {"$regex": pattern, "$options": "i"}},
+                {"certificateHolderName": {"$regex": pattern, "$options": "i"}}]}
     ).limit(limit).to_list(limit)
     # Remove _id (ObjectId) before returning to avoid JSON encoding errors
     for doc in docs:
