@@ -106,12 +106,13 @@ cd03538 fix(lageplan): syncFromCanvas - lokale Positionen + Rotation aus Node
    Anlage, Titel/Adresse vorbefüllt, `getLayout()` beim Schließen →
    `plant.lageplan`). PV ohne Lageplan = Speichern abgebrochen (Pflichtfeld,
    Logik steht schon im save() — UI fehlt).
-2. **Anlage: Adress- + Grundstückdaten übernehmen:** Im PlantForm ein
-   Abschnitt „📍 Anlage-Adresse“ (Straße + Nr, PLZ, Ort, Telefon, E-Mail, IBAN
-   — separate Felder `plant.address_*`, nicht die Kundendaten) und „🏡
-   Grundstück“ (separate Felder `plant.gemarkung`/`flur`/`flurstueck`).
-   Backend: PlantCreate/PlantUpdate um die Felder erweitern; Gemarkung/Flur/
-   Flurstück zusätzlich in `lageplan.metadata` spiegeln (PDF-Header nutzt sie).
+2. ✅ **Anlage: Adress- + Grundstückdaten übernehmen** (Commit 64f2c95):
+   - 📍 Anlage-Adresse (Straße+Nr, PLZ, Ort, Telefon, E-Mail, IBAN) —
+     separate Felder `plant.address_*` (Anlage kann anderes Grundstück haben).
+   - 🏡 Grundstück (Gemarkung, Flur, Flurstück) — separate Felder
+     `plant.gemarkung`/`flur`/`flurstueck`.
+   - Prefill: neue Anlage erbt die Adresse aus den Kundendaten.
+   - Backend: PlantCreate/PlantUpdate um die Felder erweitert (optional).
 3. **Kolya-Test der Integration:** Kunde anlegen → PV-Anlage → Adresse/
    Grundstück ausfüllen → Lageplan erstellen → speichern → in Mongo prüfen
    (`customers.plants[*].lageplan`, `address_*`, `gemarkung`) + PDF aus dem
