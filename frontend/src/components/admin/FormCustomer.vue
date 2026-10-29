@@ -167,18 +167,20 @@ const PlantForm = defineComponent({
         ]),
         // Adresszeilen nur anzeigen, wenn das Häkchen NICHT gesetzt ist
         ...(!p.plant.address_from_customer
-          ? [h('div', { class: 'grid grid-cols-1 md:grid-cols-3 gap-2' }, [
-              h('div', { class: 'md:col-span-2' }, [
-                h('label', { class: 'block text-xs text-slate-500 mb-1' }, 'Straße + Nr'),
+          ? [h('div', { class: 'space-y-2' }, [
+              h('div', [
+                h('label', { class: 'block text-xs text-slate-500 mb-1' }, 'Straße + Hausnummer'),
                 h('input', { class: 'input', value: p.plant.address_street, onInput: (e) => set('address_street', e.target.value) }),
               ]),
-              h('div', [
-                h('label', { class: 'block text-xs text-slate-500 mb-1' }, 'PLZ'),
-                h('input', { class: 'input', value: p.plant.address_plz, onInput: (e) => set('address_plz', e.target.value) }),
-              ]),
-              h('div', [
-                h('label', { class: 'block text-xs text-slate-500 mb-1' }, 'Ort'),
-                h('input', { class: 'input', value: p.plant.address_city, onInput: (e) => set('address_city', e.target.value) }),
+              h('div', { class: 'grid grid-cols-1 md:grid-cols-2 gap-2' }, [
+                h('div', [
+                  h('label', { class: 'block text-xs text-slate-500 mb-1' }, 'PLZ'),
+                  h('input', { class: 'input', value: p.plant.address_plz, onInput: (e) => set('address_plz', e.target.value) }),
+                ]),
+                h('div', [
+                  h('label', { class: 'block text-xs text-slate-500 mb-1' }, 'Ort'),
+                  h('input', { class: 'input', value: p.plant.address_city, onInput: (e) => set('address_city', e.target.value) }),
+                ]),
               ]),
             ])]
           : [h('div', { class: 'text-xs text-slate-500' }, 'Adresse wird vom Kunden übernommen: ', h('span', { class: 'text-slate-300' }, p.plant.address_street ? `${p.plant.address_street}, ${p.plant.address_plz} ${p.plant.address_city}` : '…'))]),
