@@ -83,6 +83,26 @@
           X-Kratos-Identity-Schema: "{{ print .Extra.schema_id }}"
           X-User-Id: "{{ print .Subject }}"
 
+# --- Dokumente: Upload/Download von Dokumentations-Bildern ---
+- id: "docs-api"
+  upstream:
+    url: "http://na-backend:8000"
+  match:
+    url: "http://<[^/]+>/api/docs/<.*>"
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"]
+  authenticators:
+    - handler: cookie_session
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: header
+      config:
+        headers:
+          X-Kratos-Identity-ID: "{{ print .Extra.id }}"
+          X-Kratos-Identity-Email: "{{ print .Extra.traits.email }}"
+          X-Kratos-Identity-Schema: "{{ print .Extra.schema_id }}"
+          X-User-Id: "{{ print .Subject }}"
+
 # HINWEIS: Admin nutzt den globalen header-Mutator in oathkeeper.yml.
 # Installer nutzt den rule-level Mutator hier.
 
