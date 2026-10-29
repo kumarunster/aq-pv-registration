@@ -98,6 +98,13 @@ class BatteryInfo(BaseModel):
     kwh: str = "0"
 
 
+class ChecklistItem(BaseModel):
+    """Ein Checklisten-Punkt (TUB-Bezug) mit optionalem Bild."""
+    label: str
+    status: str = "offen"  # offen | erledigt | nicht_anwendbar
+    image_url: Optional[str] = None  # blob_key in MinIO
+
+
 class PlantCreate(BaseModel):
     """Anlage eines Kunden.
 
@@ -135,6 +142,7 @@ class PlantCreate(BaseModel):
     notes: Optional[str] = None
     # Status (Admin gesetzt: in_pruefung | angemeldet | abgeschlossen)
     status: Optional[str] = None
+    checklist: Optional[list[ChecklistItem]] = None
     lageplan: Optional[LageplanDocument] = None
     documents: list[DocumentRef] = []
 
@@ -162,6 +170,7 @@ class PlantUpdate(BaseModel):
     mstr_eeg: Optional[str] = None
     mstr_see_battery: Optional[str] = None
     notes: Optional[str] = None
+    checklist: Optional[list[ChecklistItem]] = None
     lageplan: Optional[LageplanDocument] = None
     documents: Optional[list[DocumentRef]] = None
 

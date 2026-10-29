@@ -97,7 +97,49 @@ cd03538 fix(lageplan): syncFromCanvas - lokale Positionen + Rotation aus Node
 - **Kein Raten** — URL/Feature/ID erst im Code/Stack verifizieren.
 - **Production tabu** (timesheets.amelanq.com); hier nur Dev (8092).
 
-## 5. Nächste Schritte (Reihenfolge, erst nach Kolya-Freigabe)
+## 5. Neues am 29.10. (Abend)
+
+1. ✅ **Anlage-Status als Progress-Stepper** (Commits 0965ce5, 110c78b):
+   - 4 Schritte: Angelegt → In Prüfung → Angemeldet → Abgeschlossen
+   - Admin: klickbarer Stepper; Installer: read-only. Fortschritt ganz oben in der Anlage.
+   - Kundenliste: Mini-Progress-Dots (🟡/🔵/🟢) + Status-Text.
+2. ✅ **Checkliste + Dokumentationsbilder via MinIO** (Commit 7ea288c):
+   - MinIO (S3) in den Stack: `na-minio`, Bucket `na-docs`, intern (kein Port-Mapping).
+   - Backend: `minio_store.py`, `/api/docs/` Router (upload/download/delete,
+     customer-scoped blob_keys), Oathkeeper-Route `docs-api`, nginx `/api/docs/`.
+   - Model: `ChecklistItem {label, status, image_url}`; `PlantCreate/Update.checklist`.
+   - Frontend: pro Anlage „📋 Checkliste (TUB-Dokumentation)" mit 10 Punkten
+     (Erdungsanlage, Hauptpotentialschiene, SLS Schalter, Überspannungsschutz,
+     Berührungsschutz, Hausanschlusskasten, Zählerschrank, Abstände, Netzanschluss,
+     Meterschrank/Messumformer). Pro Punkt: Status-Toggle (○/✓/N/A) + Foto-Upload
+     + Link. Bilder optional (nicht jeder Punkt braucht eins).
+   - `customer_id` wird nach dem ersten Speichern im Formular gehalten → Upload
+     geht sofort, ohne zweites Speichern.
+   - E2E-Verifiziert (API-Ebene): Kunde mit Checkliste + Bild anlegen →
+     Upload nach MinIO → image_url in Mongo → Download OK.
+   - Nebenbei gefixt: `customers.update` crashte bei plants-only-Updates
+     (fehlendes `$set`-Dokument).
+3. ⚠️ **Bekannte Stolpersteine dieses Tages:**
+   - `model_dump()` liefert `datetime.date` → `bson.InvalidDocument` → Fix:
+     `jsonable_encoder(body)` in admin.py + installer.py.
+   - Pydantic-Forward-Refs: `PlantCreate` muss vor `CustomerCreate` stehen.
+   - `installer.py` hatte `data["plants"] = body.plants` (Pydantic-Objekte statt
+     serialized) → entfernt.
+   - Frontend-Build: Template-Strings ohne Komma im Array → Babel-Error.
+   - **Dateiverlust im Working Tree** (18:30–19:00): MinIO/Checklisten-Änderungen
+     waren aus dem git working tree verschwunden (ursache unklar — evtl. Race mit
+     Container-Writes oder git checkout). → Alles neu angelegt und verifiziert.
+     **Lektion: nach jedem Patch sofort `git add -A` + commit, und vor jeder
+     Branch-Operation `git status` prüfen.**
+   - **Lektion: nie mehrere `sed`-Befehle in einer Shell-Pipeline mit
+     `$`-Containern** — die Shell interpretiert `${...}` als Variable.
+     Python-Skripte für Datei-Patches sind robuster.
+4. **Kolya-Test (Browser):**
+   - Anlage bearbeiten → Fortschrittsbalken ganz oben (klickbar) → Speichern.
+   - Checkliste: Punkte abhaken (○→✓), N/A, Fotos hochladen → Speichern.
+   - Bilder: 📷-Link öffnet das Foto (neues Tab).
+   - Installer-Ansicht: Status + Checkliste read-only.
+5. **Nächste Schritte (Reihenfolge, erst nach Kolya-Freigabe)
 
 1. ✅ **Lageplan-Integration in Anlagen-Formular** (Commit ac6cc6d):
    - PlantForm: pro Anlage „📐 Lageplan"-Block (Status ✓/leer, Erstellen/

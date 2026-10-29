@@ -7,7 +7,7 @@ from fastapi import FastAPI
 
 from src.config import settings
 from src.migrations.runner import gelesene_version, pruefe_stand, run_all
-from src.routers import admin, status, installer
+from src.routers import admin, status, installer, docs
 from src.routers.lageplan.router import router as lageplan_router
 from src.services import database
 from src.version import VERSION
@@ -41,6 +41,7 @@ app = FastAPI(
 app.include_router(status.router)
 app.include_router(admin.router)
 app.include_router(installer.router)
+app.include_router(docs.router)
 app.include_router(lageplan_router)
 
 

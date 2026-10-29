@@ -62,9 +62,7 @@ async def update(customer_id: str, data: dict) -> dict | None:
     except Exception:
         return None
     update_fields = {k: v for k, v in data.items() if v is not None and k != "plants"}
-    update_doc = {}
-    if update_fields:
-        update_doc["$set"] = update_fields
+    update_doc = {"$set": update_fields}
     if "plants" in data and data["plants"] is not None:
         update_doc["$set"]["plants"] = data["plants"]
     if not update_doc:

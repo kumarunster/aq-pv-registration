@@ -74,7 +74,7 @@
           <span class="text-sm font-semibold">Anlage {{ i + 1 }}</span>
           <button type="button" @click="removePlant(i)" class="text-slate-400 hover:text-red-400 text-sm">🗑️ Entfernen</button>
         </div>
-        <PlantForm :plant="p" :onUpdate="updatePlant" :index="i" :isInstaller="isInstaller()" @open-lageplan="openLageplan(i)" />
+        <PlantForm :plant="p" :onUpdate="updatePlant" :index="i" :isInstaller="isInstaller()" :customerId="form.customer_id" @open-lageplan="openLageplan(i)" />
       </div>
     </section>
 
@@ -115,6 +115,7 @@
 <script setup>
 import { ref, reactive, onMounted, h, defineComponent } from 'vue'
 import client from '@/api/client'
+import * as docsApi from '@/api/docs'
 import LageplanEditor from '@/components/lageplan/LageplanEditor.vue'
 import { useLayoutStore } from '@/components/lageplan/useLayoutStore.js'
 
@@ -127,6 +128,21 @@ const props = defineProps({
 const emit = defineEmits(['saved', 'cancel'])
 
 const isInstaller = () => props.mode === 'installer'
+
+// TUB-Bezug: Checklisten-Punkte (Dokumentationsfotos)
+const CHECKLIST_ITEMS = [
+  'Erdungsanlage',
+  'Hauptpotentialschiene',
+  'SLS Schalter',
+  'Überspannungsschutz',
+  'Berührungsschutz',
+  'Hausanschlusskasten',
+  'Zählerschrank',
+  'Abstände',
+  'Netzanschluss',
+  'Meterschrank / Messumformer',
+]
+const DEFAULT_CHECKLIST = () => CHECKLIST_ITEMS.map((label) => ({ label, status: 'offen', image_url: null }))
 
 const emptyPlant = () => ({
   anlagetyp: 'pv',
@@ -153,12 +169,13 @@ const emptyPlant = () => ({
   mstr_see_battery: '',
   notes: '',
   status: null,
+  checklist: DEFAULT_CHECKLIST(),
 })
 
 // PlantForm als inline-Komponente (klein genug für dieses Formular)
 const PlantForm = defineComponent({
   name: 'PlantForm',
-  props: ['plant', 'index', 'onUpdate', 'isInstaller'],
+  props: ['plant', 'index', 'onUpdate', 'isInstaller', 'customerId'],
   emits: ['open-lageplan'],
   setup(p, { emit }) {
     function set(key, val) {
@@ -229,6 +246,78 @@ const PlantForm = defineComponent({
       return h('div', { class: 'bg-slate-900 rounded-lg p-3 border border-slate-700' }, [
         h('h4', { class: 'text-xs font-semibold text-slate-400 mb-2' }, '📊 Fortschritt'),
         h('div', { class: 'flex items-center' }, children),
+      ])
+    }
+
+    // 📋 Checkliste (TUB-Dokumentation)
+    function checklistSection(plant) {
+      const items = plant.checklist && plant.checklist.length ? plant.checklist : []
+      const rows = items.map((it, i) => {
+        const done = it.status === 'erledigt'
+        const na = it.status === 'nicht_anwendbar'
+        return h('div', { class: 'flex items-center justify-between py-1.5 border-b border-slate-700 last:border-0', key: i }, [
+          h('div', { class: 'flex items-center gap-2 flex-1' }, [
+            h('button', {
+              type: 'button',
+              class: 'px-2 py-0.5 rounded text-xs ' +
+                (done ? 'bg-green-700 text-green-200' : na ? 'bg-slate-600 text-slate-300' : 'bg-slate-800 text-slate-400'),
+              onClick: () => {
+                const items2 = [...plant.checklist]
+                items2[i] = { ...items2[i], status: done ? 'offen' : na ? 'offen' : 'erledigt' }
+                set('checklist', items2)
+              },
+              title: done ? 'Zurück auf offen' : na ? 'Zurück auf offen' : 'Als erledigt markieren',
+            }, done ? '✓' : na ? 'N/A' : '○'),
+            h('span', { class: 'text-sm ' + (done ? 'text-slate-500 line-through' : 'text-slate-300') }, it.label),
+            it.image_url ? h('span', { class: 'text-xs text-green-400' }, '📷') : null,
+          ]),
+          h('div', { class: 'flex items-center gap-1' }, [
+            h('button', {
+              type: 'button',
+              class: 'text-xs text-slate-400 hover:text-slate-200 px-1',
+              title: 'Nicht anwendbar',
+              onClick: () => {
+                const items2 = [...plant.checklist]
+                items2[i] = { ...items2[i], status: it.status === 'nicht_anwendbar' ? 'offen' : 'nicht_anwendbar' }
+                set('checklist', items2)
+              },
+            }, 'N/A'),
+            it.image_url
+              ? h('a', {
+                  href: docsApi.imageUrl(p.customerId, p.index, it.image_url),
+                  target: '_blank',
+                  class: 'text-xs text-blue-400 hover:text-blue-300 px-1',
+                }, '📷')
+              : h('label', {
+                  class: 'text-xs text-amber-500 hover:text-amber-400 cursor-pointer px-1',
+                  style: { display: 'inline-block' },
+                }, [
+                  h('input', {
+                    type: 'file',
+                    accept: 'image/*',
+                    class: 'hidden',
+                    onChange: async (e) => {
+                      const f = e.target.files[0]
+                      if (!f) return
+                      try {
+                        const r = await docsApi.uploadImage(p.customerId, p.index, f)
+                        const items2 = [...plant.checklist]
+                        items2[i] = { ...items2[i], image_url: r.blob_key }
+                        set('checklist', items2)
+                      } catch (err) {
+                        alert('Upload fehlgeschlagen: ' + err.message)
+                      }
+                    },
+                  }),
+                  '📷 Foto',
+                ]),
+          ]),
+        ])
+      })
+      return h('div', { class: 'bg-slate-900 rounded-lg p-3 border border-slate-700' }, [
+        h('h4', { class: 'text-xs font-semibold text-slate-400 mb-2' }, '📋 Checkliste (TUB-Dokumentation)'),
+        h('p', { class: 'text-[10px] text-slate-500 mb-2' }, 'Dokumentationsfotos: nicht jeder Punkt braucht ein Foto.'),
+        rows.length ? h('div', rows) : h('div', { class: 'text-xs text-slate-500' }, 'Keine Checkliste.'),
       ])
     }
 
@@ -401,6 +490,9 @@ const PlantForm = defineComponent({
           ])
         : null,
 
+      // 📋 Checkliste (TUB-Dokumentation)
+      checklistSection(p.plant),
+
       // Notizen
       h('div', [
         h('label', { class: 'block text-sm text-slate-400 mb-1' }, 'Notizen'),
@@ -434,6 +526,7 @@ const PlantForm = defineComponent({
 })
 
 const form = reactive({
+  customer_id: '',
   firstname: '',
   lastname: '',
   address_street: '',
@@ -454,6 +547,7 @@ const layoutStore = useLayoutStore()
 
 onMounted(() => {
   if (props.initial) {
+    form.customer_id = props.initial._id || props.initial.id || ''
     form.firstname = props.initial.firstname || ''
     form.lastname = props.initial.lastname || ''
     form.address_street = props.initial.address_street || ''
@@ -471,6 +565,7 @@ onMounted(() => {
           address_street: p.address_from_customer === false ? (p.address_street || '') : '',
           address_plz: p.address_from_customer === false ? (p.address_plz || '') : '',
           address_city: p.address_from_customer === false ? (p.address_city || '') : '',
+          checklist: p.checklist && p.checklist.length ? p.checklist : DEFAULT_CHECKLIST(),
           panels: p.panels || emptyPlant().panels,
           battery: p.battery || null,
           inverters: p.inverters || [],
@@ -592,15 +687,20 @@ async function save() {
         mstr_see_battery: p.mstr_see_battery || null,
         notes: p.notes || null,
         status: p.status || null,
+        checklist: p.checklist || [],
         lageplan: p.lageplan || null,
         documents: p.documents || [],
       }))
     }
     const base = isInstaller() ? '/installer/customers' : '/admin/customers'
+    let doc
     if (props.initial) {
-      await client.put(`${base}/${props.initial._id}`, payload)
+      doc = (await client.put(`${base}/${props.initial._id}`, payload)).data
     } else {
-      await client.post(base, payload)
+      doc = (await client.post(base, payload)).data
+    }
+    if (doc && (doc._id || doc.id)) {
+      form.customer_id = doc._id || doc.id
     }
     emit('saved')
   } catch (e) {

@@ -49,6 +49,30 @@ services:
         max-file: "5"
 
   # ===========================================
+  # BLOB STORAGE - MinIO (S3-kompatibel)
+  # ===========================================
+  na-minio:
+    image: minio/minio:latest
+    container_name: na-minio
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_USER:-naadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_PASSWORD:-naadmin123}
+    volumes:
+      - ./minio/volume:/data
+    networks:
+      - na-intranet
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      options:
+        max-size: "30m"
+        max-file: "5"
+
+  # ===========================================
   # AUTH - Ory Kratos (Admin-Login)
   # ===========================================
   na-kratos-pgdb:
@@ -165,12 +189,17 @@ services:
         condition: service_completed_successfully
       na-weasyprint:
         condition: service_started
+      na-minio:
+        condition: service_healthy
     environment:
       - APP_ENV=${APP_ENV}
       - MONGO_URI=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@na-mongodb:27017
       - MONGO_DATABASE=${MONGO_DATABASE}
       - TZ=${TZ}
       - WEASYPRINT_URL=http://na-weasyprint:8012
+      - MINIO_ENDPOINT=na-minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_USER:-naadmin}
+      - MINIO_SECRET_KEY=${MINIO_PASSWORD}
     volumes:
       # Dev: Quellcode bind-mounten, damit --reload greift.
       - ../backend/src:/app/src
