@@ -523,10 +523,10 @@ const PlantForm = defineComponent({
             h('div', [
               h('input', {
                 class: 'input',
-                placeholder: 'Hersteller (min. 3 Zeichen)',
+                placeholder: 'Hersteller / Modell (min. 4 Zeichen, z. B. sungrow sh10)',
                 value: inv.manufacturer,
                 onInput: (e) => onZerezInput(i, e),
-                onFocus: () => { if (zerezQuery.value.length >= 3) zerezOpen.value = true },
+                onFocus: () => { if (zerezQuery.value.length >= 4) zerezOpen.value = true },
                 onBlur: () => setTimeout(closeZerez, 200),
               }),
             ]),

@@ -147,15 +147,20 @@ async def search(query: str, limit: int = 50) -> list[dict]:
     if not q:
         return []
     import re
-    # LIKE '%q%': Pattern kann ueberall im Wert vorkommen, case-insensitiv
-    pattern = re.escape(q)
-    # Mehr holen als nötig, damit die Sortierung vor dem Cutoff wirksam ist
-    docs = await db["zerez_units"].find(
-        {"$or": [{"unitCode": {"$regex": pattern, "$options": "i"}},
-                {"modelName": {"$regex": pattern, "$options": "i"}},
-                {"certificateNumber": {"$regex": pattern, "$options": "i"}},
-                {"certificateHolderName": {"$regex": pattern, "$options": "i"}}]}
-    ).to_list(limit * 5)
+    # Tokenisierte Suche: "sungrow sh10" = jeder Begriff muss in EINEM der Felder
+    # auftauchen (nicht alle in einem Feld). Beispiel: "sungrow" in certificateHolderName,
+    # "sh10" in modelName.
+    tokens = [re.escape(t) for t in q.split()]
+    # Fuer jeden Token: $or ueber alle 4 Felder
+    token_filters = []
+    for t in tokens:
+        field_ors = []
+        for field in ("unitCode", "modelName", "certificateNumber", "certificateHolderName"):
+            field_ors.append({field: {"$regex": t, "$options": "i"}})
+        token_filters.append({"$or": field_ors})
+    # Alle Tokens muessen passen (AND)
+    # Mehr holen als noetig, damit die Sortierung vor dem Cutoff wirksam ist
+    docs = await db["zerez_units"].find({"$and": token_filters}).to_list(limit * 5)
     # Remove _id (ObjectId) before returning to avoid JSON encoding errors
     for doc in docs:
         doc.pop('_id', None)
