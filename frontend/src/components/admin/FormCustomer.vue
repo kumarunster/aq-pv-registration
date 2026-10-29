@@ -541,7 +541,7 @@ const PlantForm = defineComponent({
         (zerezOpen.value && (zerezResults.value.length || zerezLoading.value))
           ? h('div', {
               class: 'absolute left-0 right-0 z-50 bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-64 overflow-y-auto',
-              style: { top: '100%', margin: '0 -0.75rem -0.75rem -0.75rem' },
+              style: { bottom: '0.75rem' },
               onClick: (e) => e.stopPropagation(),
             }, [
               zerezLoading.value
