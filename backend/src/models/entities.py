@@ -128,6 +128,9 @@ class PlantCreate(BaseModel):
       - PV: panels, inverters, battery, mstr, kw, kwh
       - Wallbox: inverters (Ladeleistung), kw
       - Waermepumpe: battery (Pufferspeicher), kw, kwh
+
+    Adressdaten: die Anlage kann auf einem anderen Grundstueck stehen
+    als der Kunde — daher eigene Adress-Felder (address_*).
     """
     anlagetyp: Anlagetyp
     company_id: str
@@ -135,6 +138,17 @@ class PlantCreate(BaseModel):
     kwp: Optional[str] = None
     kw: Optional[str] = None
     kwh: Optional[str] = None
+    # Anlage-Adresse (wie beim Kunden, aber pro Anlage)
+    address_street: Optional[str] = None
+    address_plz: Optional[str] = None
+    address_city: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    iban: Optional[str] = None
+    # Grundstueckdaten (separate Felder)
+    gemarkung: Optional[str] = None
+    flur: Optional[str] = None
+    flurstueck: Optional[str] = None
     panels: Optional[PanelInfo] = None
     inverters: list[InverterInfo] = []
     battery: Optional[BatteryInfo] = None
@@ -153,6 +167,17 @@ class PlantUpdate(BaseModel):
     kwp: Optional[str] = None
     kw: Optional[str] = None
     kwh: Optional[str] = None
+    # Anlage-Adresse
+    address_street: Optional[str] = None
+    address_plz: Optional[str] = None
+    address_city: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    iban: Optional[str] = None
+    # Grundstueckdaten
+    gemarkung: Optional[str] = None
+    flur: Optional[str] = None
+    flurstueck: Optional[str] = None
     panels: Optional[PanelInfo] = None
     inverters: Optional[list[InverterInfo]] = None
     battery: Optional[BatteryInfo] = None

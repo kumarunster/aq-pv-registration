@@ -109,6 +109,17 @@ const emptyPlant = () => ({
   kwp: '',
   kw: '',
   kwh: '',
+  // Anlage-Adresse (wie beim Kunden, aber pro Anlage)
+  address_street: '',
+  address_plz: '',
+  address_city: '',
+  phone: '',
+  email: '',
+  iban: '',
+  // Grundstueckdaten (separate Felder)
+  gemarkung: '',
+  flur: '',
+  flurstueck: '',
   panels: { manufacturer: '', type: '', count: 0, kwp: '' },
   inverters: [],
   battery: null,
@@ -140,6 +151,56 @@ const PlantForm = defineComponent({
       set('inverters', [...p.plant.inverters])
     }
     return () => h('div', { class: 'space-y-4' }, [
+      // 📍 Anlage-Adresse (wie beim Kunden, separate Felder)
+      h('div', { class: 'bg-slate-900 rounded-lg p-3 border border-slate-700' }, [
+        h('h4', { class: 'text-xs font-semibold text-slate-400 mb-2' }, '📍 Anlage-Adresse'),
+        h('div', { class: 'grid grid-cols-1 md:grid-cols-3 gap-2' }, [
+          h('div', { class: 'md:col-span-2' }, [
+            h('label', { class: 'block text-xs text-slate-500 mb-1' }, 'Straße + Nr'),
+            h('input', { class: 'input', value: p.plant.address_street, onInput: (e) => set('address_street', e.target.value) }),
+          ]),
+          h('div', [
+            h('label', { class: 'block text-xs text-slate-500 mb-1' }, 'PLZ'),
+            h('input', { class: 'input', value: p.plant.address_plz, onInput: (e) => set('address_plz', e.target.value) }),
+          ]),
+          h('div', [
+            h('label', { class: 'block text-xs text-slate-500 mb-1' }, 'Ort'),
+            h('input', { class: 'input', value: p.plant.address_city, onInput: (e) => set('address_city', e.target.value) }),
+          ]),
+          h('div', [
+            h('label', { class: 'block text-xs text-slate-500 mb-1' }, 'Telefon'),
+            h('input', { class: 'input', value: p.plant.phone, onInput: (e) => set('phone', e.target.value) }),
+          ]),
+          h('div', [
+            h('label', { class: 'block text-xs text-slate-500 mb-1' }, 'E-Mail'),
+            h('input', { class: 'input', type: 'email', value: p.plant.email, onInput: (e) => set('email', e.target.value) }),
+          ]),
+          h('div', { class: 'md:col-span-3' }, [
+            h('label', { class: 'block text-xs text-slate-500 mb-1' }, 'IBAN'),
+            h('input', { class: 'input', value: p.plant.iban, placeholder: 'DE00 0000 0000 …', onInput: (e) => set('iban', e.target.value) }),
+          ]),
+        ]),
+      ]),
+
+      // 🏡 Grundstueckdaten (separate Felder)
+      h('div', { class: 'bg-slate-900 rounded-lg p-3 border border-slate-700' }, [
+        h('h4', { class: 'text-xs font-semibold text-slate-400 mb-2' }, '🏡 Grundstueck'),
+        h('div', { class: 'grid grid-cols-1 md:grid-cols-3 gap-2' }, [
+          h('div', [
+            h('label', { class: 'block text-xs text-slate-500 mb-1' }, 'Gemarkung'),
+            h('input', { class: 'input', value: p.plant.gemarkung, onInput: (e) => set('gemarkung', e.target.value) }),
+          ]),
+          h('div', [
+            h('label', { class: 'block text-xs text-slate-500 mb-1' }, 'Flur'),
+            h('input', { class: 'input', value: p.plant.flur, onInput: (e) => set('flur', e.target.value) }),
+          ]),
+          h('div', [
+            h('label', { class: 'block text-xs text-slate-500 mb-1' }, 'Flurstueck'),
+            h('input', { class: 'input', value: p.plant.flurstueck, onInput: (e) => set('flurstueck', e.target.value) }),
+          ]),
+        ]),
+      ]),
+
       h('div', { class: 'grid grid-cols-1 md:grid-cols-3 gap-3' }, [
         h('div', [
           h('label', { class: 'block text-sm text-slate-400 mb-1' }, 'Anlagetyp *'),
@@ -209,7 +270,7 @@ const PlantForm = defineComponent({
             ]),
             // MStR
             h('div', { class: 'bg-slate-900 rounded-lg p-3 border border-slate-700' }, [
-              h('h4', { class: 'text-xs font-semibold text-slate-400 mb-2' }, 'MStR (Messsystem-Register)'),
+              h('h4', { class: 'text-xs font-semibold text-slate-400 mb-2' }, 'MStR (Marktstammdaten-Register)'),
               h('div', { class: 'grid grid-cols-1 md:grid-cols-3 gap-2' }, [
                 h('input', { class: 'input', placeholder: 'SEE Anlage', value: p.plant.mstr_see_plant, onInput: (e) => set('mstr_see_plant', e.target.value) }),
                 h('input', { class: 'input', placeholder: 'EEG-Anlage', value: p.plant.mstr_eeg, onInput: (e) => set('mstr_eeg', e.target.value) }),
@@ -288,6 +349,13 @@ onMounted(() => {
       ? props.initial.plants.map(p => ({
           ...emptyPlant(),
           ...p,
+          // Anlage-Adresse: aus Kundendaten vorbefuellen (optional ueberschreiben)
+          address_street: p.address_street || props.initial.address_street || '',
+          address_plz: p.address_plz || props.initial.address_plz || '',
+          address_city: p.address_city || props.initial.address_city || '',
+          phone: p.phone || props.initial.phone || '',
+          email: p.email || props.initial.email || '',
+          iban: p.iban || props.initial.iban || '',
           panels: p.panels || emptyPlant().panels,
           battery: p.battery || null,
           inverters: p.inverters || [],
@@ -338,9 +406,32 @@ async function save() {
     // Firmen-ID nur im Admin-Modus; Installer-Anlagen bekommen company_id: null
     if (form.plants.length && (isInstaller() || form.company_id)) {
       payload.plants = form.plants.map(p => ({
-        ...p,
+        anlagetyp: p.anlagetyp,
         commission_date: toISO(p.commission_date),
         company_id: isInstaller() ? null : form.company_id,
+        kwp: p.kwp || null,
+        kw: p.kw || null,
+        kwh: p.kwh || null,
+        // Anlage-Adresse (separate Felder)
+        address_street: p.address_street || null,
+        address_plz: p.address_plz || null,
+        address_city: p.address_city || null,
+        phone: p.phone || null,
+        email: p.email || null,
+        iban: p.iban || null,
+        // Grundstueckdaten
+        gemarkung: p.gemarkung || null,
+        flur: p.flur || null,
+        flurstueck: p.flurstueck || null,
+        panels: p.panels && p.panels.manufacturer ? p.panels : null,
+        inverters: p.inverters || [],
+        battery: p.battery || null,
+        mstr_see_plant: p.mstr_see_plant || null,
+        mstr_eeg: p.mstr_eeg || null,
+        mstr_see_battery: p.mstr_see_battery || null,
+        notes: p.notes || null,
+        lageplan: p.lageplan || null,
+        documents: p.documents || [],
       }))
     }
     const base = isInstaller() ? '/installer/customers' : '/admin/customers'
