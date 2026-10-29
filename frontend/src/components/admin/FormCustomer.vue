@@ -249,7 +249,7 @@ const PlantForm = defineComponent({
       ])
     }
 
-    // 📋 Checkliste (TUB-Dokumentation)
+    // 📋 Checkliste El. Installation
     function checklistSection(plant) {
       const items = plant.checklist && plant.checklist.length ? plant.checklist : []
       const rows = items.map((it, i) => {
@@ -315,7 +315,7 @@ const PlantForm = defineComponent({
         ])
       })
       return h('div', { class: 'bg-slate-900 rounded-lg p-3 border border-slate-700' }, [
-        h('h4', { class: 'text-xs font-semibold text-slate-400 mb-2' }, '📋 Checkliste (TUB-Dokumentation)'),
+        h('h4', { class: 'text-xs font-semibold text-slate-400 mb-2' }, '📋 Checkliste El. Installation'),
         h('p', { class: 'text-[10px] text-slate-500 mb-2' }, 'Dokumentationsfotos: nicht jeder Punkt braucht ein Foto.'),
         rows.length ? h('div', rows) : h('div', { class: 'text-xs text-slate-500' }, 'Keine Checkliste.'),
       ])
@@ -490,14 +490,8 @@ const PlantForm = defineComponent({
           ])
         : null,
 
-      // 📋 Checkliste (TUB-Dokumentation)
+      // 📋 Checkliste El. Installation
       checklistSection(p.plant),
-
-      // Notizen
-      h('div', [
-        h('label', { class: 'block text-sm text-slate-400 mb-1' }, 'Notizen'),
-        h('textarea', { class: 'input', rows: 2, value: p.plant.notes, onInput: (e) => set('notes', e.target.value) }),
-      ]),
 
       // 📐 Lageplan (PV: Pflichtfeld, sonst optional)
       h('div', { class: 'bg-slate-900 rounded-lg p-3 border border-slate-700' }, [
@@ -520,6 +514,12 @@ const PlantForm = defineComponent({
             }, p.plant.lageplan ? 'Bearbeiten' : 'Erstellen'),
           ]),
         ]),
+      ]),
+
+      // Notizen
+      h('div', [
+        h('label', { class: 'block text-sm text-slate-400 mb-1' }, 'Notizen'),
+        h('textarea', { class: 'input', rows: 2, value: p.plant.notes, onInput: (e) => set('notes', e.target.value) }),
       ]),
     ])
   },
