@@ -8,11 +8,12 @@ strikt auf created_by = <Identity-ID>.
 from __future__ import annotations
 
 import logging
-from fastapi import APIRouter, HTTPException, Header
+from fastapi import APIRouter, HTTPException, Header, Query
 from fastapi.encoders import jsonable_encoder
 
 from src.models.entities import CustomerCreate, CustomerUpdate
 from src.services import installer_customers as repo
+from src.services import zerez
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/installer", tags=["installer"])
@@ -75,3 +76,12 @@ async def delete_my_customer(customer_id: str, x_kratos_identity_id: str | None 
     ok = await repo.delete_my_customer(_installer_id(x_kratos_identity_id), customer_id)
     if not ok:
         raise HTTPException(404, "Kunde nicht gefunden")
+
+
+# ---------------------------------------------------------------- ZEREZ (Lookup)
+
+@router.get("/zerez/search")
+async def zerez_search(q: str = Query(..., min_length=1), x_kratos_identity_id: str | None = Header(default=None)):
+    if not x_kratos_identity_id:
+        raise HTTPException(401, "Keine Identitaet")
+    return {"results": await zerez.search(q)}

@@ -13,3 +13,10 @@ export const kratos = axios.create({
 })
 
 export default client
+
+// ZEREZ-Lookup (Admin: /api/admin/zerez/..., Installer: /api/installer/zerez/...)
+export async function zerezSearch(q, isInstaller = false) {
+  const base = isInstaller ? '/installer/zerez/search' : '/admin/zerez/search'
+  const r = await client.get(base, { params: { q } })
+  return r.data.results
+}

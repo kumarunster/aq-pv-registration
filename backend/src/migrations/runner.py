@@ -6,7 +6,7 @@ v2: created_by fuer Installer-Trennung (v0.3.0)
 
 from datetime import datetime, timezone
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 MIGRATIONS = {}
 
@@ -43,8 +43,20 @@ async def migration_2(db):
     )
 
 
+async def migration_3(db):
+    """v3: ZEREZ-Abbild (zerez_units) + Index auf ZEREZ-ID."""
+    await db.create_collection("zerez_units")
+    await db["zerez_units"].create_index("zerez_id")
+    await db["schema"].update_one(
+        {"_id": "meta"},
+        {"$set": {"version": 3, "appliedAt": datetime.now(timezone.utc)}},
+        upsert=True,
+    )
+
+
 MIGRATIONS[1] = migration_1
 MIGRATIONS[2] = migration_2
+MIGRATIONS[3] = migration_3
 
 
 async def run_all(db) -> None:

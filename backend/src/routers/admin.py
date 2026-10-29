@@ -6,7 +6,7 @@ und X-User-Id, die hier ausgelesen werden.
 """
 
 import logging
-from fastapi import APIRouter, HTTPException, Header
+from fastapi import APIRouter, HTTPException, Header, Query
 from fastapi.encoders import jsonable_encoder
 
 from src.models.entities import (
@@ -17,6 +17,7 @@ from src.models.entities import (
 )
 from src.services import companies as company_repo
 from src.services import customers as customer_repo
+from src.services import zerez
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -193,3 +194,30 @@ async def delete_customer(
     ok = await customer_repo.delete(customer_id)
     if not ok:
         raise HTTPException(404, "Kunde nicht gefunden")
+
+
+# ---------------------------------------------------------------- ZEREZ
+
+@router.post("/zerez/sync")
+async def zerez_sync(x_kratos_identity_id: str | None = Header(default=None)):
+    """ZEREZ-Abbild voll synchronisieren (is4105=true)."""
+    if not x_kratos_identity_id:
+        raise HTTPException(401, "Keine Identitaet")
+    return await zerez.sync()
+
+
+@router.get("/zerez/units/{zerez_id}")
+async def zerez_get_unit(zerez_id: str, x_kratos_identity_id: str | None = Header(default=None)):
+    if not x_kratos_identity_id:
+        raise HTTPException(401, "Keine Identitaet")
+    doc = await zerez.get_unit(zerez_id)
+    if not doc:
+        raise HTTPException(404, "ZEREZ-ID nicht gefunden")
+    return doc
+
+
+@router.get("/zerez/search")
+async def zerez_search(q: str = Query(..., min_length=1), x_kratos_identity_id: str | None = Header(default=None)):
+    if not x_kratos_identity_id:
+        raise HTTPException(401, "Keine Identitaet")
+    return {"results": await zerez.search(q)}

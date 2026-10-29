@@ -1,0 +1,20 @@
+{
+  "operationName": "getUnitsForUnitsOverview",
+  "variables": {
+    "take": 100,
+    "where": {
+      "and": [
+        {
+          "is4105": {
+            "eq": true
+          }
+        }
+      ]
+    },
+    "skip": 0,
+    "order": {
+      "createdAt": "DESC"
+    }
+  },
+  "query": "query getUnitsForUnitsOverview($skip: Int, $take: Int, $where: UnitOverviewFilterInput, $order: [UnitOverviewSortInput!]) {\n  unitOverview(skip: $skip, take: $take, where: $where, order: $order) {\n    totalCount\n    items {\n      id\n      modelName\n      unitCode\n      maxActivePower\n      ratedVoltage\n      certificateNormIssueDateDescriptions\n      is4105\n      category\n      certificateHolderName\n      isVerified\n      primaryEnergySource\n      certificateNumber\n      validityStartDate\n      validityEndDate\n      __typename\n    }\n    __typename\n  }\n}"
+}

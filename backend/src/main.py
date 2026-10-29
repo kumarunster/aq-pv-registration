@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from src.config import settings
 from src.migrations.runner import gelesene_version, pruefe_stand, run_all
 from src.routers import admin, status, installer, docs
+from src.services import zerez
 from src.routers.lageplan.router import router as lageplan_router
 from src.services import database
 from src.version import VERSION
@@ -25,6 +26,8 @@ async def lifespan(app: FastAPI):
     await database.connect()
     # Migrations laufen erst bei Bedarf (Schema-Version nicht aktuell).
     await pruefe_stand(database.get_db())
+    # ZEREZ: Initial-Pull im Hintergrund, wenn Abbild noch leer.
+    await zerez.start_background_if_needed()
     yield
     database.disconnect()
     logger.info("Backend beendet")

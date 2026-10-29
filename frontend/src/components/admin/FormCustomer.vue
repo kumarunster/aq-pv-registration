@@ -116,6 +116,7 @@
 import { ref, reactive, onMounted, h, defineComponent } from 'vue'
 import client from '@/api/client'
 import * as docsApi from '@/api/docs'
+import { zerezSearch } from '@/api/client'
 import LageplanEditor from '@/components/lageplan/LageplanEditor.vue'
 import { useLayoutStore } from '@/components/lageplan/useLayoutStore.js'
 
@@ -193,6 +194,58 @@ const PlantForm = defineComponent({
     function setInverter(i, key, val) {
       p.plant.inverters[i][key] = val
       set('inverters', [...p.plant.inverters])
+    }
+
+    // 📋 ZEREZ Typeahead für Inverter-Hersteller
+    const zerezQuery = ref('')
+    const zerezResults = ref([])
+    const zerezOpen = ref(false)
+    const zerezLoading = ref(false)
+    const activeZerezIndex = ref(-1)
+
+    let zerezTimer = null
+    function onZerezInput(i, e) {
+      const v = e.target.value
+      setInverter(i, 'manufacturer', v)
+      zerezQuery.value = v
+      clearTimeout(zerezTimer)
+      if (v.length >= 3) {
+        zerezLoading.value = true
+        zerezOpen.value = true
+        zerezTimer = setTimeout(async () => {
+          try {
+            const results = await zerezSearch(v, p.isInstaller)
+            zerezResults.value = results.slice(0, 8)
+          } catch (err) {
+            zerezResults.value = []
+          } finally {
+            zerezLoading.value = false
+          }
+        }, 300)
+      } else {
+        zerezOpen.value = false
+        zerezResults.value = []
+      }
+    }
+
+    function selectZerez(i, result) {
+      // Daten übernehmen: manufacturer, type (modelName), kw (maxActivePower), zerez_id (unitCode)
+      const inv = { ...p.plant.inverters[i] }
+      inv.manufacturer = result.certificateHolderName || inv.manufacturer
+      inv.type = result.modelName || inv.type
+      inv.kw = String(result.maxActivePower || inv.kw)
+      inv.zerez_id = result.unitCode || inv.zerez_id
+      const invs = [...p.plant.inverters]
+      invs[i] = inv
+      set('inverters', invs)
+      zerezOpen.value = false
+      zerezResults.value = []
+      zerezQuery.value = ''
+    }
+
+    function closeZerez() {
+      zerezOpen.value = false
+      zerezResults.value = []
     }
     // Status-Stepper: 4 Schritte
     const STATUS_STEPS = [
@@ -466,7 +519,49 @@ const PlantForm = defineComponent({
         ]),
         p.plant.inverters.map((inv, i) =>
           h('div', { class: 'grid grid-cols-1 md:grid-cols-5 gap-2 mb-2', key: i }, [
-            h('input', { class: 'input', placeholder: 'Hersteller', value: inv.manufacturer, onInput: (e) => setInverter(i, 'manufacturer', e.target.value) }),
+            h('div', { class: 'relative' }, [
+              h('input', {
+                class: 'input',
+                placeholder: 'Hersteller (min. 3 Zeichen)',
+                value: inv.manufacturer,
+                onInput: (e) => onZerezInput(i, e),
+                onFocus: () => { if (zerezQuery.value.length >= 3) zerezOpen.value = true },
+                onBlur: () => setTimeout(closeZerez, 200),
+              }),
+              zerezOpen.value && zerezResults.value.length
+                ? h('div', {
+                    class: 'absolute z-50 mt-1 w-full bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-64 overflow-y-auto',
+                    onClick: (e) => e.stopPropagation(),
+                  }, [
+                    zerezLoading.value
+                      ? h('div', { class: 'p-2 text-xs text-slate-400' }, 'Lade…')
+                      : h('table', { class: 'w-full text-xs' }, [
+                          h('thead', [
+                            h('tr', { class: 'text-slate-500 border-b border-slate-700' }, [
+                              h('th', { class: 'p-1.5 text-left' }, 'Hersteller'),
+                              h('th', { class: 'p-1.5 text-left' }, 'Model'),
+                              h('th', { class: 'p-1.5 text-left' }, 'kW'),
+                              h('th', { class: 'p-1.5 text-left' }, 'ZEREZ-ID'),
+                              h('th', { class: 'p-1.5 text-left' }, 'Voltage'),
+                            ]),
+                          ]),
+                          h('tbody', zerezResults.value.map((r, ri) =>
+                            h('tr', {
+                              key: ri,
+                              class: 'cursor-pointer hover:bg-slate-700',
+                              onClick: () => selectZerez(i, r),
+                            }, [
+                              h('td', { class: 'p-1.5' }, r.certificateHolderName || '–'),
+                              h('td', { class: 'p-1.5' }, r.modelName || '–'),
+                              h('td', { class: 'p-1.5' }, r.maxActivePower != null ? r.maxActivePower : '–'),
+                              h('td', { class: 'p-1.5' }, r.unitCode || '–'),
+                              h('td', { class: 'p-1.5' }, r.ratedVoltage != null ? r.ratedVoltage : '–'),
+                            ])
+                          )),
+                        ]),
+                  ])
+                : null,
+            ]),
             h('input', { class: 'input', placeholder: 'Typ', value: inv.type, onInput: (e) => setInverter(i, 'type', e.target.value) }),
             h('input', { class: 'input', placeholder: 'kW', value: inv.kw, onInput: (e) => setInverter(i, 'kw', e.target.value) }),
             h('input', { class: 'input', placeholder: 'ZEREZ-ID', value: inv.zerez_id, onInput: (e) => setInverter(i, 'zerez_id', e.target.value) }),

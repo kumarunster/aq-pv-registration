@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     minio_access_key: str = "naadmin"
     minio_secret_key: str = "naadmin123"
     minio_bucket: str = "na-docs"
+    zerez_url: str = "https://app-zerez-weeu-gatewaysvc-prod-01.azurewebsites.net/graphql/"
 
     class Config:
         env_prefix = ""
