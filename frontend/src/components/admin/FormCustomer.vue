@@ -537,11 +537,10 @@ const PlantForm = defineComponent({
           ])
         ),
         p.plant.inverters.length === 0 ? h('div', { class: 'text-slate-500 text-xs' }, 'Kein Wechselrichter erfasst.') : null,
-        // ZEREZ Typeahead: full-width overlay über der gesamten Inverter-Sektion
+        // ZEREZ Typeahead: full-width, UNTER der Inverter-Sektion (deckt nichts ab)
         (zerezOpen.value && (zerezResults.value.length || zerezLoading.value))
           ? h('div', {
-              class: 'absolute left-0 right-0 z-50 bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-64 overflow-y-auto',
-              style: { bottom: '0.75rem' },
+              class: 'relative mt-2 z-50 bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-64 overflow-y-auto',
               onClick: (e) => e.stopPropagation(),
             }, [
               zerezLoading.value
