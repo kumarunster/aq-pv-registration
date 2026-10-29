@@ -39,12 +39,6 @@ const route = useRoute()
 const ready = ref(false)
 
 let unguard = null
-let checking = null // inaktive Guard-Läufe werden nicht erneut gestartet
-
-function setReady(v) {
-  ready.value = v
-  checking = null
-}
 
 onBeforeMount(async () => {
   // EIGENER Guard: Prüft die Session immer, bevor die Seite gerendert wird.
@@ -52,17 +46,17 @@ onBeforeMount(async () => {
   // aus dem BFCache kommt und den Guard überspringt. Der eigene Guard
   // läuft dagegen bei jedem Route-Event - auch beim Zurück-Klicken.
   unguard = router.beforeEach(async (to) => {
-    if (to.meta.public) { setReady(true); return }
+    if (to.meta.public) { ready.value = true; return }
     const user = await auth.checkSession()
-    if (!user) { setReady(false); return { name: 'installer-login' } }
-    setReady(true)
+    if (!user) { ready.value = false; return { name: 'installer-login' } }
+    ready.value = true
   })
   // Guard für den INITIALEN Routenaufruf (z. B. nach Login-Redirect):
   // onBeforeMount läuft vor dem ersten Render, und der guard wird hier
   // erst registriert — der erste Navigation läuft danach, aber wir
   // starten die Prüfung parallel, damit die Seite sofort rendert.
   const user = await auth.checkSession()
-  if (user) setReady(true)
+  if (user) ready.value = true
 })
 
 onBeforeUnmount(() => { if (unguard) unguard() })

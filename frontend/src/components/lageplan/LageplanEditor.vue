@@ -1,7 +1,7 @@
 <template>
   <div class="max-w-6xl mx-auto space-y-4">
     <!-- Kopfzeile -->
-    <div class="flex flex-wrap items-center justify-between gap-2">
+    <div v-if="!compact" class="flex flex-wrap items-center justify-between gap-2">
       <div class="flex flex-col">
         <h1 class="text-2xl font-bold text-white">📐 Lageplan-Editor</h1>
         <span class="text-xs text-slate-500">
@@ -207,11 +207,28 @@ import LageplanStage from './LageplanStage.vue'
 const props = defineProps({
   // Bestehendes Layout (z. B. aus Anlagen-Formular). Wird beim Mount geladen.
   initialLayout: { type: Object, default: null },
+  // Kompakter Modus: ohne eigene Kopfzeile (für Embedding im Anlagen-Formular)
+  compact: { type: Boolean, default: false },
 })
 const store = useLayoutStore()
 const fileInput = ref(null)
 const stageRef = ref(null)
 const pdfBusy = ref(false)
+
+// Embedding: bei initialLayout in den Store laden, damit der Editor
+// den bestehenden Plan zeigt (und die Stage die Elemente rendert).
+function loadInitialLayout() {
+  if (!props.initialLayout) return
+  const l = props.initialLayout
+  store.layout.title = l.title || 'Lageplan'
+  store.layout.background_image_url = l.background_image_url || null
+  store.layout.background_image_width = l.background_image_width || null
+  store.layout.background_image_height = l.background_image_height || null
+  if (!store.layout.metadata) store.layout.metadata = {}
+  Object.assign(store.layout.metadata, l.metadata || {})
+  store.layout.elements.length = 0
+  for (const el of (l.elements || [])) store.layout.elements.push(el)
+}
 
 // Projektdaten für den PDF-Header (Adresse, Gemarkung/Flur/Flurstück).
 // Direkt in store.layout.metadata gehalten, damit JSON-Export und PDF mitnehmen.
@@ -284,6 +301,7 @@ function onMetaChanged() {
 }
 
 onMounted(() => {
+  loadInitialLayout()
   // Bestehendes Layout (z. B. aus Anlage) in den Store laden
   if (props.initialLayout) {
     const l = props.initialLayout

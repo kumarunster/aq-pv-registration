@@ -99,10 +99,24 @@ cd03538 fix(lageplan): syncFromCanvas - lokale Positionen + Rotation aus Node
 
 ## 5. Nächste Schritte (Reihenfolge, erst nach Kolya-Freigabe)
 
-1. **Kolya-Test der Integration:** Kunde anlegen → PV-Anlage → Lageplan
-   erstellen → speichern → in Mongo prüfen (`customers.plants[*].lageplan`)
-   + PDF aus dem Formular exportieren.
-2. **Dokumente an Anlage hängen:** PDF-Export aus dem Formular direkt als
+1. **Lageplan-Integration in Anlagen-Formular** (erst als Plan notiert, noch
+   nicht gebaut): `FormCustomer.vue`/`PlantForm` bekommt pro Anlage einen
+   📐-Abschnitt (Status ✓/leer + „Erstellen“/„Bearbeiten“-Button) und öffnet
+   den `LageplanEditor` in einem Fullscreen-Dialog (initialLayout aus der
+   Anlage, Titel/Adresse vorbefüllt, `getLayout()` beim Schließen →
+   `plant.lageplan`). PV ohne Lageplan = Speichern abgebrochen (Pflichtfeld,
+   Logik steht schon im save() — UI fehlt).
+2. **Anlage: Adress- + Grundstückdaten übernehmen:** Im PlantForm ein
+   Abschnitt „📍 Anlage-Adresse“ (Straße + Nr, PLZ, Ort, Telefon, E-Mail, IBAN
+   — separate Felder `plant.address_*`, nicht die Kundendaten) und „🏡
+   Grundstück“ (separate Felder `plant.gemarkung`/`flur`/`flurstueck`).
+   Backend: PlantCreate/PlantUpdate um die Felder erweitern; Gemarkung/Flur/
+   Flurstück zusätzlich in `lageplan.metadata` spiegeln (PDF-Header nutzt sie).
+3. **Kolya-Test der Integration:** Kunde anlegen → PV-Anlage → Adresse/
+   Grundstück ausfüllen → Lageplan erstellen → speichern → in Mongo prüfen
+   (`customers.plants[*].lageplan`, `address_*`, `gemarkung`) + PDF aus dem
+   Formular exportieren.
+4. **Dokumente an Anlage hängen:** PDF-Export aus dem Formular direkt als
    `DocumentRef` speichern (Upload-Service + `documents`-Feld nutzen;
    Aktuell wird nur das JSON gespeichert, das PDF wird on-the-fly erzeugt).
-3. **Installer-API 401:** Oathkeeper-Logs bei EINEM Installer-Request auswerten.
+5. **Installer-API 401:** Oathkeeper-Logs bei EINEM Installer-Request auswerten.

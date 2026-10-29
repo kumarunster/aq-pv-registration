@@ -5,3 +5,11 @@
 body {
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
+
+/* Zentrale Formulareingabe (global, damit auch H-Render-Funktionen
+   in defineComponent-Komponenten das gleiche Styling bekommen) */
+@layer components {
+  .input {
+    @apply w-full bg-slate-800 rounded-lg px-3 py-2 text-sm border border-slate-700 focus:border-amber-500 focus:outline-none;
+  }
+}
