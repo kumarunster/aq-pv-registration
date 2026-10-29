@@ -36,9 +36,3 @@ memory/
 
 # Build-Zeit, wird bei jedem Vite-Build neu erzeugt
 frontend/src/build-time.ts
-
-# Docker-Volumen (Daten, nicht Code)
-_infrastructure/minio/
-_infrastructure/mongodb/
-_infrastructure/postgres/
-_infrastructure/redis/
