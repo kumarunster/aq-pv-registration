@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 from fastapi import APIRouter, HTTPException, Header
+from fastapi.encoders import jsonable_encoder
 
 from src.models.entities import CustomerCreate, CustomerUpdate
 from src.services import installer_customers as repo
@@ -57,15 +58,13 @@ async def get_my_customer(customer_id: str, x_kratos_identity_id: str | None = H
 
 @router.post("/customers", status_code=201)
 async def create_my_customer(body: CustomerCreate, x_kratos_identity_id: str | None = Header(default=None)):
-    data = body.model_dump()
-    if getattr(body, "plants", None):
-        data["plants"] = body.plants
+    data = jsonable_encoder(body)
     return await repo.create_my_customer(_installer_id(x_kratos_identity_id), data)
 
 
 @router.put("/customers/{customer_id}")
 async def update_my_customer(customer_id: str, body: CustomerUpdate, x_kratos_identity_id: str | None = Header(default=None)):
-    doc = await repo.update_my_customer(_installer_id(x_kratos_identity_id), customer_id, body.model_dump())
+    doc = await repo.update_my_customer(_installer_id(x_kratos_identity_id), customer_id, jsonable_encoder(body))
     if not doc:
         raise HTTPException(404, "Kunde nicht gefunden")
     return doc

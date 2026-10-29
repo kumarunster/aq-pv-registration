@@ -7,6 +7,7 @@ und X-User-Id, die hier ausgelesen werden.
 
 import logging
 from fastapi import APIRouter, HTTPException, Header
+from fastapi.encoders import jsonable_encoder
 
 from src.models.entities import (
     CompanyCreate,
@@ -160,7 +161,7 @@ async def create_customer(
     x_kratos_identity_schema: str | None = Header(default=None),
 ):
     identity = _admin_identity(x_kratos_identity_id, x_kratos_identity_email, x_kratos_identity_schema)
-    data = body.model_dump()
+    data = jsonable_encoder(body)
     data["created_by"] = identity["id"]
     doc = await customer_repo.create(data)
     return doc
@@ -175,7 +176,7 @@ async def update_customer(
     x_kratos_identity_schema: str | None = Header(default=None),
 ):
     _admin_identity(x_kratos_identity_id, x_kratos_identity_email, x_kratos_identity_schema)
-    doc = await customer_repo.update(customer_id, body.model_dump())
+    doc = await customer_repo.update(customer_id, jsonable_encoder(body))
     if not doc:
         raise HTTPException(404, "Kunde nicht gefunden")
     return doc
