@@ -11,52 +11,81 @@
     <FormCustomer v-if="showForm" :companies="companies" :initial="editing || null" @saved="onSaved" @cancel="closeForm" />
 
     <!-- Liste -->
-    <div v-if="!showForm" class="space-y-3">
-      <div v-if="loading" class="text-slate-400 text-sm">Lade…</div>
-      <div v-else-if="customers.length === 0" class="bg-slate-900 rounded-xl p-6 text-center text-slate-400">
-        Noch keine Kunden angelegt.
+    <div v-if="!showForm">
+      <!-- Suche + Filter + Pagination -->
+      <div class="bg-slate-900 rounded-xl p-4 border border-slate-800 mb-4">
+        <div class="flex flex-wrap items-center gap-3">
+          <input
+            v-model="search" @input="debouncedLoad"
+            class="input flex-1 min-w-48" type="search" placeholder="🔍 Suche: Name, Ort, E-Mail, Straße…"
+          />
+          <select v-model="statusFilter" @change="onFilterChange" class="input w-auto">
+            <option value="">Alle Status</option>
+            <option value="in_pruefung">In Prüfung</option>
+            <option value="angemeldet">Angemeldet</option>
+            <option value="abgeschlossen">Abgeschlossen</option>
+          </select>
+        </div>
+        <div class="flex items-center justify-between mt-3 text-sm text-slate-400">
+          <span v-if="total !== null">{{ total }} Kunden</span>
+          <span>{{ loading ? '…' : `Seite ${page + 1} von ${totalPages || 1}` }}</span>
+        </div>
       </div>
-      <div v-for="c in customers" :key="c._id" class="bg-slate-900 rounded-xl p-4 border border-slate-800 hover:border-amber-500/50 cursor-pointer transition-colors" @click="editCustomer(c)">
-        <div class="flex items-start justify-between">
-          <div>
-            <h3 class="font-semibold text-lg">{{ c.firstname }} {{ c.lastname }}</h3>
-            <p class="text-slate-400 text-sm mt-1">
-              {{ c.address_street }}, {{ c.address_plz }} {{ c.address_city }}
-            </p>
-            <p v-if="c.email" class="text-slate-400 text-sm">{{ c.email }} · {{ c.phone }}</p>
-            <div v-if="c.iban" class="text-slate-500 text-xs mt-1">IBAN: {{ c.iban }}</div>
-            <div v-if="c.plants && c.plants.length" class="mt-3">
-              <div v-for="(p, i) in c.plants" :key="i" class="text-sm text-slate-400 bg-slate-800 rounded-lg px-3 py-2 mb-2">
-                <span class="text-amber-400 font-medium">{{ anlagetypLabel(p.anlagetyp) }}</span>
-                <span v-if="p.status" class="ml-2">
-                  <span class="text-xs text-slate-500">Fortschritt: </span>
-                  <span class="inline-flex items-center gap-0.5">
-                    <span v-for="(step, si) in progressSteps(p.status)" :key="si"
-                      :class="'w-2 h-2 rounded-full ' + (si < progressIdx(p.status) ? 'bg-green-500' : si === progressIdx(p.status) ? step.dot : 'bg-slate-600')"
-                      :title="step.label"></span>
+
+      <div v-if="loading" class="text-slate-400 text-sm py-4 text-center">Lade…</div>
+      <div v-else-if="customers.length === 0" class="bg-slate-900 rounded-xl p-6 text-center text-slate-400">
+        Keine Kunden gefunden.
+      </div>
+      <div v-else class="space-y-3">
+        <div v-for="c in customers" :key="c._id" class="bg-slate-900 rounded-xl p-4 border border-slate-800 hover:border-amber-500/50 cursor-pointer transition-colors" @click="editCustomer(c)">
+          <div class="flex items-start justify-between">
+            <div>
+              <h3 class="font-semibold text-lg">{{ c.firstname }} {{ c.lastname }}</h3>
+              <p class="text-slate-400 text-sm mt-1">
+                {{ c.address_street }}, {{ c.address_plz }} {{ c.address_city }}
+              </p>
+              <p v-if="c.email" class="text-slate-400 text-sm">{{ c.email }} · {{ c.phone }}</p>
+              <div v-if="c.iban" class="text-slate-500 text-xs mt-1">IBAN: {{ c.iban }}</div>
+              <div v-if="c.plants && c.plants.length" class="mt-3">
+                <div v-for="(p, i) in c.plants" :key="i" class="text-sm text-slate-400 bg-slate-800 rounded-lg px-3 py-2 mb-2">
+                  <span class="text-amber-400 font-medium">{{ anlagetypLabel(p.anlagetyp) }}</span>
+                  <span v-if="p.status" class="ml-2">
+                    <span class="text-xs text-slate-500">Fortschritt: </span>
+                    <span class="inline-flex items-center gap-0.5">
+                      <span v-for="(step, si) in progressSteps(p.status)" :key="si"
+                        :class="'w-2 h-2 rounded-full ' + (si < progressIdx(p.status) ? 'bg-green-500' : si === progressIdx(p.status) ? step.dot : 'bg-slate-600')"
+                        :title="step.label"></span>
+                    </span>
+                    <span class="ml-1 text-xs text-slate-400">{{ statusLabel(p.status) }}</span>
                   </span>
-                  <span class="ml-1 text-xs text-slate-400">{{ statusLabel(p.status) }}</span>
-                </span>
-                <span v-if="p.kwp"> · {{ p.kwp }} kWp</span>
-                <span v-if="p.kw"> · {{ p.kw }} kW</span>
-                <span v-if="p.kwh"> · {{ p.kwh }} kWh</span>
-                <span v-if="p.commission_date"> · Inbetriebnahme: {{ formatDate(p.commission_date) }}</span>
-                <span v-if="p.panels"> · {{ p.panels.count }} Module {{ p.panels.manufacturer }}</span>
+                  <span v-if="p.kwp"> · {{ p.kwp }} kWp</span>
+                  <span v-if="p.kw"> · {{ p.kw }} kW</span>
+                  <span v-if="p.kwh"> · {{ p.kwh }} kWh</span>
+                  <span v-if="p.commission_date"> · Inbetriebnahme: {{ formatDate(p.commission_date) }}</span>
+                  <span v-if="p.panels"> · {{ p.panels.count }} Module {{ p.panels.manufacturer }}</span>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="flex gap-2" @click.stop>
-            <button @click="editCustomer(c)" class="text-slate-400 hover:text-amber-400 text-sm px-2">✏️ Bearbeiten</button>
-            <button @click="deleteCustomer(c)" class="text-slate-400 hover:text-red-400 text-sm px-2">🗑️</button>
+            <div class="flex gap-2" @click.stop>
+              <button @click="editCustomer(c)" class="text-slate-400 hover:text-amber-400 text-sm px-2">✏️ Bearbeiten</button>
+              <button @click="deleteCustomer(c)" class="text-slate-400 hover:text-red-400 text-sm px-2">🗑️</button>
+            </div>
           </div>
         </div>
+      </div>
+
+      <!-- Pagination -->
+      <div v-if="totalPages > 1" class="flex items-center justify-center gap-2 mt-6">
+        <button :disabled="page === 0" @click="changePage(-1)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 rounded-lg text-sm">← Vorherige</button>
+        <span class="text-slate-400 text-sm px-2">Seite {{ page + 1 }} / {{ totalPages }}</span>
+        <button :disabled="page >= totalPages - 1" @click="changePage(1)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 rounded-lg text-sm">Nächste →</button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import client from '@/api/client'
 import FormCustomer from '@/components/admin/FormCustomer.vue'
 
@@ -66,16 +95,44 @@ const loading = ref(true)
 const showForm = ref(false)
 const editing = ref(null)
 
+const search = ref('')
+const statusFilter = ref('')
+const page = ref(0)
+const limit = 25
+const total = ref(null)
+const totalPages = computed(() => total.value ? Math.ceil(total.value / limit) : 0)
+
+let debounceTimer = null
+
 onMounted(load)
+
+function debouncedLoad() {
+  if (debounceTimer) clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(() => { page.value = 0; load() }, 300)
+}
+
+function onFilterChange() {
+  page.value = 0
+  load()
+}
+
+function changePage(delta) {
+  page.value = Math.max(0, page.value + delta)
+  load()
+}
 
 async function load() {
   loading.value = true
   try {
+    const params = { limit, offset: page.value * limit }
+    if (search.value.trim()) params.q = search.value.trim()
+    if (statusFilter.value) params.status = statusFilter.value
     const [cust, comp] = await Promise.all([
-      client.get('/admin/customers'),
+      client.get('/admin/customers', { params }),
       client.get('/admin/companies'),
     ])
-    customers.value = cust.data
+    customers.value = cust.data.items
+    total.value = cust.data.total
     companies.value = comp.data
   } catch (e) {
     console.error('Kunden laden fehlgeschlagen', e)

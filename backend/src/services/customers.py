@@ -16,6 +16,48 @@ async def find_all() -> list[dict]:
     return [serialize(d) for d in docs]
 
 
+async def list_paginated(
+    q: str = "",
+    status: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> dict:
+    """Kundenliste mit Suche + Status-Filter + Pagination.
+
+    Rückgabe: {"items": [...], "total": int, "limit": int, "offset": int}
+
+    status filtert nach Anlagenstatus (in_pruefung | angemeldet | abgeschlossen):
+    Kunde wird gelistet, wenn mind. eine Anlage diesen Status hat.
+    """
+    import re
+    db = get_db()
+    limit = max(1, min(limit, 100))
+    offset = max(0, offset)
+
+    query = {}
+    if q:
+        pattern = re.compile(re.escape(q), re.IGNORECASE)
+        query["$or"] = [
+            {"firstname": pattern},
+            {"lastname": pattern},
+            {"address_city": pattern},
+            {"email": pattern},
+            {"address_street": pattern},
+        ]
+    if status:
+        query["plants.status"] = status
+
+    total = await db["customers"].count_documents(query)
+    docs = await (
+        db["customers"].find(query)
+        .sort("lastname", 1)
+        .skip(offset)
+        .limit(limit)
+        .to_list(length=limit)
+    )
+    return {"items": [serialize(d) for d in docs], "total": total, "limit": limit, "offset": offset}
+
+
 async def get_by_id(customer_id: str) -> dict | None:
     from bson import ObjectId
     db = get_db()

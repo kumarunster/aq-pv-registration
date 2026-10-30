@@ -69,12 +69,24 @@
       <div v-if="form.plants.length === 0" class="text-slate-500 text-sm bg-slate-800 rounded-lg p-4">
         Noch keine Anlage. Über „+ Anlage hinzufügen" eine PV-Anlage, Wallbox oder Wärmepumpe erfassen.
       </div>
-      <div v-for="(p, i) in form.plants" :key="i" class="bg-slate-800 rounded-xl p-4 mb-3 border border-slate-700">
+      <!-- Anlagen-Tabs: nur das aktive Formular ist im DOM (v-if),
+           damit ZEREZ-Typeahead/State pro Anlage sauber bleibt -->
+      <div class="flex flex-wrap gap-1.5 mb-3">
+        <button v-for="(p, i) in form.plants" :key="'tab'+i" type="button"
+          @click="activePlant = i"
+          :class="activePlant === i
+            ? 'px-3 py-1.5 bg-amber-500 text-slate-950 font-semibold rounded-lg text-sm'
+            : 'px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm'"
+        >
+          {{ plantTabLabel(p, i) }}
+        </button>
+      </div>
+      <div v-for="(p, i) in form.plants" :key="i" v-show="activePlant === i" class="bg-slate-800 rounded-xl p-4 border border-slate-700">
         <div class="flex items-center justify-between mb-3">
           <span class="text-sm font-semibold">Anlage {{ i + 1 }}</span>
           <button type="button" @click="removePlant(i)" class="text-slate-400 hover:text-red-400 text-sm">🗑️ Entfernen</button>
         </div>
-        <PlantForm :plant="p" :onUpdate="updatePlant" :index="i" :isInstaller="isInstaller()" :customerId="form.customer_id" @open-lageplan="openLageplan(i)" />
+        <PlantForm v-if="activePlant === i" :plant="p" :onUpdate="updatePlant" :index="i" :isInstaller="isInstaller()" :customerId="form.customer_id" @open-lageplan="openLageplan(i)" />
       </div>
     </section>
 
@@ -115,6 +127,7 @@
 <script setup>
 import { ref, reactive, onMounted, h, defineComponent } from 'vue'
 import client from '@/api/client'
+import toast from '@/api/toast'
 import * as docsApi from '@/api/docs'
 import { zerezSearch } from '@/api/client'
 import LageplanEditor from '@/components/lageplan/LageplanEditor.vue'
@@ -673,12 +686,22 @@ onMounted(() => {
   }
 })
 
+const activePlant = ref(0)
+
+function plantTabLabel(p, i) {
+  const typ = { pv: 'PV', wallbox: 'Wallbox', waermepumpe: 'WP' }[p.anlagetyp] || '?'
+  const done = p.lageplan ? ' ✓' : p.anlagetyp === 'pv' ? ' ⚠' : ''
+  return `Anlage ${i + 1} · ${typ}${done}`
+}
+
 function addPlant() {
   form.plants.push(emptyPlant())
+  activePlant.value = form.plants.length - 1
 }
 
 function removePlant(i) {
   form.plants.splice(i, 1)
+  if (activePlant.value >= form.plants.length) activePlant.value = Math.max(0, form.plants.length - 1)
 }
 
 function updatePlant(i, key, val) {
@@ -745,7 +768,7 @@ async function save() {
   // PV-Anlagen benötigen einen Lageplan (Pflichtfeld, Roadmap Phase 5e)
   const pvWithout = form.plants.filter(p => p.anlagetyp === 'pv' && !p.lageplan)
   if (pvWithout.length) {
-    alert(`PV-Anlage(n) ohne Lageplan: ${pvWithout.map((p,i)=>`Anlage ${form.plants.indexOf(p)+1}`).join(', ')}. Bitte zuerst den Lageplan erstellen.`)
+    toast.error(`PV-Anlage(n) ohne Lageplan: ${pvWithout.map((p,i)=>`Anlage ${form.plants.indexOf(p)+1}`).join(', ')}. Bitte zuerst den Lageplan erstellen.`)
     return
   }
   saving.value = true
@@ -803,7 +826,7 @@ async function save() {
     }
     emit('saved')
   } catch (e) {
-    alert('Speichern fehlgeschlagen: ' + e.message)
+    toast.error('Speichern fehlgeschlagen: ' + e.message)
   } finally {
     saving.value = false
   }

@@ -121,6 +121,25 @@ async def delete_company(
 
 @router.get("/customers")
 async def list_customers(
+    q: str = "",
+    status: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+    x_kratos_identity_id: str | None = Header(default=None),
+    x_kratos_identity_email: str | None = Header(default=None),
+    x_kratos_identity_schema: str | None = Header(default=None),
+):
+    """Kundenliste mit Suche (q), Status-Filter (status) und Pagination.
+
+    Rückgabe: {"items": [...], "total": int, "limit": int, "offset": int}
+    """
+    _admin_identity(x_kratos_identity_id, x_kratos_identity_email, x_kratos_identity_schema)
+    return await customer_repo.list_paginated(q=q, status=status, limit=limit, offset=offset)
+
+
+# Backwards-kompatible Alias (ohne Query-Parameter): liefert alle Kunden (limit 5000)
+@router.get("/customers/all")
+async def list_customers_all(
     x_kratos_identity_id: str | None = Header(default=None),
     x_kratos_identity_email: str | None = Header(default=None),
     x_kratos_identity_schema: str | None = Header(default=None),
