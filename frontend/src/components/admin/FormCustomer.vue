@@ -79,30 +79,33 @@
 
     <!-- ============================== TAB: ANLAGEN ============================== -->
     <div v-if="mainTab === 'anlagen'">
-      <!-- Suchleiste + Add -->
-      <div class="flex flex-wrap items-center gap-3 mb-3">
+      <!-- Suchleiste + Status + Add in EINER Zeile -->
+      <div class="flex items-center gap-2 mb-3">
         <input
           v-model="plantSearch"
-          class="input flex-1 min-w-48" type="search"
-          placeholder="🔍 Anlagen suchen: Adresse, MStR, ZEREZ-ID …"
+          class="w-full min-w-32 bg-slate-800 rounded-lg px-3 py-2 text-sm border border-slate-700 focus:border-amber-500 focus:outline-none"
+          type="search"
+          placeholder="🔍 Anlagen suchen…"
         />
-        <select v-model="plantStatusFilter" class="input w-auto">
+        <select v-model="plantStatusFilter"
+          class="w-auto shrink-0 bg-slate-800 rounded-lg px-3 py-2 text-sm border border-slate-700 focus:border-amber-500 focus:outline-none">
           <option value="">Alle Status</option>
           <option value="in_pruefung">In Prüfung</option>
           <option value="angemeldet">Angemeldet</option>
           <option value="abgeschlossen">Abgeschlossen</option>
         </select>
-        <button type="button" @click="addPlant" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm">
-          + Anlage hinzufügen
+        <button type="button" @click="addPlant" class="px-3 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded-lg text-sm shrink-0 whitespace-nowrap">
+          + Anlage
         </button>
       </div>
 
+      <!-- Paginierte Anlagenliste ANSTATT des Editors (v-if/v-else) -->
       <div v-if="form.plants.length === 0" class="text-slate-500 text-sm bg-slate-800 rounded-lg p-4">
         Noch keine Anlage. Über „+ Anlage hinzufügen" eine PV-Anlage, Wallbox oder Wärmepumpe erfassen.
       </div>
 
-      <!-- Paginierte Anlagenliste -->
-      <div v-else>
+      <!-- LISTE: wenn keine Anlage geöffnet ist -->
+      <div v-else-if="editingPlant === null">
         <div class="flex items-center justify-between text-sm text-slate-400 mb-2">
           <span>{{ plantFiltered.length }} von {{ form.plants.length }} Anlagen</span>
           <span v-if="plantTotalPages > 1">Seite {{ plantPage + 1 }} von {{ plantTotalPages }}</span>
@@ -123,7 +126,6 @@
             <tbody>
               <tr v-for="row in plantPageItems" :key="row.i"
                 class="border-t border-slate-700 cursor-pointer hover:bg-slate-800/60"
-                :class="{ 'bg-slate-800': editingPlant === row.i }"
                 @click="openPlant(row.i)">
                 <td class="p-2 text-slate-500">{{ row.i + 1 }}</td>
                 <td class="p-2">{{ anlagetypLabel(row.p.anlagetyp) }}</td>
@@ -144,14 +146,16 @@
         </div>
       </div>
 
-      <!-- Anlage-Editor (offen, wenn eine Anlage ausgewählt ist) -->
-      <div v-if="editingPlant !== null" class="mt-4 bg-slate-800 rounded-xl p-4 border border-amber-500/40">
+      <!-- EDITOR: ersetzt die Liste, zurück mit Pfeil nach links -->
+      <div v-else class="bg-slate-800 rounded-xl p-4 border border-amber-500/40">
         <div class="flex items-center justify-between mb-3">
-          <span class="text-sm font-semibold">Anlage {{ editingPlant + 1 }} bearbeiten</span>
-          <div class="flex gap-2">
-            <button type="button" @click="removePlant(editingPlant)" class="text-slate-400 hover:text-red-400 text-sm">🗑️ Entfernen</button>
-            <button type="button" @click="editingPlant = null" class="text-slate-400 hover:text-amber-400 text-sm">✕ Schließen</button>
+          <div class="flex items-center gap-2">
+            <button type="button" @click="closePlant" class="text-slate-400 hover:text-amber-400 text-sm px-2 py-1 rounded hover:bg-slate-700" title="Zurück zur Anlagenliste">
+              ← Zurück
+            </button>
+            <span class="text-sm font-semibold">Anlage {{ editingPlant + 1 }} bearbeiten</span>
           </div>
+          <button type="button" @click="removePlant(editingPlant)" class="text-slate-400 hover:text-red-400 text-sm">🗑️ Entfernen</button>
         </div>
         <PlantForm :plant="form.plants[editingPlant]" :onUpdate="updatePlant" :index="editingPlant"
           :isInstaller="isInstaller()" :customerId="form.customer_id" @open-lageplan="openLageplan" />
@@ -258,6 +262,10 @@ function statusLabel(s) {
 
 function openPlant(i) {
   editingPlant.value = i
+}
+
+function closePlant() {
+  editingPlant.value = null
 }
 
 // TUB-Bezug: Checklisten-Punkte (Dokumentationsfotos)

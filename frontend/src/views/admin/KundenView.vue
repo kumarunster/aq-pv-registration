@@ -46,24 +46,25 @@
               </p>
               <p v-if="c.email" class="text-slate-400 text-sm">{{ c.email }} · {{ c.phone }}</p>
               <div v-if="c.iban" class="text-slate-500 text-xs mt-1">IBAN: {{ c.iban }}</div>
-              <div v-if="c.plants && c.plants.length" class="mt-3">
-                <div v-for="(p, i) in c.plants" :key="i" class="text-sm text-slate-400 bg-slate-800 rounded-lg px-3 py-2 mb-2">
+              <!-- Anlagen-Zusammenfassung (P2): keine inline-Chips bei vielen Anlagen -->
+              <div v-if="c.plants && c.plants.length" class="mt-3 flex flex-wrap items-center gap-1.5">
+                <span class="text-sm text-slate-300">🔌 {{ c.plants.length }} Anlage{{ c.plants.length !== 1 ? 'n' : '' }}</span>
+                <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">🟡 {{ plantCounts(c).in_pruefung }}</span>
+                <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">🔵 {{ plantCounts(c).angemeldet }}</span>
+                <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">🟢 {{ plantCounts(c).abgeschlossen }}</span>
+                <span v-if="plantCounts(c).offen" class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-500">{{ plantCounts(c).offen }} offen</span>
+                <span v-if="plantCounts(c).no_lageplan" class="text-xs px-2 py-0.5 rounded-full bg-red-900/60 text-red-300">⚠ {{ plantCounts(c).no_lageplan }} PV ohne Lageplan</span>
+              </div>
+              <!-- Erste Anlagen als Vorschau (max 3), Rest im Formular -->
+              <div v-if="c.plants && c.plants.length" class="mt-2 space-y-1">
+                <div v-for="(p, i) in c.plants.slice(0, 3)" :key="i" class="text-xs text-slate-400 bg-slate-800 rounded-lg px-3 py-1.5">
                   <span class="text-amber-400 font-medium">{{ anlagetypLabel(p.anlagetyp) }}</span>
-                  <span v-if="p.status" class="ml-2">
-                    <span class="text-xs text-slate-500">Fortschritt: </span>
-                    <span class="inline-flex items-center gap-0.5">
-                      <span v-for="(step, si) in progressSteps(p.status)" :key="si"
-                        :class="'w-2 h-2 rounded-full ' + (si < progressIdx(p.status) ? 'bg-green-500' : si === progressIdx(p.status) ? step.dot : 'bg-slate-600')"
-                        :title="step.label"></span>
-                    </span>
-                    <span class="ml-1 text-xs text-slate-400">{{ statusLabel(p.status) }}</span>
-                  </span>
+                  <span class="ml-1">{{ plantAddressShort(c, p) }}</span>
                   <span v-if="p.kwp"> · {{ p.kwp }} kWp</span>
-                  <span v-if="p.kw"> · {{ p.kw }} kW</span>
-                  <span v-if="p.kwh"> · {{ p.kwh }} kWh</span>
-                  <span v-if="p.commission_date"> · Inbetriebnahme: {{ formatDate(p.commission_date) }}</span>
-                  <span v-if="p.panels"> · {{ p.panels.count }} Module {{ p.panels.manufacturer }}</span>
+                  <span v-if="p.kw && !p.kwp"> · {{ p.kw }} kW</span>
+                  <span v-if="p.status" class="ml-1 text-slate-500">· {{ statusLabel(p.status) }}</span>
                 </div>
+                <div v-if="c.plants.length > 3" class="text-xs text-slate-500">… und {{ c.plants.length - 3 }} weitere (im Formular)</div>
               </div>
             </div>
             <div class="flex gap-2" @click.stop>
@@ -141,8 +142,28 @@ async function load() {
   }
 }
 
+import toast from '@/api/toast'
+
 function anlagetypLabel(t) {
   return { pv: 'PV', wallbox: 'Wallbox', waermepumpe: 'Wärmepumpe' }[t] || t
+}
+
+// P2: Anlagen-Zusammenfassung statt 200 inline-Chips
+function plantCounts(c) {
+  const counts = { in_pruefung: 0, angemeldet: 0, abgeschlossen: 0, offen: 0, no_lageplan: 0 }
+  for (const p of c.plants || []) {
+    if (p.status) counts[p.status] = (counts[p.status] || 0) + 1
+    else counts.offen++
+    if (p.anlagetyp === 'pv' && !p.lageplan) counts.no_lageplan++
+  }
+  return counts
+}
+
+function plantAddressShort(c, p) {
+  if (p.address_from_customer !== false && c.address_street) {
+    return c.address_street
+  }
+  return [p.address_street, p.address_city].filter(Boolean).join(', ') || '–'
 }
 
 function statusLabel(s) {
@@ -188,7 +209,7 @@ async function deleteCustomer(c) {
     await client.delete(`/admin/customers/${c._id}`)
     await load()
   } catch (e) {
-    alert('Löschen fehlgeschlagen: ' + e.message)
+    toast.error('Löschen fehlgeschlagen: ' + e.message)
   }
 }
 
