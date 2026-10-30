@@ -37,7 +37,7 @@
 </template>
 
 <script setup>
-import { ref, onBeforeMount, onBeforeUnmount } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import auth from '@/api/auth'
 
@@ -47,20 +47,17 @@ const ready = ref(false)
 
 let unguard = null
 
-onBeforeMount(() => {
-  // EIGENER Guard: Prüft die Session immer, bevor die Seite gerendert wird.
-  // Der zentrale beforeEnter reicht NICHT, weil die Browser-Zurück-Taste
-  // aus dem BFCache kommt und den Guard überspringt. Der eigene Guard
-  // läuft dagegen bei jedem Route-Event - auch beim Zurück-Klicken.
-  unguard = router.beforeEach(async (to) => {
-    if (to.meta.public) { ready.value = true; return }
-    const user = await auth.checkSession()
-    if (!user) { ready.value = false; return { name: 'admin-login' } }
+onMounted(async () => {
+  // Session direkt bei Mount pruefen. Kein Router.beforeEach -
+  // der kollidiert mit dem zentralen beforeEnter des Routes und
+  // haengt die App bei "Pruefe Anmeldestatus...".
+  const user = await auth.checkSession()
+  if (user) {
     ready.value = true
-  })
+  } else {
+    router.push({ name: 'admin-login' })
+  }
 })
-
-onBeforeUnmount(() => { if (unguard) unguard() })
 
 function isRoute(name) {
   return route.name === name

@@ -47,6 +47,10 @@ const auth = {
    *  2) Login-Flow holen (JSON).
    *  3) Login senden (POST). Der POST setzt frische
    *     ory_kratos_session + csrf_token_* Cookies.
+   *  4) WAIT: Der Browser braucht einen kurzen Moment, bis das
+   *     Set-Cookie vom Login-Response im Cookie-Jar ist. Ohne
+   *     diesen Delay schickt der naechste whoami-Request noch
+   *     keine Cookie -> 401.
    */
   async login(identifier, password, redirectTo = '/admin/') {
     // 1) Alte Session serverseitig abbrechen.
@@ -71,6 +75,11 @@ const auth = {
       password,
       csrf_token: csrfToken,
     })
+
+    // 4) Kurz warten, bis der Browser das Set-Cookie verarbeitet hat.
+    //    200ms reichen in der Praxis, 500ms fuer Sicherheit.
+    await new Promise(r => setTimeout(r, 500))
+
     return loginRes.data
   },
 
