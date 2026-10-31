@@ -1,19 +1,25 @@
 <template>
   <form @submit.prevent="save" class="bg-slate-900 rounded-xl p-5 border border-slate-800 mb-4">
     <div class="flex items-center justify-between mb-4">
-      <h2 class="font-semibold text-lg">{{ initial ? 'Kunde bearbeiten' : 'Neuer Kunde' }}</h2>
+      <div class="flex items-center gap-3">
+        <button type="button" @click="$emit('cancel')" class="text-xs text-slate-500 hover:text-slate-300" title="Zurück zur Kundenliste">
+          ← Zurück
+        </button>
+        <h2 class="font-semibold text-lg">{{ initial ? 'Kunde bearbeiten' : 'Neuer Kunde' }}</h2>
+        <span v-if="formDirty" class="text-xs text-amber-400" title="Ungespeicherte Änderungen">●</span>
+      </div>
       <!-- Haupt-Tabs: Kunde | Anlagen -->
-      <div class="flex gap-1">
+      <div class="flex items-center gap-4 text-sm">
         <button type="button" @click="mainTab = 'kunde'"
           :class="mainTab === 'kunde'
-            ? 'px-4 py-1.5 bg-amber-500 text-slate-950 font-semibold rounded-lg text-sm'
-            : 'px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm'">
+            ? 'text-white border-b-2 border-amber-500 pb-1 font-semibold'
+            : 'text-slate-400 hover:text-slate-200 pb-1'">
           👤 Kunde
         </button>
         <button type="button" @click="mainTab = 'anlagen'"
           :class="mainTab === 'anlagen'
-            ? 'px-4 py-1.5 bg-amber-500 text-slate-950 font-semibold rounded-lg text-sm'
-            : 'px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm'">
+            ? 'text-white border-b-2 border-amber-500 pb-1 font-semibold'
+            : 'text-slate-400 hover:text-slate-200 pb-1'">
           🔌 Anlagen ({{ form.plants.length }})
         </button>
       </div>
@@ -80,10 +86,10 @@
     <!-- ============================== TAB: ANLAGEN ============================== -->
     <div v-if="mainTab === 'anlagen'">
       <!-- Suchleiste + Status + Add in EINER Zeile -->
-      <div class="flex items-center gap-2 mb-3">
+      <div class="flex flex-wrap items-center gap-2 mb-3">
         <input
           v-model="plantSearch"
-          class="w-full min-w-32 bg-slate-800 rounded-lg px-3 py-2 text-sm border border-slate-700 focus:border-amber-500 focus:outline-none"
+          class="flex-1 min-w-[180px] bg-slate-800 rounded-lg px-3 py-2 text-sm border border-slate-700 focus:border-amber-500 focus:outline-none"
           type="search"
           placeholder="🔍 Anlagen suchen…"
         />
@@ -111,15 +117,23 @@
           <span v-if="plantTotalPages > 1">Seite {{ plantPage + 1 }} von {{ plantTotalPages }}</span>
         </div>
 
-        <div class="border border-slate-700 rounded-lg overflow-hidden">
-          <table class="w-full text-sm">
+        <div class="border border-slate-700 rounded-lg overflow-hidden" overflow-x-auto>
+          <table class="w-full min-w-[600px] text-sm">
             <thead>
               <tr class="bg-slate-800 text-slate-400 text-xs">
                 <th class="p-2 text-left">#</th>
-                <th class="p-2 text-left">Typ</th>
-                <th class="p-2 text-left">Adresse</th>
-                <th class="p-2 text-left">Status</th>
-                <th class="p-2 text-left">Leistung</th>
+                <th class="p-2 text-left cursor-pointer hover:text-amber-400" @click="toggleSort('anlagetyp')">
+                  Typ {{ sortArrow('anlagetyp') }}
+                </th>
+                <th class="p-2 text-left cursor-pointer hover:text-amber-400" @click="toggleSort('adresse')">
+                  Adresse {{ sortArrow('adresse') }}
+                </th>
+                <th class="p-2 text-left cursor-pointer hover:text-amber-400" @click="toggleSort('status')">
+                  Status {{ sortArrow('status') }}
+                </th>
+                <th class="p-2 text-left cursor-pointer hover:text-amber-400" @click="toggleSort('leistung')">
+                  Leistung {{ sortArrow('leistung') }}
+                </th>
                 <th class="p-2 text-left">Lageplan</th>
               </tr>
             </thead>
@@ -163,12 +177,12 @@
     </div>
 
     <div class="flex gap-2 pt-4">
-      <button type="submit" :disabled="saving" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded-lg text-sm disabled:opacity-50">
-        {{ saving ? 'Speichert…' : (initial ? 'Speichern' : 'Kunde anlegen') }}
-      </button>
-      <button type="button" @click="$emit('cancel')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm">
-        Abbrechen
-      </button>
+      <div class="flex items-center gap-3 justify-end">
+        <button type="button" @click="$emit('cancel')" class="text-sm text-slate-400 hover:text-slate-200">Abbrechen</button>
+        <button type="submit" :disabled="saving" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded-lg text-sm disabled:opacity-50">
+          {{ saving ? 'Speichert…' : (initial ? 'Speichern' : 'Kunde anlegen') }}
+        </button>
+      </div>
     </div>
   </form>
 
@@ -197,7 +211,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted, h, defineComponent } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onUnmounted, h, defineComponent } from 'vue'
 import client from '@/api/client'
 import toast from '@/api/toast'
 import * as docsApi from '@/api/docs'
@@ -225,9 +239,46 @@ const plantPage = ref(0)
 const PLANT_PAGE_SIZE = 20
 const editingPlant = ref(null)
 
+const sortKey = ref(null)
+const sortDir = ref(1) // 1 = aufsteigend, -1 = absteigend
+
+function sortVal(p) {
+  if (!sortKey.value) return 0
+  switch (sortKey.value) {
+    case 'anlagetyp': return p.anlagetyp || ''
+    case 'adresse': {
+      const a = (p.address_from_customer !== false && form.address_street)
+        ? form.address_street
+        : [p.address_street, p.address_plz, p.address_city].filter(Boolean).join(' ')
+      return a.toLowerCase()
+    }
+    case 'status': return p.status || 'zzz' // ohne Status am Ende
+    case 'leistung': {
+      const v = parseFloat(String(p.kwp || p.kw || '0').replace(',', '.'))
+      return isNaN(v) ? 0 : v
+    }
+    default: return 0
+  }
+}
+
+function toggleSort(key) {
+  if (sortKey.value === key) {
+    sortDir.value *= -1
+  } else {
+    sortKey.value = key
+    sortDir.value = 1
+  }
+  plantPage.value = 0
+}
+
+function sortArrow(key) {
+  if (sortKey.value !== key) return ''
+  return sortDir.value === 1 ? '▲' : '▼'
+}
+
 const plantFiltered = computed(() => {
   const q = plantSearch.value.trim().toLowerCase()
-  return form.plants.map((p, i) => ({ p, i }))
+  const items = form.plants.map((p, i) => ({ p, i }))
     .filter(({ p }) => {
       if (plantStatusFilter.value && p.status !== plantStatusFilter.value) return false
       if (q) {
@@ -238,6 +289,14 @@ const plantFiltered = computed(() => {
       }
       return true
     })
+  if (sortKey.value) {
+    items.sort((a, b) => {
+      const va = sortVal(a.p), vb = sortVal(b.p)
+      const cmp = typeof va === 'string' ? va.localeCompare(vb) : va - vb
+      return cmp * sortDir.value || a.i - b.i
+    })
+  }
+  return items
 })
 const plantTotalPages = computed(() => Math.max(1, Math.ceil(plantFiltered.value.length / PLANT_PAGE_SIZE)))
 const plantPageItems = computed(() =>
@@ -386,6 +445,31 @@ const PlantForm = defineComponent({
       zerezOpen.value = false
       zerezResults.value = []
     }
+
+    // P1-4: Accordion-Sections
+    const openSections = ref(new Set(['adresse', 'typ', 'wechselrichter']))
+    function toggleSection(id) {
+      if (openSections.value.has(id)) openSections.value.delete(id)
+      else openSections.value.add(id)
+      openSections.value = new Set(openSections.value)
+    }
+    function sectionEl(id, title, badge, contentNodes) {
+      const open = openSections.value.has(id)
+      return h('div', { class: 'bg-slate-900 rounded-lg border border-slate-700' }, [
+        h('button', {
+          type: 'button',
+          class: 'w-full flex items-center justify-between p-3 text-left hover:bg-slate-800 rounded-lg',
+          onClick: () => toggleSection(id),
+        }, [
+          h('span', { class: 'text-sm font-semibold text-slate-200 flex items-center gap-2' }, [
+            title,
+            badge ? h('span', { class: 'text-[10px] px-1.5 py-0.5 rounded bg-slate-700 text-slate-400' }, badge) : null,
+          ]),
+          h('span', { class: 'text-slate-500 text-xs' }, open ? '▲' : '▼'),
+        ]),
+        open ? h('div', { class: 'px-3 pb-3' }, contentNodes) : null,
+      ])
+    }
     // Status-Stepper: 4 Schritte
     const STATUS_STEPS = [
       { key: 'in_pruefung',    label: 'In Prüfung',  color: 'bg-yellow-500 border-yellow-500 text-yellow-300' },
@@ -506,8 +590,7 @@ const PlantForm = defineComponent({
           ]),
         ])
       })
-      return h('div', { class: 'bg-slate-900 rounded-lg p-3 border border-slate-700' }, [
-        h('h4', { class: 'text-xs font-semibold text-slate-400 mb-2' }, '📋 Checkliste El. Installation'),
+      return sectionEl('checkliste', '📋 Checkliste El. Installation', rows.length ? String(rows.length) + ' Punkte' : null, [
         h('p', { class: 'text-[10px] text-slate-500 mb-2' }, 'Dokumentationsfotos: nicht jeder Punkt braucht ein Foto.'),
         rows.length ? h('div', rows) : h('div', { class: 'text-xs text-slate-500' }, 'Keine Checkliste.'),
       ])
@@ -517,10 +600,9 @@ const PlantForm = defineComponent({
       // 📊 Fortschritt (ganz oben)
       statusStepper(p.plant, set, p.isInstaller),
 
-      // 📍 Anlage-Adresse
-      h('div', { class: 'bg-slate-900 rounded-lg p-3 border border-slate-700' }, [
+      // 📍 Anlage-Adresse (Accordion)
+      sectionEl('adresse', '📍 Anlage-Adresse', p.plant.address_from_customer ? 'Kundenadresse' : 'eigene', [
         h('div', { class: 'flex items-center justify-between mb-2' }, [
-          h('h4', { class: 'text-xs font-semibold text-slate-400' }, '📍 Anlage-Adresse'),
           h('label', { class: 'flex items-center gap-1.5 text-xs text-slate-400 cursor-pointer' }, [
             h('input', {
               type: 'checkbox',
@@ -531,7 +613,6 @@ const PlantForm = defineComponent({
             'Adresse vom Kunden übernehmen',
           ]),
         ]),
-        // Adresszeilen nur anzeigen, wenn das Häkchen NICHT gesetzt ist
         ...(!p.plant.address_from_customer
           ? [h('div', { class: 'space-y-2' }, [
               h('div', [
@@ -552,9 +633,8 @@ const PlantForm = defineComponent({
           : [h('div', { class: 'text-xs text-slate-500' }, 'Adresse wird vom Kunden übernommen: ', h('span', { class: 'text-slate-300' }, p.plant.address_street ? `${p.plant.address_street}, ${p.plant.address_plz} ${p.plant.address_city}` : '…'))]),
       ]),
 
-      // 🏡 Grundstueckdaten (separate Felder)
-      h('div', { class: 'bg-slate-900 rounded-lg p-3 border border-slate-700' }, [
-        h('h4', { class: 'text-xs font-semibold text-slate-400 mb-2' }, '🏡 Grundstueck'),
+      // 🏡 Grundstueck (Accordion)
+      sectionEl('grundstueck', '🏡 Grundstueck', p.plant.gemarkung ? 'erfasst' : null, [
         h('div', { class: 'grid grid-cols-1 md:grid-cols-3 gap-2' }, [
           h('div', [
             h('label', { class: 'block text-xs text-slate-500 mb-1' }, 'Gemarkung'),
@@ -571,6 +651,8 @@ const PlantForm = defineComponent({
         ]),
       ]),
 
+      // Anlagetyp / Inbetriebnahme / kW (Accordion, default open)
+      sectionEl('typ', '⚙️ Anlagetyp & Leistung', p.plant.anlagetyp ? (p.plant.anlagetyp === 'pv' ? 'PV' : p.plant.anlagetyp === 'wallbox' ? 'Wallbox' : 'WP') : null, [
       h('div', { class: 'grid grid-cols-1 md:grid-cols-3 gap-3' }, [
         h('div', [
           h('label', { class: 'block text-sm text-slate-400 mb-1' }, 'Anlagetyp *'),
@@ -603,6 +685,7 @@ const PlantForm = defineComponent({
           }),
         ]),
       ]),
+      ]),
 
       // PV-spezifisch
       p.plant.anlagetyp === 'pv'
@@ -628,9 +711,8 @@ const PlantForm = defineComponent({
               ]),
               h('div'),
             ]),
-            // Module
-            h('div', { class: 'bg-slate-900 rounded-lg p-3 border border-slate-700' }, [
-              h('h4', { class: 'text-xs font-semibold text-slate-400 mb-2' }, 'PV-Module'),
+            // PV-Module (Accordion)
+            sectionEl('module', 'PV-Module', p.plant.panels.manufacturer ? p.plant.panels.manufacturer : null, [
               h('div', { class: 'grid grid-cols-1 md:grid-cols-4 gap-2' }, [
                 h('input', { class: 'input', placeholder: 'Hersteller', value: p.plant.panels.manufacturer, onInput: (e) => set('panels', { ...p.plant.panels, manufacturer: e.target.value }) }),
                 h('input', { class: 'input', placeholder: 'Typ', value: p.plant.panels.type, onInput: (e) => set('panels', { ...p.plant.panels, type: e.target.value }) }),
@@ -638,9 +720,8 @@ const PlantForm = defineComponent({
                 h('input', { class: 'input', placeholder: 'kWp', value: p.plant.panels.kwp, onInput: (e) => set('panels', { ...p.plant.panels, kwp: e.target.value }) }),
               ]),
             ]),
-            // MStR
-            h('div', { class: 'bg-slate-900 rounded-lg p-3 border border-slate-700' }, [
-              h('h4', { class: 'text-xs font-semibold text-slate-400 mb-2' }, 'MStR (Marktstammdaten-Register)'),
+            // MStR (Accordion)
+            sectionEl('mstr', 'MStR', p.plant.mstr_see_plant ? p.plant.mstr_see_plant : null, [
               h('div', { class: 'grid grid-cols-1 md:grid-cols-3 gap-2' }, [
                 h('input', { class: 'input', placeholder: 'SEE Anlage', value: p.plant.mstr_see_plant, onInput: (e) => set('mstr_see_plant', e.target.value) }),
                 h('input', { class: 'input', placeholder: 'EEG-Anlage', value: p.plant.mstr_eeg, onInput: (e) => set('mstr_eeg', e.target.value) }),
@@ -650,10 +731,10 @@ const PlantForm = defineComponent({
           ])
         : null,
 
-      // Wechselrichter (alle Anlagetypen)
-      h('div', { class: 'relative bg-slate-900 rounded-lg p-3 border border-slate-700' }, [
+      // Wechselrichter (Accordion, alle Anlagetypen)
+      sectionEl('wechselrichter', 'Wechselrichter / Ladepunkte', p.plant.inverters.length ? String(p.plant.inverters.length) : null, [
         h('div', { class: 'flex items-center justify-between mb-2' }, [
-          h('h4', { class: 'text-xs font-semibold text-slate-400' }, 'Wechselrichter / Ladepunkte'),
+          h('span', { class: 'text-xs text-slate-400' }, 'Wechselrichter und Ladepunkte'),
           h('button', { type: 'button', onClick: addInverter, class: 'text-xs text-amber-400' }, '+ Hinzufügen'),
         ]),
         p.plant.inverters.map((inv, i) =>
@@ -713,10 +794,9 @@ const PlantForm = defineComponent({
           : null,
       ]),
 
-      // Speicher (PV + Wärmepumpe)
+      // Speicher (Accordion, PV + Wärmepumpe)
       (p.plant.anlagetyp === 'pv' || p.plant.anlagetyp === 'waermepumpe')
-        ? h('div', { class: 'bg-slate-900 rounded-lg p-3 border border-slate-700' }, [
-            h('h4', { class: 'text-xs font-semibold text-slate-400 mb-2' }, p.plant.anlagetyp === 'pv' ? 'Batteriespeicher' : 'Pufferspeicher'),
+        ? sectionEl('speicher', p.plant.anlagetyp === 'pv' ? 'Batteriespeicher' : 'Pufferspeicher', p.plant.battery ? p.plant.battery.manufacturer : null, [
             p.plant.battery
               ? h('div', { class: 'grid grid-cols-1 md:grid-cols-3 gap-2' }, [
                   h('input', { class: 'input', placeholder: 'Hersteller', value: p.plant.battery.manufacturer, onInput: (e) => set('battery', { ...p.plant.battery, manufacturer: e.target.value }) }),
@@ -730,11 +810,10 @@ const PlantForm = defineComponent({
       // 📋 Checkliste El. Installation
       checklistSection(p.plant),
 
-      // 📐 Lageplan (PV: Pflichtfeld, sonst optional)
-      h('div', { class: 'bg-slate-900 rounded-lg p-3 border border-slate-700' }, [
+      // 📐 Lageplan (Accordion, PV: Pflichtfeld, sonst optional)
+      sectionEl('lageplan', '📐 Lageplan', p.plant.lageplan ? 'erfasst' : 'leer', [
         h('div', { class: 'flex items-center justify-between' }, [
           h('div', { class: 'flex items-center gap-2' }, [
-            h('h4', { class: 'text-xs font-semibold text-slate-400' }, '📐 Lageplan'),
             p.plant.anlagetyp === 'pv'
               ? h('span', { class: 'text-[10px] bg-red-900 text-red-300 px-1.5 py-0.5 rounded' }, 'Pflichtfeld')
               : null,
@@ -776,6 +855,31 @@ const form = reactive({
   plants: [],
 })
 const saving = ref(false)
+const formDirty = ref(false)
+const savedSnapshot = ref('')
+
+function snapshot() {
+  return JSON.stringify(form)
+}
+
+// Mark dirty on any change
+watch(form, () => { formDirty.value = true }, { deep: true })
+
+// Warn on browser navigation when dirty
+function onBeforeUnload(e) {
+  if (formDirty.value && !saving.value) {
+    e.preventDefault()
+    e.returnValue = 'Ungespeicherte Änderungen vorhanden. Wenn du die Seite verlässt, gehen sie verloren.'
+    return e.returnValue
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('beforeunload', onBeforeUnload)
+})
+onUnmounted(() => {
+  window.removeEventListener('beforeunload', onBeforeUnload)
+})
 
 // 📐 Lageplan-Dialog (Fullscreen)
 const lageplanDialog = ref(null) // { plantIndex, initialLayout }
@@ -809,6 +913,8 @@ onMounted(() => {
         }))
       : []
   }
+  // After init, set the clean snapshot
+  setTimeout(() => { savedSnapshot.value = snapshot(); formDirty.value = false }, 100)
 })
 
 
@@ -945,6 +1051,8 @@ async function save() {
     if (doc && (doc._id || doc.id)) {
       form.customer_id = doc._id || doc.id
     }
+    savedSnapshot.value = snapshot()
+    formDirty.value = false
     emit('saved')
   } catch (e) {
     toast.error('Speichern fehlgeschlagen: ' + e.message)

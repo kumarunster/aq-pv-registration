@@ -1,6 +1,11 @@
 <template>
   <form @submit.prevent="save" class="bg-slate-900 rounded-xl p-5 border border-slate-800 space-y-4 mb-4">
-    <h2 class="font-semibold">{{ initial ? 'Firma bearbeiten' : 'Neue Firma anlegen' }}</h2>
+    <div class="flex items-center gap-3">
+      <button type="button" @click="$emit('cancel')" class="text-xs text-slate-500 hover:text-slate-300" title="Zurück zur Firmenliste">
+        ← Zurück
+      </button>
+      <h2 class="font-semibold text-lg">{{ initial ? 'Firma bearbeiten' : 'Neue Firma' }}</h2>
+    </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
@@ -45,12 +50,10 @@
       </div>
     </div>
 
-    <div class="flex gap-2">
+    <div class="flex items-center gap-3 justify-end">
+      <button type="button" @click="$emit('cancel')" class="text-sm text-slate-400 hover:text-slate-200">Abbrechen</button>
       <button type="submit" :disabled="saving" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded-lg text-sm disabled:opacity-50">
-        {{ saving ? 'Speichert…' : (initial ? 'Speichern' : 'Anlegen') }}
-      </button>
-      <button type="button" @click="$emit('cancel')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm">
-        Abbrechen
+        {{ saving ? 'Speichert…' : (initial ? 'Speichern' : 'Firma anlegen') }}
       </button>
     </div>
   </form>

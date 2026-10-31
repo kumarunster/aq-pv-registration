@@ -2,8 +2,11 @@
   <div>
     <div class="flex items-center justify-between mb-4">
       <h1 class="text-xl font-bold">🏢 Firmen</h1>
-      <button @click="showForm = !showForm" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded-lg text-sm">
-        {{ showForm ? 'Formular schließen' : '+ Neue Firma' }}
+      <button
+        v-if="!showForm"
+        @click="showForm = true"
+        class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded-lg text-sm">
+        + Neue Firma
       </button>
     </div>
 

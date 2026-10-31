@@ -20,10 +20,15 @@ import client, { kratos } from '@/api/client'
  * CSRF-Token des alten Flows mit der Session gueltig war.
  */
 async function forceLogout(redirectTo = '/admin/login') {
-  await fetch('/logout?token=' + encodeURIComponent(redirectTo), {
-    method: 'GET',
-    redirect: 'manual',
-  })
+  // redirect:'manual' kann ERR_ABORTED in der Konsole erzeugen,
+  // wenn der Server einen Redirect antwortet.
+  // redirect:'follow' + catch verhindert das.
+  try {
+    await fetch('/logout?token=' + encodeURIComponent(redirectTo), {
+      method: 'GET',
+      redirect: 'follow',
+    }).catch(() => {})
+  } catch {}
 }
 
 const auth = {
