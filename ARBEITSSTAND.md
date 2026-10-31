@@ -1,125 +1,80 @@
 # ARBEITSSTAND - Amelanq Netz-Anmeldung
 
-**Stand: 28.10.2026, 12:15 · v0.3.0 · Branch `feature/lageplan-editor`**
+**Stand: 31.10.2026, 02:25 · v0.3.0 · Branch `main`**
 
 ---
 
-## 1. Lageplan-Editor — heute fertiggestellt (28.10.2026)
+## 1. UI/UX-Phase 30.10.2026 — alle 6 Sprints komplett
 
-### ✅ Hauptintegration (Commit `686983a`, 28.10. ~19:45)
-- **Editor im Anlagen-Formular:** `FormCustomer.vue` hat pro Anlage einen
-  📐-Abschnitt (Status ✓/leer, Button Erstellen/Bearbeiten → Fullscreen-Dialog).
-  Titel + Adresse aus Kundendaten vorbefüllt; `getLayout()` übernimmt die
-  Konva-Node-Positionen beim Schließen. **PV ohne Lageplan = Speichern abgebrochen** (Pflichtfeld).
-- **Mongo-Persistenz:** `PlantCreate`/`PlantUpdate` +`lageplan: Optional[LageplanDocument]`
-  +`documents: list[DocumentRef]`; inline in `customers.plants` (list[dict]) →
-  keine Migration nötig.
-- **PDF-Header:** `_wrap_html` zeigt jetzt Titel, **Adresse** (metadata.adresse)
-  und „Gemarkung: X — Flur: Y — Flurstück: Z" (pdftotext verifiziert).
-- **Editor-Panel:** Projektdaten (Titel/Adresse/Gemarkung/Flur/Flurstück) in
-  `metadata`; `initialLayout`-Prop lädt gespeicherten Plan; `defineExpose({getLayout})`.
+Alle Sprints aus dem Review (`docs/ux-review-2026-10-30.md`) sind umgesetzt, deployet
+und via Playwright-Browser verifiziert (JS: NONE in jedem View).
 
-### ✅ PDF-Export verifiziert (vorher)
-- **Commit `cd03538`** — `syncFromCanvas`: lokale Positionen + Rotation aus Konva-Node.
-  (Group-Transformation statt globaler Matrix; `offset.x += node.x`).
-- **Commit `20cd247`** — `syncFromCanvas`: nur Group-Position, keine Addition
-  innerer Shapes (verhinderte Doppelverschiebung).
-- **Commit `e4f086a`** — `syncFromCanvas`: Punkte als `[x,y]`-Arrays statt
-  `{x,y}`-Objekte (Backend erwartet `list[tuple[float, float]]`; vorher
-  Pydantic 422 `tuple_type`).
-- **Commit `43897f1`** — `_hatch_lines`: Schraffur-Linien über Polygonkanten
-  statt Bounding-Box.
-  - Vorher: `d`-Iteration über BBox (`min_x−max_y` … `max_x−min_y`) + AABB-Heuristik
-    → bei schiefen Polygonen nur 13 Linien in der unteren linken Ecke statt ~70.
-  - Jetzt: `d` über `min/max(y−x)` der Ecken, parametrischer Kanten-Schnitt
-    (t ∈ [0,1]), Entdopplung an Ecken, paarweise Verbindung (auch konkave
-    Polygone). Punkte px, `hatch_spacing` mm → px (×3), Ausgabe mm.
-  - **Verifiziert gegen Kolyas Polygon** (520,136)–(926,146)–(882,558)–(476,548) px:
-    70 Linien, Abdeckung x 159.1–308.4 mm / y 45.4–186.1 mm = Polygon komplett gefüllt.
-- **Kolya-Abnahme 28.10.:** „jetzt hat es endlich funktioniert mit dem
-  schraffierten Rechteck" — rect, hatching, arrow, N-Pfeil, Hintergrund
-  alle an der richtigen Stelle im PDF.
+| Sprint | Commits | Inhalt |
+|---|---|---|
+| Phase 0a/0b/0c/0d | `fc00ddb` | Pagination (10/Seite + Zeilen-Selector), Suche (tokenisiert), Status-Filter, Anlagen-Tabs, Toasts (global ToastHost) |
+| Admin-Guard | `b229c37` | Admin-Login-Guard + 500ms-Delay bereinigt |
+| P2 Karten/Editor | `089e462` | Kunden-Karte mit Zusammenfassung (Stat-Zeile), Anlagen-Editor ersetzt statische Liste |
+| UI/UX-Review | `a77c6ea` | 12 Verbesserungsvorschläge + 2-Sprint-Roadmap (docs) |
+| Feld-Höhen/Buttons | `8c09842`, `e4e0600` | InputField H=38px, Text 14px; ButtonField H=38px; Zurück+Close in Kopfzeile; „Kunde anlegen" statt „Anlegen" |
+| Installer-Kunde | `5f539b1`, `6683454` | „Neue Anmeldung" (Titel+Submit); Zurück+Close; 14px/38px |
+| FormCompany | `f9d48c4` | „← Zurück" + Titel in Kopfzeile; Footer: Abbrechen (grau) links + „Firma anlegen" (gelb) rechts |
 
-### Alle Commits auf `origin/feature/lageplan-editor` und `main`
-```
-686983a feat(lageplan): Hauptintegration — Editor in Anlagen-Formular + Mongo-Persistenz
-2665bb9 docs: ARBEITSSTAND 28.10.2026 (Lageplan-PDF fertig, nächste Schritte)
-43897f1 fix(lageplan): Schraffur-Linien über Polygonkanten statt Bounding-Box
-e4f086a fix(lageplan): syncFromCanvas - Punkte als [x,y]-Arrays statt {x,y}-Objekte
-20cd247 fix(lageplan): syncFromCanvas - nur Group-Position, keine Addition innerer Shapes
-cd03538 fix(lageplan): syncFromCanvas - lokale Positionen + Rotation aus Node
-```
+**Konsistenz-Stand (alle 3 Views identisch):**
+- InputField / ButtonField: `h-9` (38px), Text 14px
+- Kopfzeile: `← Zurück` (12px grau) links, Titel (18px), `✕ Formular schließen` rechts
+- Fußzeile: `Abbrechen` (14px grau) links, gelber Submit (14px bold, 38px) rechts
+- Submit-Labels: „Kunde anlegen", „Firma anlegen", „Anmeldung abschließen"
 
-### Einheiten (wichtig für alle künftigen Lageplan-Arbeit)
+## 2. Layout-Fixes 31.10.2026
+
+- **InstallerLayout.vue:** Header jetzt wie AdminLayout (h-12, border-b, Titel links, Logo rechts 32px) — war vorher h-16, Logo 54px links.
+- **Installer-Kunden-Table:** gleiche Breite wie Admin (max-w-6xl)
+- **Installer-Kunden-Liste:** 32px-Padding entfernt (px-8 → px-0), Tabelle läuft bis an die Kanten
+- **KundenView (beide):** „Zurück zur Übersicht" (22px padding) über der Tabelle statt links im Header
+- **Zurück in Kunden-Detail:** `→ Alle Kunden` (12px, grau) statt „← Zurück" — gleiche Struktur wie Firmen
+- **Kunden-Detail-Footer:** `Zurück` (grau, 12px) links + gelber `Kunde speichern` rechts — wie in allen anderen Forms
+- **Kunden-Detail-Formular:** `grid-cols-2` mit Gap (vorher: einspaltig, Felder überlappend)
+- **Anlage-Formular:** `grid-cols-2` mit Gap; „Erste Inbetriebnahme" (nicht „Inbetriebnahme"); „PV-Art" (nicht „PV-Art (Modul)" für String-Module)
+- **Anlage-Details (read-only):** `grid-cols-2` mit Gap
+- **Anlage-Buttons:** „Lageplan erstellen" links + „PDF exportieren" rechts — gleiche Zeile wie „Lageplan erstellen"/„Speichern" im Edit-Modus
+
+## 3. Offene Punkte
+
+1. **InstallerLayout.vue beforeEach-Pattern:** Stand 30.10. — noch NICHT geprüft/gemacht (alter Route-Guard-Mechanismus).
+2. **Installer-API 401** (Oathkeeper-Mutator setzt `X-Kratos-Identity-ID` nicht ans Backend) — Oathkeeper-Logauswertung nie gefahren.
+3. **Phase 4b Netzbetreiber-Suche:** Datenquelle mit Kolya klären (Bundesnetzregister / Netzentstehungsregister / PLZ-Map).
+4. **Lageplan-Eckfall bei 45°-Kanten:** Kante parallel zu Schraffurlinie wird übersprungen — bei exakt 45° fehlt eine Randlinie.
+5. **Dokumente an Anlage hängen:** PDF-Export als `DocumentRef` speichern (Upload-Service + `documents`-feld).
+6. **Kolya-Test der Lageplan-Integration:** Kunde anlegen → PV-Anlage → Adresse/Grundstück ausfüllen → Lageplan erstellen → speichern → Mongo prüfen + PDF exportieren.
+
+## 4. Infrastruktur-Zustand
+
+- Dev-Stack Port 8092 (na-*): nginx, oathkeeper, kratos, kratos-pgdb, backend, frontend, mongodb, redis, weasyprint — alle up.
+- **na-backend:** Bind-Mount (`backend/src` → `/app/src`), Uvicorn `--reload` — Datei-Änderung = sofort aktiv.
+- **na-frontend:** `docker compose build` + `up -d` nach jeder Änderung. BUILD_TIME im Bundle verifizieren.
+- **na-weasyprint:** intern (kein Host-Port), `POST /render` mit `{html}` → A4-PDF.
+
+## 5. Einheiten (Lageplan)
+
 - Zeichenfläche: 891×630 px = 297×210 mm (A4 quer), **1 SVG-Einheit = 1 mm**
 - Canvas-Punkte aus Konva: **px**
 - `hatch_spacing`: **mm** (Default 4)
 - Backend `svg_renderer.py`: nimmt px-Punkte, gibt mm-SVG aus (`_mm = v/3`)
 - Frontend `LageplanElement.vue`: Canvas rendert in px mit `MM_PX = 3`
 
-## 2. Infrastruktur-Zustand (28.10.2026)
-
-- Dev-Stack Port 8092 (na-*): nginx, oathkeeper, kratos, kratos-pgdb,
-  backend, frontend, mongodb, redis, weasyprint alle up.
-- **na-backend:** healthy, Code via Bind-Mount (`backend/src` → `/app/src`),
-  Uvicorn `--reload` — Datei-Änderung = sofort aktiv, kein Rebuild nötig.
-- **na-frontend:** Bild wird bei `docker compose build` gebacken —
-  nach Frontend-Änderungen: `npm run build` (optional) + `docker compose build
-  --no-cache na-frontend` + `docker compose up -d na-frontend`.
-  BUILD_TIME im ausgelieferten Bundle prüfen (war der Stolperstein am 28.10.:
-  Frontend-Bild vom 27.10. lief weiter, während Backend-Änderungen live waren).
-- **na-weasyprint:** eigenständiger Service, intern (kein Host-Port),
-  `POST /render` mit `{html}` → A4-PDF.
-
-## 3. Offene Punkte (nicht heute angefasst)
-
-1. **Installer-API 401** (Oathkeeper-Mutator setzt
-   `X-Kratos-Identity-ID` nicht ans Backend) — siehe Stand 21.10.,
-   Oathkeeper-Logauswertung noch nie gefahren.
-2. **Phase 4b Netzbetreiber-Suche**: Datenquelle mit Kolya klären
-   (Bundesnetzregister / Netzentstehungsregister / PLZ-Map), dann Service.
-3. **Lageplan: Speichern/Integration** in Anlagen-Formular (Phase 8 der
-   Lageplan-Roadmap im `router.py`-Header) — noch nicht gestartet.
-4. **Lageplan-Eckfall bei 45°-Kanten:** Kante parallel zu Schraffurlinie
-   wird übersprungen (denom ≈ 0) — bei exakt 45°-Kanten fehlt eine Randlinie.
-   Falls Kolya es bemerkt: parallel-Spezialfall ergänzen.
-
-## 4. Arbeitsregeln (bewährt am 28.10.)
+## 6. Arbeitsregeln
 
 - **Nichts ungefragt anlegen** — erst fragen, dann Code.
-- **Vor „fertig" die Ausgabe prüfen**: SVG-/PDF-Ausgabe konkret testen
-  (Linien-Anzahl, mm-Abdeckung gegen Polygon-BBox), nicht behaupten.
-- **Frontend-Änderungen**: immer `docker compose build` + Neu-Start,
-  BUILD_TIME im ausgelieferten Bundle verifizieren — Host-Build allein reicht nicht.
-- **Backend-Änderungen**: Bind-Mount + `--reload`, `docker restart` genügt;
-  Container-Quellcode == Host-Quellcode verifizieren.
-- Bilder: `view_image` mit `path` testen, bevor „keine Bilderkennung".
+- **Vor „fertig" die Ausgabe prüfen** — konkret testen, nicht behaupten.
+- **Frontend-Änderungen:** immer `docker compose build` + Neu-Start, BUILD_TIME verifizieren.
+- **Backend-Änderungen:** Bind-Mount + `--reload`, Container-Quellcode == Host-Quellcode verifizieren.
 - **Kein Raten** — URL/Feature/ID erst im Code/Stack verifizieren.
 - **Production tabu** (timesheets.amelanq.com); hier nur Dev (8092).
 
-## 5. Nächste Schritte (Reihenfolge, erst nach Kolya-Freigabe)
+## 7. Nächste Schritte (nach Kolya-Freigabe)
 
-1. ✅ **Lageplan-Integration in Anlagen-Formular** (Commit ac6cc6d):
-   - PlantForm: pro Anlage „📐 Lageplan"-Block (Status ✓/leer, Erstellen/
-     Bearbeiten, PV: Pflichtfeld-Badge).
-   - Fullscreen-Dialog mit LageplanEditor; initialLayout lädt gespeicherten
-     Plan; Titel/Adresse (Kunde oder Anlage)/Gemarkung/Flur/Flurstück in
-     metadata vorbefüllt. Beim Schließen: getLayout() -> syncFromCanvas()
-     -> plant.lageplan; metadata aktuell gehalten (PDF-Header).
-2. ✅ **Anlage: Adress- + Grundstückdaten übernehmen** (Commits 64f2c95,
-   484f131, 2c2c23e):
-   - Checkbox „Adresse vom Kunden übernehmen" (Default an): an => Adresszeilen
-     ausgeblendet + Kundendaten werden verwendet; aus => eigene Felder
-     (Straße+Hausnr volle Breite, PLZ/Ort eigene Zeile). IBAN/Telefon/E-Mail
-     nicht Teil der Adresse.
-   - 🏡 Grundstück (Gemarkung, Flur, Flurstück) — separate Felder.
-   - Backend: PlantCreate/PlantUpdate: address_from_customer + address_* +
-     gemarkung/flur/flurstueck (optional).
-3. **Kolya-Test der Integration:** Kunde anlegen → PV-Anlage → Adresse/
-   Grundstück ausfüllen → Lageplan erstellen → speichern → in Mongo prüfen
-   (`customers.plants[*].lageplan`, `address_from_customer`, `gemarkung`)
-   + PDF aus dem Formular exportieren.
-4. **Dokumente an Anlage hängen:** PDF-Export aus dem Formular direkt als
-   `DocumentRef` speichern (Upload-Service + `documents`-Feld nutzen;
-   Aktuell wird nur das JSON gespeichert, das PDF wird on-the-fly erzeugt).
-5. **Installer-API 401:** Oathkeeper-Logs bei EINEM Installer-Request auswerten.
+1. **Kolya-Test der Lageplan-Integration** (s. obigen Punkt 6)
+2. **Dokumente an Anlage hängen** (s. obigen Punkt 5)
+3. **Installer-API 401** fixen (s. obigen Punkt 2)
+4. **InstallerLayout beforeEach-Pattern** prüfen und ggf. aufräumen
+5. **Lageplan 45°-Eckfall** — nur falls Kolya es bemerkt
