@@ -201,6 +201,7 @@
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import { BUILD_TIME } from '@/build-time'
 import axios from 'axios'
+import toast from '@/api/toast'
 import { useLayoutStore } from './useLayoutStore.js'
 import LageplanStage from './LageplanStage.vue'
 
@@ -394,8 +395,9 @@ async function onExportPdf() {
     a.download = `${store.layout.title || 'lageplan'}.pdf`
     a.click()
     URL.revokeObjectURL(url)
+    toast.success('PDF exportiert')
   } catch (err) {
-    alert('PDF-Fehler: ' + (err.response?.data ? JSON.stringify(err.response.data) : err.message))
+    toast.error('PDF-Fehler: ' + (err.response?.data ? JSON.stringify(err.response.data) : err.message))
   } finally {
     pdfBusy.value = false
   }

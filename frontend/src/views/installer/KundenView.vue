@@ -27,11 +27,16 @@
       :initial="editing || null"
       @saved="onSaved"
       @cancel="closeForm"
+      @dirty="onDirty"
     />
 
     <!-- Liste -->
     <div v-if="!showForm" class="space-y-3">
       <div v-if="loading" class="text-slate-400 text-sm">Lade…</div>
+      <div v-else-if="loadError" class="bg-red-900/40 border border-red-700 rounded-xl p-4 text-sm text-red-300 flex items-center justify-between">
+        <span>⚠️ Kunden laden fehlgeschlagen: {{ loadError }}</span>
+        <button @click="load(query.value.trim())" class="px-3 py-1.5 bg-red-700 hover:bg-red-600 text-white rounded-lg text-sm">Retry</button>
+      </div>
       <div v-else-if="customers.length === 0" class="bg-slate-900 rounded-xl p-6 text-center text-slate-400">
         {{ query ? 'Keine Kunden gefunden.' : 'Noch keine eigenen Kunden angelegt.' }}
       </div>
@@ -44,6 +49,10 @@
             </p>
             <p v-if="c.email" class="text-slate-400 text-sm">{{ c.email }} · {{ c.phone }}</p>
             <div v-if="c.iban" class="text-slate-500 text-xs mt-1">IBAN: {{ c.iban }}</div>
+            <div class="text-slate-500 text-xs mt-2">
+              <span v-if="c.updated_at">Zuletzt geändert: {{ formatDate(c.updated_at) }}</span>
+              <span v-else>Erstellt: {{ formatDate(c.created_at) }}</span>
+            </div>
             <div v-if="c.plants && c.plants.length" class="mt-3">
               <div v-for="(p, i) in c.plants" :key="i" class="text-sm text-slate-400 bg-slate-800 rounded-lg px-3 py-2 mb-2">
                 <span class="text-amber-400 font-medium">{{ anlagetypLabel(p.anlagetyp) }}</span>
@@ -71,31 +80,65 @@
         </div>
       </div>
     </div>
+
+    <ConfirmDialog
+      :open="confirmState.open"
+      title="Kunde löschen"
+      :message="`Kunde „${confirmState.customer?.firstname || ''} ${confirmState.customer?.lastname || ''}“ wirklich löschen?`"
+      confirm-label="Löschen"
+      cancel-label="Abbrechen"
+      tone="danger"
+      @confirm="doDelete"
+      @cancel="confirmState.open = false"
+    />
+
+    <ConfirmDialog
+      :open="dirtyDialog.open"
+      title="Ungespeicherte Änderungen"
+      :message="dirtyDialog.message"
+      confirm-label="Änderungen verwerfen"
+      cancel-label="Zurück zum Formular"
+      tone="danger"
+      @confirm="onDirtyDiscard"
+      @cancel="dirtyDialog.open = false"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import installer from '@/api/installer'
 import FormCustomer from '@/components/admin/FormCustomer.vue'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
+import toast from '@/api/toast'
+import { onBeforeRouteLeave, useRouter } from 'vue-router'
 
 const customers = ref([])
 const loading = ref(true)
+const loadError = ref(null)
 const showForm = ref(false)
 const editing = ref(null)
 const query = ref('')
+const confirmState = reactive({ open: false, customer: null })
 let searchTimer = null
+
+// TASK-001: Dirty-Data-Guard (beforeunload + interne Navigation)
+const router = useRouter()
+const formDirty = ref(false)
+const dirtyDialog = reactive({ open: false, message: '', action: null })
 
 onMounted(load)
 
 async function load(q = '') {
   loading.value = true
+  loadError.value = null
   try {
     customers.value = q
       ? await installer.searchCustomers(q)
       : await installer.listCustomers()
   } catch (e) {
     console.error('Kunden laden fehlgeschlagen', e)
+    loadError.value = e.message || 'Unbekannter Fehler'
   } finally {
     loading.value = false
   }
@@ -138,8 +181,30 @@ function openNew() {
 }
 
 function closeForm() {
-  showForm.value = false
-  editing.value = null
+  // TASK-001: bei dirty → Confirm-Dialog statt sofortigen Schließen
+  if (formDirty.value) {
+    dirtyDialog.message = 'Es gibt ungespeicherte Änderungen. Wirst du das Formular wirklich schließen und die Änderungen verwerfen?'
+    dirtyDialog.action = () => {
+      showForm.value = false
+      editing.value = null
+      formDirty.value = false
+    }
+    dirtyDialog.open = true
+  } else {
+    showForm.value = false
+    editing.value = null
+  }
+}
+
+function onDirty(dirty) {
+  formDirty.value = dirty
+}
+
+function onDirtyDiscard() {
+  dirtyDialog.open = false
+  const action = dirtyDialog.action
+  dirtyDialog.action = null
+  if (action) action()
 }
 
 function editCustomer(c) {
@@ -148,17 +213,29 @@ function editCustomer(c) {
 }
 
 async function deleteCustomer(c) {
-  if (!confirm(`Kunde "${c.firstname} ${c.lastname}" wirklich löschen?`)) return
+  confirmState.customer = c
+  confirmState.open = true
+}
+
+async function doDelete() {
+  const c = confirmState.customer
+  confirmState.open = false
+  confirmState.customer = null
+  if (!c) return
   try {
     await installer.deleteCustomer(c._id)
+    toast.success('Kunde gelöscht')
     await load(query.value.trim())
   } catch (e) {
-    alert('Löschen fehlgeschlagen: ' + e.message)
+    toast.error('Löschen fehlgeschlagen: ' + e.message)
   }
 }
 
 function onSaved() {
-  closeForm()
+  formDirty.value = false
+  showForm.value = false
+  editing.value = null
+  toast.success('Kunde gespeichert')
   load(query.value.trim())
 }
 </script>

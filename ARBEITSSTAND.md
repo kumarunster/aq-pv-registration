@@ -1,6 +1,8 @@
 # ARBEITSSTAND - Amelanq Netz-Anmeldung
 
-**Stand: 31.10.2026, 02:25 · v0.3.0 · Branch `main`**
+**Stand: 02.11.2026, 19:45 · v0.3.0 · Branch `main`**
+
+> **UX-Phase (02.11.2026, aktuell):** P2-10/P2-11/TASK-010 umgesetzt und **live verifiziert**; Test-IDs vergeben; frischer Puppeteer-Anlauf grün. → Details in [ARBEITSSTAND-UX-ROADMAP.md](ARBEITSSTAND-UX-ROADMAP.md)
 
 ---
 

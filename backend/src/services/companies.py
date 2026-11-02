@@ -10,6 +10,36 @@ async def find_all(active_only: bool = True) -> list[dict]:
     return [serialize(d) for d in docs]
 
 
+async def customer_and_plant_counts(company_ids: list[str]) -> dict[str, dict]:
+    """P2-10: Kunden- und Anlagen-Zahlen pro Firma (serverseitig aggregiert).
+
+    Bezugsfeld: plants[].company_id. Rückgabe:
+    {company_id: {"customers": int, "plants": int}}
+    """
+    from bson import ObjectId
+    db = get_db()
+    out: dict[str, dict] = {c: {"customers": 0, "plants": 0} for c in company_ids}
+    id_to_oid: dict[str, ObjectId] = {}
+    for cid in company_ids:
+        try:
+            id_to_oid[cid] = ObjectId(cid)
+        except Exception:
+            pass
+    if not id_to_oid:
+        return out
+    for cid, oid in id_to_oid.items():
+        customers_count = await db["customers"].count_documents({"plants.company_id": oid})
+        cursor = db["customers"].aggregate([
+            {"$match": {"plants.company_id": oid}},
+            {"$unwind": "$plants"},
+            {"$match": {"plants.company_id": oid}},
+            {"$count": "n"},
+        ])
+        row = await cursor.to_list(length=1)
+        out[cid] = {"customers": customers_count, "plants": row[0]["n"] if row else 0}
+    return out
+
+
 async def get_by_id(company_id: str) -> dict | None:
     from bson import ObjectId
     db = get_db()

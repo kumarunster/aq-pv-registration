@@ -11,7 +11,7 @@
     </div>
 
     <!-- Formular -->
-    <FormCustomer v-if="showForm" :companies="companies" :initial="editing || null" @saved="onSaved" @cancel="closeForm" />
+    <FormCustomer v-if="showForm" :companies="companies" :initial="editing || null" @saved="onSaved" @cancel="closeForm" @dirty="onDirty" />
 
     <!-- Liste -->
     <div v-if="!showForm">
@@ -36,6 +36,10 @@
       </div>
 
       <div v-if="loading" class="text-slate-400 text-sm py-4 text-center">Lade…</div>
+      <div v-else-if="loadError" class="bg-red-900/40 border border-red-700 rounded-xl p-4 text-sm text-red-300 flex items-center justify-between">
+        <span>⚠️ Kunden laden fehlgeschlagen: {{ loadError }}</span>
+        <button @click="load" class="px-3 py-1.5 bg-red-700 hover:bg-red-600 text-white rounded-lg text-sm">Retry</button>
+      </div>
       <div v-else-if="customers.length === 0" class="bg-slate-900 rounded-xl p-6 text-center text-slate-400">
         Keine Kunden gefunden.
       </div>
@@ -49,6 +53,11 @@
               </p>
               <p v-if="c.email" class="text-slate-400 text-sm">{{ c.email }} · {{ c.phone }}</p>
               <div v-if="c.iban" class="text-slate-500 text-xs mt-1">IBAN: {{ c.iban }}</div>
+              <!-- P2-11: Letzte Änderung / Erstellt von -->
+              <div class="text-slate-500 text-xs mt-2">
+                <span v-if="c.updated_at">Zuletzt geändert: {{ formatDate(c.updated_at) }}{{ c.updated_by ? ' · von ' + c.updated_by : '' }}</span>
+                <span v-else>Erstellt: {{ formatDate(c.created_at) }}{{ c.created_by ? ' · von ' + c.created_by : '' }}</span>
+              </div>
               <!-- Anlagen-Zusammenfassung (P2): keine inline-Chips bei vielen Anlagen -->
               <div v-if="c.plants && c.plants.length" class="mt-3 flex flex-wrap items-center gap-1.5">
                 <span class="text-sm text-slate-300">🔌 {{ c.plants.length }} Anlage{{ c.plants.length !== 1 ? 'n' : '' }}</span>
@@ -85,19 +94,50 @@
         <button :disabled="page >= totalPages - 1" @click="changePage(1)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 rounded-lg text-sm">Nächste →</button>
       </div>
     </div>
+
+    <ConfirmDialog
+      :open="confirmState.open"
+      title="Kunde löschen"
+      :message="`Kunde „${confirmState.customer?.firstname || ''} ${confirmState.customer?.lastname || ''}“ wirklich löschen?`"
+      confirm-label="Löschen"
+      cancel-label="Abbrechen"
+      tone="danger"
+      @confirm="doDelete"
+      @cancel="confirmState.open = false"
+    />
+
+    <ConfirmDialog
+      :open="dirtyDialog.open"
+      title="Ungespeicherte Änderungen"
+      :message="dirtyDialog.message"
+      confirm-label="Änderungen verwerfen"
+      cancel-label="Zurück zum Formular"
+      tone="danger"
+      @confirm="onDirtyDiscard"
+      @cancel="dirtyDialog.open = false"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import client from '@/api/client'
 import FormCustomer from '@/components/admin/FormCustomer.vue'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
+import { onBeforeRouteLeave, useRouter } from 'vue-router'
 
 const customers = ref([])
 const companies = ref([])
 const loading = ref(true)
+const loadError = ref(null)
 const showForm = ref(false)
 const editing = ref(null)
+const confirmState = reactive({ open: false, customer: null })
+
+// TASK-001: Dirty-Data-Guard (beforeunload + interne Navigation)
+const router = useRouter()
+const formDirty = ref(false)
+const dirtyDialog = reactive({ open: false, message: '', action: null })
 
 const search = ref('')
 const statusFilter = ref('')
@@ -127,6 +167,7 @@ function changePage(delta) {
 
 async function load() {
   loading.value = true
+  loadError.value = null
   try {
     const params = { limit, offset: page.value * limit }
     if (search.value.trim()) params.q = search.value.trim()
@@ -140,6 +181,7 @@ async function load() {
     companies.value = comp.data
   } catch (e) {
     console.error('Kunden laden fehlgeschlagen', e)
+    loadError.value = e.message || 'Unbekannter Fehler'
   } finally {
     loading.value = false
   }
@@ -197,8 +239,30 @@ function openNew() {
 }
 
 function closeForm() {
-  showForm.value = false
-  editing.value = null
+  // TASK-001: bei dirty → Confirm-Dialog statt sofortigen Schließen
+  if (formDirty.value) {
+    dirtyDialog.message = 'Es gibt ungespeicherte Änderungen. Wirst du das Formular wirklich schließen und die Änderungen verwerfen?'
+    dirtyDialog.action = () => {
+      showForm.value = false
+      editing.value = null
+      formDirty.value = false
+    }
+    dirtyDialog.open = true
+  } else {
+    showForm.value = false
+    editing.value = null
+  }
+}
+
+function onDirty(dirty) {
+  formDirty.value = dirty
+}
+
+function onDirtyDiscard() {
+  dirtyDialog.open = false
+  const action = dirtyDialog.action
+  dirtyDialog.action = null
+  if (action) action()
 }
 
 function editCustomer(c) {
@@ -207,9 +271,18 @@ function editCustomer(c) {
 }
 
 async function deleteCustomer(c) {
-  if (!confirm(`Kunde "${c.firstname} ${c.lastname}" wirklich löschen?`)) return
+  confirmState.customer = c
+  confirmState.open = true
+}
+
+async function doDelete() {
+  const c = confirmState.customer
+  confirmState.open = false
+  confirmState.customer = null
+  if (!c) return
   try {
     await client.delete(`/admin/customers/${c._id}`)
+    toast.success('Kunde gelöscht')
     await load()
   } catch (e) {
     toast.error('Löschen fehlgeschlagen: ' + e.message)
@@ -217,7 +290,10 @@ async function deleteCustomer(c) {
 }
 
 function onSaved() {
-  closeForm()
+  formDirty.value = false
+  showForm.value = false
+  editing.value = null
+  toast.success('Kunde gespeichert')
   load()
 }
 </script>

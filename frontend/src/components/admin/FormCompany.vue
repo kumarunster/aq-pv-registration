@@ -60,11 +60,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import client from '@/api/client'
+import toast from '@/api/toast'
 
 const props = defineProps(['companies', 'initial'])
-const emit = defineEmits(['saved', 'cancel'])
+const emit = defineEmits(['saved', 'cancel', 'dirty'])
 
 const empty = {
   name: '',
@@ -81,6 +82,12 @@ const empty = {
 
 const form = ref({ ...empty })
 const saving = ref(false)
+const formDirty = ref(false)
+const savedSnapshot = ref('')
+
+function snapshot() {
+  return JSON.stringify(form.value)
+}
 
 onMounted(() => {
   if (props.initial) {
@@ -89,7 +96,18 @@ onMounted(() => {
       ...props.initial,
     }
   }
+  // TASK-001: Initial-State an Parent melden
+  emit('dirty', formDirty.value && !saving.value)
 })
+
+// TASK-001: Dirty-Status an Parent melden
+watch(form, (val, old) => {
+  if (!old) return
+  if (snapshot() !== savedSnapshot.value) {
+    formDirty.value = true
+    emit('dirty', true)
+  }
+}, { deep: true })
 
 async function save() {
   saving.value = true
@@ -100,9 +118,14 @@ async function save() {
     } else {
       await client.post('/admin/companies', payload)
     }
+    // TASK-001: Nach erfolgreichem Speichern dirty zurücksetzen
+    savedSnapshot.value = snapshot()
+    formDirty.value = false
+    emit('dirty', false)
     emit('saved')
+    toast.success('Firma gespeichert')
   } catch (e) {
-    alert('Speichern fehlgeschlagen: ' + e.message)
+    toast.error('Speichern fehlgeschlagen: ' + e.message)
   } finally {
     saving.value = false
   }

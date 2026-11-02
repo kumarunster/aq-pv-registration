@@ -1,8 +1,8 @@
 <template>
-  <form @submit.prevent="save" class="bg-slate-900 rounded-xl p-5 border border-slate-800 mb-4">
+  <form @submit.prevent="save" id="customer-form" class="bg-slate-900 rounded-xl p-5 border border-slate-800 mb-4">
     <div class="flex items-center justify-between mb-4">
       <div class="flex items-center gap-3">
-        <button type="button" @click="$emit('cancel')" class="text-xs text-slate-500 hover:text-slate-300" title="Zurück zur Kundenliste">
+        <button type="button" id="customer-form-back" @click="$emit('cancel')" class="text-xs text-slate-500 hover:text-slate-300" title="Zurück zur Kundenliste">
           ← Zurück
         </button>
         <h2 class="font-semibold text-lg">{{ initial ? 'Kunde bearbeiten' : 'Neuer Kunde' }}</h2>
@@ -10,17 +10,17 @@
       </div>
       <!-- Haupt-Tabs: Kunde | Anlagen -->
       <div class="flex items-center gap-4 text-sm">
-        <button type="button" @click="mainTab = 'kunde'"
+        <button type="button" id="customer-tab-kunde" @click="mainTab = 'kunde'"
           :class="mainTab === 'kunde'
             ? 'text-white border-b-2 border-amber-500 pb-1 font-semibold'
             : 'text-slate-400 hover:text-slate-200 pb-1'">
           👤 Kunde
         </button>
-        <button type="button" @click="mainTab = 'anlagen'"
+        <button type="button" id="customer-tab-anlagen" @click="mainTab = 'anlagen'"
           :class="mainTab === 'anlagen'
             ? 'text-white border-b-2 border-amber-500 pb-1 font-semibold'
             : 'text-slate-400 hover:text-slate-200 pb-1'">
-          🔌 Anlagen ({{ form.plants.length }})
+          🔌 {{ form.plants.length ? 'Anlagen (' + form.plants.length + ')' : '+ Anlage' }}
         </button>
       </div>
     </div>
@@ -32,35 +32,35 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm text-slate-400 mb-1">Vorname *</label>
-            <input v-model="form.firstname" class="input" required />
+            <input v-model="form.firstname" id="cust-firstname" class="input" required />
           </div>
           <div>
             <label class="block text-sm text-slate-400 mb-1">Nachname *</label>
-            <input v-model="form.lastname" class="input" required />
+            <input v-model="form.lastname" id="cust-lastname" class="input" required />
           </div>
           <div class="md:col-span-2">
             <label class="block text-sm text-slate-400 mb-1">Straße + Nr *</label>
-            <input v-model="form.address_street" class="input" required />
+            <input v-model="form.address_street" id="cust-address-street" class="input" required />
           </div>
           <div>
             <label class="block text-sm text-slate-400 mb-1">PLZ *</label>
-            <input v-model="form.address_plz" class="input" required />
+            <input v-model="form.address_plz" id="cust-address-plz" class="input" required />
           </div>
           <div>
             <label class="block text-sm text-slate-400 mb-1">Ort *</label>
-            <input v-model="form.address_city" class="input" required />
+            <input v-model="form.address_city" id="cust-address-city" class="input" required />
           </div>
           <div>
             <label class="block text-sm text-slate-400 mb-1">Telefon</label>
-            <input v-model="form.phone" class="input" />
+            <input v-model="form.phone" id="cust-phone" class="input" />
           </div>
           <div>
             <label class="block text-sm text-slate-400 mb-1">E-Mail</label>
-            <input v-model="form.email" type="email" class="input" />
+            <input v-model="form.email" id="cust-email" type="email" class="input" />
           </div>
           <div class="md:col-span-2">
             <label class="block text-sm text-slate-400 mb-1">IBAN</label>
-            <input v-model="form.iban" class="input" placeholder="DE00 0000 0000 …" />
+            <input v-model="form.iban" id="cust-iban" class="input" placeholder="DE00 0000 0000 …" />
           </div>
         </div>
       </section>
@@ -71,7 +71,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="md:col-span-2">
             <label class="block text-sm text-slate-400 mb-1">Firma *</label>
-            <select v-model="form.company_id" class="input" required>
+            <select v-model="form.company_id" id="cust-company" class="input" required>
               <option value="" disabled>— Firma wählen —</option>
               <option v-for="c in companies" :key="c._id" :value="c._id">{{ c.name }}</option>
             </select>
@@ -89,18 +89,19 @@
       <div class="flex flex-wrap items-center gap-2 mb-3">
         <input
           v-model="plantSearch"
+          id="plant-search"
           class="flex-1 min-w-[180px] bg-slate-800 rounded-lg px-3 py-2 text-sm border border-slate-700 focus:border-amber-500 focus:outline-none"
           type="search"
           placeholder="🔍 Anlagen suchen…"
         />
-        <select v-model="plantStatusFilter"
+        <select v-model="plantStatusFilter" id="plant-status-filter"
           class="w-auto shrink-0 bg-slate-800 rounded-lg px-3 py-2 text-sm border border-slate-700 focus:border-amber-500 focus:outline-none">
           <option value="">Alle Status</option>
           <option value="in_pruefung">In Prüfung</option>
           <option value="angemeldet">Angemeldet</option>
           <option value="abgeschlossen">Abgeschlossen</option>
         </select>
-        <button type="button" @click="addPlant" class="px-3 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded-lg text-sm shrink-0 whitespace-nowrap">
+        <button type="button" id="plant-add" @click="addPlant" class="px-3 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded-lg text-sm shrink-0 whitespace-nowrap">
           + Anlage
         </button>
       </div>
@@ -178,8 +179,8 @@
 
     <div class="flex gap-2 pt-4">
       <div class="flex items-center gap-3 justify-end">
-        <button type="button" @click="$emit('cancel')" class="text-sm text-slate-400 hover:text-slate-200">Abbrechen</button>
-        <button type="submit" :disabled="saving" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded-lg text-sm disabled:opacity-50">
+        <button type="button" id="customer-form-cancel" @click="$emit('cancel')" class="text-sm text-slate-400 hover:text-slate-200">Abbrechen</button>
+        <button type="submit" id="customer-form-save" :disabled="saving" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded-lg text-sm disabled:opacity-50">
           {{ saving ? 'Speichert…' : (initial ? 'Speichern' : 'Kunde anlegen') }}
         </button>
       </div>
@@ -225,7 +226,7 @@ const props = defineProps({
   // 'admin' = mit Firmen-Auswahl, 'installer' = eigene Kunden (kein Firmen-Select)
   mode: { type: String, default: 'admin' },
 })
-const emit = defineEmits(['saved', 'cancel'])
+const emit = defineEmits(['saved', 'cancel', 'dirty'])
 
 const isInstaller = () => props.mode === 'installer'
 
@@ -379,6 +380,20 @@ const PlantForm = defineComponent({
     function set(key, val) {
       p.onUpdate(p.index, key, val)
     }
+
+    // TASK-008: Lageplan-Pflicht-Banner (PV ohne Lageplan)
+    const lageplanRequired = computed(() => p.plant.anlagetyp === 'pv' && !p.plant.lageplan)
+    function lageplanBanner() {
+      if (!lageplanRequired.value) return null
+      return h('div', { class: 'bg-red-900/40 border border-red-700 rounded-lg p-3 mb-4 flex items-center justify-between' }, [
+        h('span', { class: 'text-sm text-red-300' }, '⚠️ Lageplan fehlt (PV-Pflicht) – Anlage kann ohne Lageplan nicht gespeichert werden.'),
+        h('button', {
+          type: 'button',
+          class: 'px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white text-sm font-semibold rounded-lg',
+          onClick: () => emit('open-lageplan'),
+        }, '📐 Jetzt erstellen'),
+      ])
+    }
     function addInverter() {
       const inv = { manufacturer: '', type: '', kw: '', zerez_id: '' }
       p.plant.inverters.push(inv)
@@ -393,37 +408,40 @@ const PlantForm = defineComponent({
       set('inverters', [...p.plant.inverters])
     }
 
-    // 📋 ZEREZ Typeahead für Inverter-Hersteller
-    const zerezQuery = ref('')
-    const activeZerezIndex = ref(-1)
-    const zerezResults = ref([])
-    const zerezOpen = ref(false)
-    const zerezLoading = ref(false)
-
-    let zerezTimer = null
+    // 📋 ZEREZ Typeahead PRO Inverter (TASK-010)
+    const zerezState = ref(new Map())  // i -> { open, loading, query, results, timer }
+    function zerezGet(i) {
+      if (!zerezState.value.has(i)) {
+        zerezState.value.set(i, { open: false, loading: false, query: '', results: [], timer: null })
+        zerezState.value = new Map(zerezState.value)
+      }
+      return zerezState.value.get(i)
+    }
     function onZerezInput(i, e) {
       const v = e.target.value
       setInverter(i, 'manufacturer', v)
-      activeZerezIndex.value = i
-      zerezQuery.value = v
-      clearTimeout(zerezTimer)
+      const st = zerezGet(i)
+      st.query = v
+      clearTimeout(st.timer)
       if (v.length >= 3) {
-        zerezLoading.value = true
-        zerezOpen.value = true
-        zerezTimer = setTimeout(async () => {
+        st.loading = true
+        st.open = true
+        st.timer = setTimeout(async () => {
           try {
             const results = await zerezSearch(v, p.isInstaller)
-            zerezResults.value = results.slice(0, 50)
+            st.results = results.slice(0, 50)
           } catch (err) {
-            zerezResults.value = []
+            st.results = []
           } finally {
-            zerezLoading.value = false
+            st.loading = false
+            zerezState.value = new Map(zerezState.value)
           }
         }, 300)
       } else {
-        zerezOpen.value = false
-        zerezResults.value = []
+        st.open = false
+        st.results = []
       }
+      zerezState.value = new Map(zerezState.value)
     }
 
     function selectZerez(i, result) {
@@ -436,14 +454,18 @@ const PlantForm = defineComponent({
       const invs = [...p.plant.inverters]
       invs[i] = inv
       set('inverters', invs)
-      zerezOpen.value = false
-      zerezResults.value = []
-      zerezQuery.value = ''
+      const st = zerezGet(i)
+      st.open = false
+      st.results = []
+      st.query = ''
+      zerezState.value = new Map(zerezState.value)
     }
 
-    function closeZerez() {
-      zerezOpen.value = false
-      zerezResults.value = []
+    function closeZerez(i) {
+      const st = zerezGet(i)
+      st.open = false
+      st.results = []
+      zerezState.value = new Map(zerezState.value)
     }
 
     // P1-4: Accordion-Sections
@@ -581,7 +603,7 @@ const PlantForm = defineComponent({
                         items2[i] = { ...items2[i], image_url: r.blob_key }
                         set('checklist', items2)
                       } catch (err) {
-                        alert('Upload fehlgeschlagen: ' + err.message)
+                        toast.error('Upload fehlgeschlagen: ' + err.message)
                       }
                     },
                   }),
@@ -597,6 +619,8 @@ const PlantForm = defineComponent({
     }
 
     return () => h('div', { class: 'space-y-4' }, [
+      // TASK-008: Lageplan-Pflicht-Banner (vor dem Fortschritt)
+      lageplanBanner(),
       // 📊 Fortschritt (ganz oben)
       statusStepper(p.plant, set, p.isInstaller),
 
@@ -735,63 +759,73 @@ const PlantForm = defineComponent({
       sectionEl('wechselrichter', 'Wechselrichter / Ladepunkte', p.plant.inverters.length ? String(p.plant.inverters.length) : null, [
         h('div', { class: 'flex items-center justify-between mb-2' }, [
           h('span', { class: 'text-xs text-slate-400' }, 'Wechselrichter und Ladepunkte'),
-          h('button', { type: 'button', onClick: addInverter, class: 'text-xs text-amber-400' }, '+ Hinzufügen'),
+          h('button', { type: 'button', id: 'plant-add-inverter', onClick: addInverter, class: 'text-xs text-amber-400' }, '+ Hinzufügen'),
         ]),
-        p.plant.inverters.map((inv, i) =>
-          h('div', { class: 'grid grid-cols-1 md:grid-cols-5 gap-2 mb-2', key: i }, [
+        p.plant.inverters.map((inv, i) => {
+          const zst = zerezState.value.get(i)
+          const dropdown = (zst && zst.open && (zst.results.length || zst.loading))
+            ? h('div', {
+                class: 'relative mt-1 z-50 bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-64 overflow-y-auto',
+                onClick: (e) => e.stopPropagation(),
+              }, [
+                zst.loading
+                  ? h('div', { class: 'p-2 text-xs text-slate-400' }, 'Lade…')
+                  : zst.results.length
+                    ? h('table', { class: 'w-full text-xs' }, [
+                        h('thead', [
+                          h('tr', { class: 'text-slate-500 border-b border-slate-700' }, [
+                            h('th', { class: 'p-1.5 text-left' }, 'Hersteller'),
+                            h('th', { class: 'p-1.5 text-left' }, 'Model'),
+                            h('th', { class: 'p-1.5 text-left' }, 'kW'),
+                            h('th', { class: 'p-1.5 text-left' }, 'ZEREZ-ID'),
+                            h('th', { class: 'p-1.5 text-left' }, 'Voltage'),
+                          ]),
+                        ]),
+                        h('tbody', zst.results.map((r, ri) =>
+                          h('tr', {
+                            key: ri,
+                            class: 'cursor-pointer hover:bg-slate-700',
+                            onClick: () => selectZerez(i, r),
+                          }, [
+                            h('td', { class: 'p-1.5' }, r.certificateHolderName || '–'),
+                            h('td', { class: 'p-1.5' }, r.modelName || '–'),
+                            h('td', { class: 'p-1.5' }, r.maxActivePower != null ? r.maxActivePower : '–'),
+                            h('td', { class: 'p-1.5' }, r.unitCode || '–'),
+                            h('td', { class: 'p-1.5' }, r.ratedVoltage != null ? r.ratedVoltage : '–'),
+                          ])
+                        )),
+                      ])
+                    : h('div', { class: 'p-2 text-xs text-slate-400' }, 'Keine Treffer.'),
+              ])
+            : null
+          return h('div', { class: 'mb-2', key: i }, [
+          h('div', { class: 'grid grid-cols-1 md:grid-cols-5 gap-2' }, [
             h('div', [
               h('input', {
+                id: 'plant-inverter-' + i + '-manufacturer',
                 class: 'input',
                 placeholder: 'Hersteller / Modell (min. 4 Zeichen, z. B. sungrow sh10)',
                 value: inv.manufacturer,
                 onInput: (e) => onZerezInput(i, e),
-                onFocus: () => { if (zerezQuery.value.length >= 4) zerezOpen.value = true },
-                onBlur: () => setTimeout(closeZerez, 200),
+                onFocus: () => {
+                  const st = zerezGet(i)
+                  if (st.query.length >= 4) {
+                    st.open = true
+                    zerezState.value = new Map(zerezState.value)
+                  }
+                },
+                onBlur: () => setTimeout(() => closeZerez(i), 200),
               }),
             ]),
-            h('input', { class: 'input', placeholder: 'Typ', value: inv.type, onInput: (e) => setInverter(i, 'type', e.target.value) }),
-            h('input', { class: 'input', placeholder: 'kW', value: inv.kw, onInput: (e) => setInverter(i, 'kw', e.target.value) }),
-            h('input', { class: 'input', placeholder: 'ZEREZ-ID', value: inv.zerez_id, onInput: (e) => setInverter(i, 'zerez_id', e.target.value) }),
+            h('input', { id: 'plant-inverter-' + i + '-type', class: 'input', placeholder: 'Typ', value: inv.type, onInput: (e) => setInverter(i, 'type', e.target.value) }),
+            h('input', { id: 'plant-inverter-' + i + '-kw', class: 'input', placeholder: 'kW', value: inv.kw, onInput: (e) => setInverter(i, 'kw', e.target.value) }),
+            h('input', { id: 'plant-inverter-' + i + '-zerez', class: 'input', placeholder: 'ZEREZ-ID', value: inv.zerez_id, onInput: (e) => setInverter(i, 'zerez_id', e.target.value) }),
             h('button', { type: 'button', onClick: () => removeInverter(i), class: 'text-slate-400 hover:text-red-400 text-sm' }, '🗑️'),
+          ]),
+          dropdown,
           ])
-        ),
+        }),
         p.plant.inverters.length === 0 ? h('div', { class: 'text-slate-500 text-xs' }, 'Kein Wechselrichter erfasst.') : null,
-        // ZEREZ Typeahead: full-width, UNTER der Inverter-Sektion (deckt nichts ab)
-        (zerezOpen.value && (zerezResults.value.length || zerezLoading.value))
-          ? h('div', {
-              class: 'relative mt-2 z-50 bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-64 overflow-y-auto',
-              onClick: (e) => e.stopPropagation(),
-            }, [
-              zerezLoading.value
-                ? h('div', { class: 'p-2 text-xs text-slate-400' }, 'Lade…')
-                : zerezResults.value.length
-                  ? h('table', { class: 'w-full text-xs' }, [
-                      h('thead', [
-                        h('tr', { class: 'text-slate-500 border-b border-slate-700' }, [
-                          h('th', { class: 'p-1.5 text-left' }, 'Hersteller'),
-                          h('th', { class: 'p-1.5 text-left' }, 'Model'),
-                          h('th', { class: 'p-1.5 text-left' }, 'kW'),
-                          h('th', { class: 'p-1.5 text-left' }, 'ZEREZ-ID'),
-                          h('th', { class: 'p-1.5 text-left' }, 'Voltage'),
-                        ]),
-                      ]),
-                      h('tbody', zerezResults.value.map((r, ri) =>
-                        h('tr', {
-                          key: ri,
-                          class: 'cursor-pointer hover:bg-slate-700',
-                          onClick: () => selectZerez(activeZerezIndex.value, r),
-                        }, [
-                          h('td', { class: 'p-1.5' }, r.certificateHolderName || '–'),
-                          h('td', { class: 'p-1.5' }, r.modelName || '–'),
-                          h('td', { class: 'p-1.5' }, r.maxActivePower != null ? r.maxActivePower : '–'),
-                          h('td', { class: 'p-1.5' }, r.unitCode || '–'),
-                          h('td', { class: 'p-1.5' }, r.ratedVoltage != null ? r.ratedVoltage : '–'),
-                        ])
-                      )),
-                    ])
-                  : h('div', { class: 'p-2 text-xs text-slate-400' }, 'Keine Treffer.'),
-            ])
-          : null,
       ]),
 
       // Speicher (Accordion, PV + Wärmepumpe)
@@ -799,9 +833,9 @@ const PlantForm = defineComponent({
         ? sectionEl('speicher', p.plant.anlagetyp === 'pv' ? 'Batteriespeicher' : 'Pufferspeicher', p.plant.battery ? p.plant.battery.manufacturer : null, [
             p.plant.battery
               ? h('div', { class: 'grid grid-cols-1 md:grid-cols-3 gap-2' }, [
-                  h('input', { class: 'input', placeholder: 'Hersteller', value: p.plant.battery.manufacturer, onInput: (e) => set('battery', { ...p.plant.battery, manufacturer: e.target.value }) }),
-                  h('input', { class: 'input', placeholder: 'Typ', value: p.plant.battery.type, onInput: (e) => set('battery', { ...p.plant.battery, type: e.target.value }) }),
-                  h('input', { class: 'input', placeholder: 'kWh', value: p.plant.battery.kwh, onInput: (e) => set('battery', { ...p.plant.battery, kwh: e.target.value }) }),
+                  h('input', { id: 'plant-battery-manufacturer', class: 'input', placeholder: 'Hersteller', value: p.plant.battery.manufacturer, onInput: (e) => set('battery', { ...p.plant.battery, manufacturer: e.target.value }) }),
+                  h('input', { id: 'plant-battery-type', class: 'input', placeholder: 'Typ', value: p.plant.battery.type, onInput: (e) => set('battery', { ...p.plant.battery, type: e.target.value }) }),
+                  h('input', { id: 'plant-battery-kwh', class: 'input', placeholder: 'kWh', value: p.plant.battery.kwh, onInput: (e) => set('battery', { ...p.plant.battery, kwh: e.target.value }) }),
                 ])
               : h('button', { type: 'button', onClick: () => set('battery', { manufacturer: '', type: '', kwh: '' }), class: 'text-xs text-amber-400' }, '+ Speicher hinzufügen'),
           ])
@@ -825,6 +859,7 @@ const PlantForm = defineComponent({
             }, p.plant.lageplan ? '✓ erfasst' : 'noch leer'),
             h('button', {
               type: 'button',
+              id: 'plant-lageplan-' + (p.plant.lageplan ? 'edit' : 'create'),
               onClick: () => emit('open-lageplan', p.index),
               class: 'px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs rounded-lg',
             }, p.plant.lageplan ? 'Bearbeiten' : 'Erstellen'),
@@ -835,7 +870,7 @@ const PlantForm = defineComponent({
       // Notizen
       h('div', [
         h('label', { class: 'block text-sm text-slate-400 mb-1' }, 'Notizen'),
-        h('textarea', { class: 'input', rows: 2, value: p.plant.notes, onInput: (e) => set('notes', e.target.value) }),
+        h('textarea', { id: 'plant-notes', class: 'input', rows: 2, value: p.plant.notes, onInput: (e) => set('notes', e.target.value) }),
       ]),
     ])
   },
@@ -863,7 +898,7 @@ function snapshot() {
 }
 
 // Mark dirty on any change
-watch(form, () => { formDirty.value = true }, { deep: true })
+watch(form, () => { formDirty.value = true; emit('dirty', true) }, { deep: true })
 
 // Warn on browser navigation when dirty
 function onBeforeUnload(e) {
@@ -914,7 +949,7 @@ onMounted(() => {
       : []
   }
   // After init, set the clean snapshot
-  setTimeout(() => { savedSnapshot.value = snapshot(); formDirty.value = false }, 100)
+  setTimeout(() => { savedSnapshot.value = snapshot(); formDirty.value = false; emit('dirty', false) }, 100)
 })
 
 
@@ -976,6 +1011,8 @@ function saveLageplan() {
     }
     form.plants[i].lageplan = layout
   }
+  formDirty.value = true
+  emitDirty()
   lageplanDialog.value = null
 }
 
@@ -1053,6 +1090,7 @@ async function save() {
     }
     savedSnapshot.value = snapshot()
     formDirty.value = false
+    emit('dirty', false)
     emit('saved')
   } catch (e) {
     toast.error('Speichern fehlgeschlagen: ' + e.message)

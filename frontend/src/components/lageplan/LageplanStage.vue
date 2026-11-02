@@ -275,10 +275,8 @@ function onMouseUp() {
 }
 
 function onElementClick(el) {
-  console.log('[LP] onElementClick', el.id, 'tool=', props.store.activeTool)
   if (props.store.activeTool === 'select') {
     props.store.selectedId = el.id
-    console.log('[LP] selectedId gesetzt ->', props.store.selectedId)
     attachTransformer(el.id)
   }
 }
@@ -534,11 +532,11 @@ watch(
 function handleStageClick(e) {
   const stageNode = stageRef.value?.getNode?.()
   const target = e.target
-  console.log('[LP] handleStageClick target=', target?.getClassName?.(), 'name=', target?.name?.(), 'isStage=', target === stageNode)
+
   if (props.store.activeTool !== 'select') return
   if (target === stageNode || target.getClassName?.() === 'Image') {
     props.store.selectedId = null
-    console.log('[LP] abgewaehlt')
+
   }
 }
 

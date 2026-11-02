@@ -44,7 +44,7 @@ async def update_my_customer(installer_id: str, customer_id: str, data: dict) ->
     existing = await db["customers"].find_one({"_id": oid, "created_by": installer_id})
     if not existing:
         return None
-    return await customer_repo.update(customer_id, data)
+    return await customer_repo.update(customer_id, data, updated_by=installer_id)
 
 
 async def delete_my_customer(installer_id: str, customer_id: str) -> bool:

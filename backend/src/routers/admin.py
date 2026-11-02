@@ -40,6 +40,19 @@ def _admin_identity(
 
 # ------------------------------------------------------------- Firmen
 
+@router.get("/companies/stats")
+async def company_stats(
+    x_kratos_identity_id: str | None = Header(default=None),
+    x_kratos_identity_email: str | None = Header(default=None),
+    x_kratos_identity_schema: str | None = Header(default=None),
+):
+    _admin_identity(x_kratos_identity_id, x_kratos_identity_email, x_kratos_identity_schema)
+    from src.services import companies as company_repo
+    docs = await company_repo.find_all()
+    ids = [d["_id"] for d in docs]
+    return await company_repo.customer_and_plant_counts(ids)
+
+
 @router.get("/companies")
 async def list_companies(
     active_only: bool = True,
@@ -196,7 +209,8 @@ async def update_customer(
     x_kratos_identity_schema: str | None = Header(default=None),
 ):
     _admin_identity(x_kratos_identity_id, x_kratos_identity_email, x_kratos_identity_schema)
-    doc = await customer_repo.update(customer_id, jsonable_encoder(body))
+    identity = _admin_identity(x_kratos_identity_id, x_kratos_identity_email, x_kratos_identity_schema)
+    doc = await customer_repo.update(customer_id, jsonable_encoder(body), updated_by=identity["id"])
     if not doc:
         raise HTTPException(404, "Kunde nicht gefunden")
     return doc

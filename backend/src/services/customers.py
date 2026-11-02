@@ -83,21 +83,27 @@ async def create(data: dict) -> dict:
         "iban": data.get("iban"),
         "plants": data.get("plants", []),
         "created_by": data.get("created_by"),
+        "updated_by": data.get("created_by"),  # P2-11: initiale updated_by
         "created_at": None,  # wird unten gesetzt
+        "updated_at": None,  # wird unten gesetzt
     }
     from datetime import datetime, timezone
-    doc["created_at"] = datetime.now(timezone.utc)
+    now = datetime.now(timezone.utc)
+    doc["created_at"] = now
+    doc["updated_at"] = now
     result = await db["customers"].insert_one(doc)
     created = await db["customers"].find_one({"_id": result.inserted_id})
     return serialize(created)
 
 
-async def update(customer_id: str, data: dict) -> dict | None:
+async def update(customer_id: str, data: dict, updated_by: str | None = None) -> dict | None:
     """Kunde aktualisieren (Namen/Adresse/etc.).
 
     Falls data["plants"] gesetzt ist, wird die Anlage-Liste ersetzt.
+    P2-11: updated_at und updated_by werden gesetzt.
     """
     from bson import ObjectId
+    from datetime import datetime, timezone
     db = get_db()
     try:
         oid = ObjectId(customer_id)
@@ -107,8 +113,10 @@ async def update(customer_id: str, data: dict) -> dict | None:
     update_doc = {"$set": update_fields}
     if "plants" in data and data["plants"] is not None:
         update_doc["$set"]["plants"] = data["plants"]
-    if not update_doc:
-        return await get_by_id(customer_id)
+    # P2-11: updated_at und updated_by setzen
+    update_doc["$set"]["updated_at"] = datetime.now(timezone.utc)
+    if updated_by is not None:
+        update_doc["$set"]["updated_by"] = updated_by
     result = await db["customers"].find_one_and_update(
         {"_id": oid}, update_doc, return_document=True
     )
