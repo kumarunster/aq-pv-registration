@@ -208,7 +208,7 @@ function onMouseDown(e) {
     // addElement liefert die neue ID zurück und setzt selectedId bereits selbst
     const id = props.store.addElement({
       kind: 'text', x: p.x, y: p.y, text: '', width: 160,
-      font_size: 24, fill: '#111827', label: '',
+      font_size: 48, fill: '#111827', label: '',
     })
     previewElement.value = null
     isDrawing.value = false
@@ -534,9 +534,10 @@ function handleStageClick(e) {
   const target = e.target
 
   if (props.store.activeTool !== 'select') return
-  if (target === stageNode || target.getClassName?.() === 'Image') {
+  
+  // Klick auf Stage oder Hintergrundbild = Abwahl
+  if (target === stageNode || target.getClassName?.() === 'Image' || target.getClassName?.() === 'Rect') {
     props.store.selectedId = null
-
   }
 }
 

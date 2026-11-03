@@ -1087,6 +1087,7 @@ async function save() {
       phone: form.phone || null,
       email: form.email || null,
       iban: form.iban || null,
+      company_id: isInstaller() ? null : (form.company_id || null),
     }
     // Firmen-ID: Installer-Anlagen bekommen company_id: null, Admin-Anlagen die gewählte Firma
     if (form.plants.length) {

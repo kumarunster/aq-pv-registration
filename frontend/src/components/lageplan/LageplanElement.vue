@@ -70,7 +70,7 @@ const textLineHeight = 1.2
 const textLabelWidth = computed(() => (props.element.width || 160) + textPadding * 2)
 const textLabelHeight = computed(() => {
   const lines = props.element.text ? props.element.text.split('\n').length : 1
-  const fontSize = props.element.font_size || 24
+  const fontSize = props.element.font_size || 48
   return lines * fontSize * textLineHeight + textPadding * 2
 })
 
