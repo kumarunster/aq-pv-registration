@@ -230,39 +230,43 @@ async def delete_customer(
         raise HTTPException(404, "Kunde nicht gefunden")
 
 
-@router.get("/customers/{customer_id}/plants/{plant_index}/export-json")
-async def export_plant_json(
+@router.get("/customers/{customer_id}/export-json")
+async def export_customer_json(
     customer_id: str,
-    plant_index: int,
     x_kratos_identity_id: str | None = Header(default=None),
     x_kratos_identity_email: str | None = Header(default=None),
     x_kratos_identity_schema: str | None = Header(default=None),
 ):
-    """Admin: eine Anlage als JSON exportieren.
+    """Admin: kompletten Kunden als JSON exportieren.
 
-    Enthält: Kundendaten, Anlage (as-is aus plants[]), Lageplan-Link,
-    Installer-Firmendaten (aus plants[].company_id).
+    Struktur (bewusst ohne Duplikate):
+      customer        -> Kundendaten (ohne plants[])
+      plants          -> Anlagen; pro Anlage: lageplan_url statt rohem Lageplan-JSON
+      licensedCompany -> Betreiber-Installer-Firma (erste Anlage mit company_id)
     """
     _admin_identity(x_kratos_identity_id, x_kratos_identity_email, x_kratos_identity_schema)
     doc = await customer_repo.get_by_id(customer_id)
     if not doc:
         raise HTTPException(404, "Kunde nicht gefunden")
-    plants = doc.get("plants", [])
-    if plant_index < 0 or plant_index >= len(plants):
-        raise HTTPException(404, "Anlage nicht gefunden")
-    plant = plants[plant_index]
-    company = None
-    if plant.get("company_id"):
-        from src.services import companies as company_repo
-        company = await company_repo.get_by_id(plant["company_id"])
-    lageplan = plant.get("lageplan") or None
+
+    raw_plants = doc.pop("plants", []) or []
+    base = f"/api/admin/customers/{customer_id}/plants"
+    licensed_company = None
+    seen_companies: set[str] = set()
+    plants = []
+    for i, p in enumerate(raw_plants):
+        out = {k: v for k, v in p.items() if k != "lageplan"}
+        out["_id"] = f"{customer_id}-plant-{i}"
+        out["lageplan_url"] = f"{base}/{i}/export-json" if p.get("lageplan") else None
+        if licensed_company is None and p.get("company_id"):
+            from src.services import companies as company_repo
+            licensed_company = await company_repo.get_by_id(p["company_id"]) or None
+        plants.append(out)
+
     return {
         "customer": doc,
-        "plant": plant,
-        "plant_index": plant_index,
-        "company": company,
-        "lageplan_pdf_url": "/api/lageplan/pdf",
-        "lageplan": lageplan,
+        "plants": plants,
+        "licensedCompany": licensed_company,
         "exported_at": datetime.now(timezone.utc).isoformat(),
     }
 
