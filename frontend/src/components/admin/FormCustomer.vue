@@ -179,6 +179,7 @@
 
     <div class="flex gap-2 pt-4">
       <div class="flex items-center gap-3 justify-end">
+        <button v-if="!isInstaller()" type="button" id="plant-export-json" @click="exportJson" :disabled="exporting" class="text-sm text-slate-400 hover:text-slate-200 disabled:opacity-50">{{ exporting ? 'Exportiere…' : '⬇️ JSON exportieren' }}</button>
         <button type="button" id="customer-form-cancel" @click="$emit('cancel')" class="text-sm text-slate-400 hover:text-slate-200">Abbrechen</button>
         <button type="submit" id="customer-form-save" :disabled="saving" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded-lg text-sm disabled:opacity-50">
           {{ saving ? 'Speichert…' : (initial ? 'Speichern' : 'Kunde anlegen') }}
@@ -408,6 +409,8 @@ const PlantForm = defineComponent({
       set('inverters', [...p.plant.inverters])
     }
 
+    // ⬇️ JSON-Export (nur Admin) — Button im Footer, Funktion im Haupt-Scope
+    // (exportJson wird im main scope definiert)
     // 📋 ZEREZ Typeahead PRO Inverter (TASK-010)
     const zerezState = ref(new Map())  // i -> { open, loading, query, results, timer }
     function zerezGet(i) {
@@ -863,6 +866,9 @@ const PlantForm = defineComponent({
               onClick: () => emit('open-lageplan', p.index),
               class: 'px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs rounded-lg',
             }, p.plant.lageplan ? 'Bearbeiten' : 'Erstellen'),
+            p.isInstaller
+              ? null
+              : null,
           ]),
         ]),
       ]),
@@ -895,6 +901,51 @@ const savedSnapshot = ref('')
 
 function snapshot() {
   return JSON.stringify(form)
+}
+
+// ⬇️ JSON-Export (nur Admin): Kunde + Anlagen + Firmen + Lageplan-Links
+const exporting = ref(false)
+async function exportJson() {
+  const custId = form.customer_id
+  if (!custId) {
+    toast.error('Kunde muss zuerst gespeichert werden (Export erst nach dem Speichern möglich).')
+    return
+  }
+  if (!form.plants.length) {
+    toast.error('Keine Anlagen vorhanden — nichts zu exportieren.')
+    return
+  }
+  exporting.value = true
+  try {
+    const responses = await Promise.all(
+      form.plants.map((_, i) => client.get(`/admin/customers/${custId}/plants/${i}/export-json`))
+    )
+    const data = {
+      customer: responses[0].data.customer,
+      exported_at: new Date().toISOString(),
+      plants: responses.map(r => r.data.plant),
+      companies: {},
+      lageplan_pdf_urls: responses.map(r => r.data.lageplan_pdf_url),
+    }
+    responses.forEach((r, i) => {
+      if (r.data.company) data.companies[i] = r.data.company
+      if (r.data.lageplan) data['lageplan_' + i] = r.data.lageplan
+    })
+    const name = (data.customer?.lastname || 'Kunde') + ' - Anlagen'
+    const filename = name.replace(/[^a-zA-Z0-9 _-]/g, '_') + '.json'
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.success('JSON exportiert')
+  } catch (err) {
+    toast.error('Export fehlgeschlagen: ' + (err.response?.data?.detail || err.message))
+  } finally {
+    exporting.value = false
+  }
 }
 
 // Mark dirty on any change

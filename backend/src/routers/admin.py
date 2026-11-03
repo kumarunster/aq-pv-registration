@@ -6,6 +6,7 @@ und X-User-Id, die hier ausgelesen werden.
 """
 
 import logging
+from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Header, Query
 from fastapi.encoders import jsonable_encoder
 
@@ -227,6 +228,43 @@ async def delete_customer(
     ok = await customer_repo.delete(customer_id)
     if not ok:
         raise HTTPException(404, "Kunde nicht gefunden")
+
+
+@router.get("/customers/{customer_id}/plants/{plant_index}/export-json")
+async def export_plant_json(
+    customer_id: str,
+    plant_index: int,
+    x_kratos_identity_id: str | None = Header(default=None),
+    x_kratos_identity_email: str | None = Header(default=None),
+    x_kratos_identity_schema: str | None = Header(default=None),
+):
+    """Admin: eine Anlage als JSON exportieren.
+
+    Enthält: Kundendaten, Anlage (as-is aus plants[]), Lageplan-Link,
+    Installer-Firmendaten (aus plants[].company_id).
+    """
+    _admin_identity(x_kratos_identity_id, x_kratos_identity_email, x_kratos_identity_schema)
+    doc = await customer_repo.get_by_id(customer_id)
+    if not doc:
+        raise HTTPException(404, "Kunde nicht gefunden")
+    plants = doc.get("plants", [])
+    if plant_index < 0 or plant_index >= len(plants):
+        raise HTTPException(404, "Anlage nicht gefunden")
+    plant = plants[plant_index]
+    company = None
+    if plant.get("company_id"):
+        from src.services import companies as company_repo
+        company = await company_repo.get_by_id(plant["company_id"])
+    lageplan = plant.get("lageplan") or None
+    return {
+        "customer": doc,
+        "plant": plant,
+        "plant_index": plant_index,
+        "company": company,
+        "lageplan_pdf_url": "/api/lageplan/pdf",
+        "lageplan": lageplan,
+        "exported_at": datetime.now(timezone.utc).isoformat(),
+    }
 
 
 # ---------------------------------------------------------------- ZEREZ
