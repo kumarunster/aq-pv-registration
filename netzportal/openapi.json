@@ -1,0 +1,1550 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "PV Netzanmeldung Multi-Provider API",
+    "description": "Unofficial adapters for NRM, ENM, Mainzer Netze and e-netz Suedhessen. Read operations and limited draft initialization; no final submission. Lists the configured account's applications from Bestellungen / Alle. Uses server-side provider credentials; API callers authenticate with a separate bearer key.",
+    "version": "0.3.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Health",
+        "description": "Process liveness only; does not contact NRM or verify its availability.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/installations": {
+      "get": {
+        "tags": [
+          "Installations"
+        ],
+        "summary": "List Installations",
+        "description": "Fetch every application in NRM's current 'Alle' response, including closed ones.\n\nEach entry is an application/order-product, not a unique physical installation.\nNo drafts or full technical system details are included in this first version.",
+        "operationId": "list_installations_api_v1_installations_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstallationList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API bearer key"
+          },
+          "502": {
+            "description": "NRM sign-in/session/schema error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "NRM unavailable or rate-limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "NRM request timed out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/providers": {
+      "get": {
+        "tags": [
+          "Multi-provider"
+        ],
+        "summary": "Providers",
+        "description": "Configured capabilities; does not sign in or claim live availability.",
+        "operationId": "providers_api_v1_providers_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProviderInfo"
+                  },
+                  "type": "array",
+                  "title": "Response Providers Api V1 Providers Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/providers/{provider_id}/session": {
+      "post": {
+        "tags": [
+          "Multi-provider"
+        ],
+        "summary": "Session",
+        "description": "Authenticate/verify server-side credentials. Never returns a portal token.",
+        "operationId": "session_api_v1_providers__provider_id__session_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProviderId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionInfo"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/providers/{provider_id}/applications": {
+      "get": {
+        "tags": [
+          "Multi-provider"
+        ],
+        "summary": "Applications",
+        "description": "List provider-native application summaries. e-netz includes drafts and returns 409 when blocked by unread notices.",
+        "operationId": "applications_api_v1_providers__provider_id__applications_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProviderId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderItems"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/providers/{provider_id}/applications/{application_id}": {
+      "get": {
+        "tags": [
+          "Multi-provider"
+        ],
+        "summary": "Application",
+        "description": "Mainzer: full readable opportunity. NRM/ENM: list summary, not form details.",
+        "operationId": "application_api_v1_providers__provider_id__applications__application_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProviderId"
+            }
+          },
+          {
+            "name": "application_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Application Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/providers/{provider_id}/menus": {
+      "get": {
+        "tags": [
+          "Multi-provider"
+        ],
+        "summary": "Menus",
+        "description": "Mainzer: configured pages. e-netz: authenticated navigation links.",
+        "operationId": "menus_api_v1_providers__provider_id__menus_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProviderId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/providers/{provider_id}/catalog": {
+      "get": {
+        "tags": [
+          "Multi-provider"
+        ],
+        "summary": "Catalog",
+        "description": "ENM product categories and catalog entries; does not create a cart draft.",
+        "operationId": "catalog_api_v1_providers__provider_id__catalog_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProviderId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/providers/{provider_id}/products/{product_id}": {
+      "get": {
+        "tags": [
+          "Multi-provider"
+        ],
+        "summary": "Product",
+        "description": "ENM product metadata/checklists. This is not an application form instance.",
+        "operationId": "product_api_v1_providers__provider_id__products__product_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProviderId"
+            }
+          },
+          {
+            "name": "product_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Product Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/providers/{provider_id}/workflows": {
+      "get": {
+        "tags": [
+          "Multi-provider"
+        ],
+        "summary": "Workflows",
+        "description": "Mainzer: configured quick actions/Journey IDs, without executing them.",
+        "operationId": "workflows_api_v1_providers__provider_id__workflows_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProviderId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/providers/{provider_id}/schemas": {
+      "get": {
+        "tags": [
+          "Multi-provider"
+        ],
+        "summary": "Schemas",
+        "description": "Mainzer's readable entity schemas and technical attribute definitions.",
+        "operationId": "schemas_api_v1_providers__provider_id__schemas_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProviderId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/providers/{provider_id}/entities/{schema}": {
+      "get": {
+        "tags": [
+          "Multi-provider"
+        ],
+        "summary": "Entities",
+        "description": "Mainzer: paginated search, limited to the known portal entity types.",
+        "operationId": "entities_api_v1_providers__provider_id__entities__schema__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProviderId"
+            }
+          },
+          {
+            "name": "schema",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Schema"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/providers/{provider_id}/entities/{schema}/{entity_id}": {
+      "get": {
+        "tags": [
+          "Multi-provider"
+        ],
+        "summary": "Entity",
+        "description": "Mainzer: read an entity through portal-user permissions.",
+        "operationId": "entity_api_v1_providers__provider_id__entities__schema___entity_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProviderId"
+            }
+          },
+          {
+            "name": "schema",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Schema"
+            }
+          },
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Entity Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/providers/{provider_id}/tasks": {
+      "get": {
+        "tags": [
+          "Multi-provider"
+        ],
+        "summary": "Tasks",
+        "description": "e-netz: first task page, with explicit incomplete scope.",
+        "operationId": "tasks_api_v1_providers__provider_id__tasks_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProviderId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/providers/{provider_id}/registration-options": {
+      "get": {
+        "tags": [
+          "Multi-provider"
+        ],
+        "summary": "Registration Options",
+        "description": "e-netz: visible fields/options before 'Anlegen'; creates no application.",
+        "operationId": "registration_options_api_v1_providers__provider_id__registration_options_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProviderId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/providers/{provider_id}/notices": {
+      "get": {
+        "tags": [
+          "Multi-provider"
+        ],
+        "summary": "Notices",
+        "description": "e-netz: first notice page, explicitly marked incomplete; no acknowledgements.",
+        "operationId": "notices_api_v1_providers__provider_id__notices_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProviderId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/providers/{provider_id}/notices/{notice_id}": {
+      "get": {
+        "tags": [
+          "Multi-provider"
+        ],
+        "summary": "Notice",
+        "description": "e-netz: read a notice without marking it as read.",
+        "operationId": "notice_api_v1_providers__provider_id__notices__notice_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProviderId"
+            }
+          },
+          {
+            "name": "notice_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notice Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/providers/{provider_id}/drafts/prepare": {
+      "get": {
+        "tags": [
+          "Drafts (no final submission)"
+        ],
+        "summary": "Prepare",
+        "description": "Read-only preflight (e-netz includes transient Strom selection); creates no application.",
+        "operationId": "prepare_api_v1_providers__provider_id__drafts_prepare_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProviderId"
+            }
+          },
+          {
+            "name": "product_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Product Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/providers/{provider_id}/drafts": {
+      "post": {
+        "tags": [
+          "Drafts (no final submission)"
+        ],
+        "summary": "Create",
+        "description": "Create a portal draft or explicitly local staging record. Never finalize/submit.\n\nNRM/ENM initialize empty cart products only. e-netz saves the initial site.\nMainzer remote draft creation is unavailable for the inspected Journey.\nA timeout is NOT automatically retried. Use the same key to retrieve a completed result.",
+        "operationId": "create_api_v1_providers__provider_id__drafts_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProviderId"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_.:-]+$",
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DraftCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/providers/{provider_id}/drafts/{draft_id}": {
+      "get": {
+        "tags": [
+          "Drafts (no final submission)"
+        ],
+        "summary": "Get",
+        "description": "Read this API's creation receipt/local JSON; not a fresh remote form read.",
+        "operationId": "get_api_v1_providers__provider_id__drafts__draft_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProviderId"
+            }
+          },
+          {
+            "name": "draft_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Draft Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "DraftCreate": {
+        "properties": {
+          "target": {
+            "type": "string",
+            "enum": [
+              "portal",
+              "local"
+            ],
+            "title": "Target",
+            "default": "portal"
+          },
+          "product_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Id",
+            "description": "NRM/ENM: current PV catalog product ID"
+          },
+          "site": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Site"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Note",
+            "default": ""
+          },
+          "plant": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Plant",
+            "description": "Local JSON staging only; not yet mapped to portal equipment fields"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "DraftCreate"
+      },
+      "DraftResult": {
+        "properties": {
+          "provider": {
+            "$ref": "#/components/schemas/ProviderId"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "storage": {
+            "type": "string",
+            "enum": [
+              "portal",
+              "local"
+            ],
+            "title": "Storage"
+          },
+          "status": {
+            "type": "string",
+            "const": "draft",
+            "title": "Status",
+            "default": "draft"
+          },
+          "submitted": {
+            "type": "boolean",
+            "const": false,
+            "title": "Submitted",
+            "default": false
+          },
+          "creation_verification": {
+            "type": "string",
+            "enum": [
+              "read_back",
+              "local_commit"
+            ],
+            "title": "Creation Verification"
+          },
+          "fields_saved": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Fields Saved"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Limitations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "provider",
+          "id",
+          "storage",
+          "creation_verification",
+          "fields_saved",
+          "limitations"
+        ],
+        "title": "DraftResult"
+      },
+      "ErrorBody": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ErrorBody"
+      },
+      "ErrorResponse": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorBody"
+          }
+        },
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "title": "ErrorResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Installation": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "NRM order-product ID; identifies the application, not a physical site"
+          },
+          "application_number": {
+            "type": "string",
+            "title": "Application Number"
+          },
+          "order_id": {
+            "type": "string",
+            "title": "Order Id"
+          },
+          "order_number": {
+            "type": "string",
+            "title": "Order Number"
+          },
+          "order_product_number": {
+            "type": "string",
+            "title": "Order Product Number"
+          },
+          "product_id": {
+            "type": "string",
+            "title": "Product Id"
+          },
+          "product_name": {
+            "type": "string",
+            "title": "Product Name"
+          },
+          "request_type": {
+            "type": "string",
+            "title": "Request Type"
+          },
+          "request_type_name": {
+            "type": "string",
+            "title": "Request Type Name"
+          },
+          "status_code": {
+            "type": "string",
+            "title": "Status Code",
+            "description": "Unmodified NRM status, e.g. Zur_Korrektur"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "NRM status name with underscores replaced by spaces"
+          },
+          "submitted_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submitted On"
+          },
+          "location": {
+            "type": "string",
+            "title": "Location",
+            "description": "Installation address as supplied by NRM, including line breaks"
+          },
+          "applicant": {
+            "type": "string",
+            "title": "Applicant",
+            "description": "Applicant name and address as supplied by NRM"
+          },
+          "connection_taker": {
+            "type": "string",
+            "title": "Connection Taker"
+          },
+          "division": {
+            "type": "string",
+            "title": "Division"
+          },
+          "is_open": {
+            "type": "boolean",
+            "title": "Is Open"
+          },
+          "is_closed": {
+            "type": "boolean",
+            "title": "Is Closed"
+          },
+          "is_assigned": {
+            "type": "boolean",
+            "title": "Is Assigned"
+          },
+          "unread_comments_count": {
+            "type": "integer",
+            "title": "Unread Comments Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "application_number",
+          "order_id",
+          "order_number",
+          "order_product_number",
+          "product_id",
+          "product_name",
+          "request_type",
+          "request_type_name",
+          "status_code",
+          "status",
+          "submitted_on",
+          "location",
+          "applicant",
+          "connection_taker",
+          "division",
+          "is_open",
+          "is_closed",
+          "is_assigned",
+          "unread_comments_count"
+        ],
+        "title": "Installation"
+      },
+      "InstallationList": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "default": "NRM Netzportal / Meine NRM / Bestellungen / Alle"
+          },
+          "retrieved_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Retrieved At"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "installations": {
+            "items": {
+              "$ref": "#/components/schemas/Installation"
+            },
+            "type": "array",
+            "title": "Installations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "retrieved_at",
+          "total",
+          "installations"
+        ],
+        "title": "InstallationList"
+      },
+      "ProviderId": {
+        "type": "string",
+        "enum": [
+          "nrm",
+          "enm",
+          "mainzer",
+          "enetz"
+        ],
+        "title": "ProviderId"
+      },
+      "ProviderInfo": {
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/ProviderId"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "platform": {
+            "type": "string",
+            "title": "Platform"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "configured": {
+            "type": "boolean",
+            "title": "Configured"
+          },
+          "capabilities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Capabilities"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Limitations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "platform",
+          "url",
+          "configured",
+          "capabilities",
+          "limitations"
+        ],
+        "title": "ProviderInfo"
+      },
+      "ProviderItems": {
+        "properties": {
+          "provider": {
+            "$ref": "#/components/schemas/ProviderId"
+          },
+          "retrieved_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Retrieved At"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "Number of records in this response; not physical-site count"
+          },
+          "items": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "provider",
+          "retrieved_at",
+          "total",
+          "items"
+        ],
+        "title": "ProviderItems"
+      },
+      "SessionInfo": {
+        "properties": {
+          "provider": {
+            "$ref": "#/components/schemas/ProviderId"
+          },
+          "authenticated": {
+            "type": "boolean",
+            "title": "Authenticated"
+          },
+          "action_required": {
+            "type": "boolean",
+            "title": "Action Required"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "provider",
+          "authenticated",
+          "action_required"
+        ],
+        "title": "SessionInfo"
+      },
+      "Site": {
+        "properties": {
+          "postal_code": {
+            "type": "string",
+            "pattern": "^\\d{5}$",
+            "title": "Postal Code"
+          },
+          "city": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "City"
+          },
+          "street": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Street"
+          },
+          "house_number": {
+            "type": "string",
+            "maxLength": 30,
+            "minLength": 1,
+            "title": "House Number"
+          },
+          "district": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "District",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "postal_code",
+          "city",
+          "street",
+          "house_number"
+        ],
+        "title": "Site"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

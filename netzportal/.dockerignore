@@ -1,0 +1,6 @@
+# Default-deny build context: only runtime source and its manifest are sent.
+**
+!Dockerfile
+!pyproject.toml
+!nrm_api/
+!nrm_api/*.py

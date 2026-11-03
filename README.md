@@ -1,49 +1,49 @@
 # Amelanq Netz-Anmeldung
 
-Anmeldung von PV-Anlagen, Wallboxen und Waermepumpen bei den
-Netzbetreibern in Deutschland.
+Erfassung von Kunden und PV-Anlagen, Wallboxen und Wärmepumpen mit getrennten Admin-/Installateurbereichen. FastAPI/MongoDB-Backend, Vue-Frontend, Kratos/Oathkeeper-Authentifizierung, MinIO-Dokumentablage und separater PDF-Service.
 
-Stand: 19.10.2026 - v0.1.0 (Geruest-Phase)
+Der Branch `auto-registry` ergänzt einen **eigenständigen Netzportal-Service** und einen **Admin-Relay** für die geprüfte Vorbereitung von PV-Netzanmeldungen. Aktueller Stand vom 3. November 2026: [Analyse, Ablauf und Grenzen](docs/AUTO-REGISTRY.md).
+
+## Netzanmeldung
+
+Unter **Admin → Kunden & Anlagen → Netzanmeldung** gespeicherte Installationsdaten laden, prüfen und mit Prüfvermerk freigeben. Erst danach kann derselbe Admin die lokale JSON-Vorbereitung oder einen unterstützten Portalentwurf starten. Installateure können diese API nicht auslösen. Änderungen am geprüften Datenstand erfordern eine erneute Prüfung.
+
+NRM/ENM unterstützen derzeit leere Produktentwürfe, e-netz Südhessen die initiale Strommeldung mit Standort. Mainzer unterstützt bislang ausschließlich lokale JSON-Vorbereitung. Vollständige technische Formularbefüllung und endgültiges Absenden sind nicht implementiert. Die Portal-Schreibabläufe sind noch nicht live verifiziert.
 
 ## Struktur
 
-Vorbild: `projects/amelanq-zeiterfassung` (gleiche Frameworks, gleiche
-Compose-Struktur, Prefix `na-`).
-
-```
-backend/            FastAPI + motor (MongoDB async)
-  src/main.py       App-Start, /healthz
-  src/routers/      API-Routen (v0.1: status.py - Dummy)
-  src/models/       Pydantic-Modelle (noch Platzhalter)
-  src/services/     database.py (motor-Client)
-  src/migrations/   Schema-Migrations-Runner (noch leer)
-frontend/           Vue 3 + Vite + Tailwind
-  src/views/        LandingView (Dummy mit Statusanzeige), NotFoundView
-  src/api/          axios-Client
-_infrastructure/    docker-compose.yml, nginx, mongodb, redis, .env
-docs/               ROADMAP.md (und spaeter Spezifikationen)
-scripts/            Hilfs-Skripte
-VERSION             Gemeinsame Version fuer Backend + Frontend
+```text
+backend/            FastAPI, MongoDB-Repositories und Admin-Relay
+frontend/           Vue 3, Admin- und Installateuransichten
+netzportal/         Eigenständige Portal-API, Dockerfile und Tests
+_infrastructure/    Compose, Nginx, Kratos/Oathkeeper und Infrastruktur
+docs/               Analyse und Funktionsbeschreibung
+VERSION             Gemeinsame Version des bestehenden Projekts
 ```
 
-## Start (Dev)
+## Konfiguration und Start auf dem Zielserver
 
 ```bash
 cd _infrastructure
-cp .env.template .env        # MONGO_PASSWORD setzen!
+cp .env.template .env
+cp ../netzportal/.env.example ../netzportal/.env
+# Infrastruktur-Secrets, NETZPORTAL_API_KEY und Portal-Zugangspaare setzen
+chmod 600 .env ../netzportal/.env
 docker compose up -d --build
 ```
 
-- Web: http://localhost:8092
-- Health: http://localhost:8092/healthz
-- API: http://localhost:8092/api/status, http://localhost:8092/api/docs
+`NETZPORTAL_API_KEY` muss zufällig und mindestens 32 Zeichen lang sein. Compose verwendet ihn für Backend und Service. Zugangspaare gehören ausschließlich in `netzportal/.env`; reale Zugangsdaten sind nicht enthalten. Details zu Konfiguration, Persistenz und Fehlerabgleich: [AUTO-REGISTRY.md](docs/AUTO-REGISTRY.md).
 
-## Ports
+Standardzugang: `http://localhost:8092`. Nginx veröffentlicht den einzigen Host-Port. Der Netzportal-Service ist ausschließlich über den Backend-Relay erreichbar, hat ein eigenes Netz und ein persistentes Journal. Docker wurde bei dieser Erweiterung lokal nicht gestartet.
 
-- `8092` - einziger externer Port (nginx). Alle anderen Dienste laufen
-  nur im internen Compose-Netz (keine Host-Ports).
+## Tests
 
-## Status
+Backend und Netzportal-Service verwenden getrennte Python-Umgebungen. Der Frontend-Build läuft mit `npm ci && npm run build` im Verzeichnis `frontend`.
 
-Geruest laeuft als Dummy. Datenmodell, Netzbetreiber-Profile,
-Antragsformular und Status-Tracking folgen laut `docs/ROADMAP.md`.
+```bash
+python3.12 -m venv .venv
+.venv/bin/pip install -r backend/requirements.txt -r backend/requirements-dev.txt
+PYTHONPATH=backend .venv/bin/python -m pytest backend/tests -q
+```
+
+[Service-API](netzportal/README.md) · [Entwurfsformat](netzportal/docs/DRAFTS.md)
