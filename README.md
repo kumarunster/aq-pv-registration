@@ -43,6 +43,17 @@ docker compose up -d --build
 - `8092` - einziger externer Port (nginx). Alle anderen Dienste laufen
   nur im internen Compose-Netz (keine Host-Ports).
 
+## Automatische Liegenschaftskarte
+
+Der eigenständige Dienst `na-kataster` erzeugt aus einer Adresse ein Kartenbild
+(standardmäßig 60 Meter Breite) und Grundstücksinformationen. Port `8765` wird
+nicht am Host veröffentlicht. Der Zugriff erfolgt über das authentifizierte
+Backend-Relay unter `/api/admin/liegenschaftskarte` bzw.
+`/api/installer/liegenschaftskarte`, einschließlich benutzergebundener Downloads.
+
+Architektur, API-Beispiele, Konfiguration und Tests:
+[docs/LIEGENSCHAFTSKARTE.md](docs/LIEGENSCHAFTSKARTE.md).
+
 ## Status
 
 Geruest laeuft als Dummy. Datenmodell, Netzbetreiber-Profile,

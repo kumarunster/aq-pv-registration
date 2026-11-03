@@ -1,0 +1,222 @@
+{
+  "SH": {
+    "name": "Schleswig-Holstein",
+    "landesschluessel": "01",
+    "wms": "https://service.gdi-sh.de/WMS_SH_ALKIS_OpenGBD",
+    "layers": [
+      "adv_alkis_tatsaechliche_nutzung",
+      "adv_alkis_gebaeude",
+      "adv_alkis_flurstuecke"
+    ],
+    "wfs": "https://service.gdi-sh.de/SH_INSPIREDOWNLOAD_AI_CP_ALKIS",
+    "epsg": 25832,
+    "attribution": "© GeoBasis-DE/LVermGeo SH 2026 (dl-de/by-2-0)",
+    "min_scale": 0
+  },
+  "HH": {
+    "name": "Hamburg",
+    "landesschluessel": "02",
+    "wms": "https://geodienste.hamburg.de/HH_WMS_ALKIS_Basiskarte",
+    "layers": [
+      "0",
+      "1",
+      "4",
+      "6",
+      "14",
+      "15",
+      "19",
+      "25",
+      "27",
+      "29"
+    ],
+    "wfs": "https://geodienste.hamburg.de/HH_WFS_INSPIRE_Flurstuecke",
+    "epsg": 25832,
+    "attribution": "Freie und Hansestadt Hamburg, Landesbetrieb Geoinformation und Vermessung",
+    "min_scale": 0
+  },
+  "NI": {
+    "name": "Niedersachsen",
+    "landesschluessel": "03",
+    "wms": "https://opendata.lgln.niedersachsen.de/doorman/noauth/alkis_wms",
+    "layers": [
+      "ALKIS"
+    ],
+    "wfs": "https://opendata.lgln.niedersachsen.de/doorman/noauth/alkis_wfs_sf",
+    "epsg": 25832,
+    "attribution": "© GeoBasis-DE/LGLN 2026",
+    "min_scale": 0
+  },
+  "HB": {
+    "name": "Bremen",
+    "landesschluessel": "04",
+    "wms": "https://opendata.lgln.niedersachsen.de/doorman/noauth/alkishb_wms",
+    "layers": [
+      "ALKIS"
+    ],
+    "wfs": "https://opendata.lgln.niedersachsen.de/doorman/noauth/alkishb_wfs_sf",
+    "epsg": 25832,
+    "attribution": "© GeoBasis-DE/LG Bremen 2026",
+    "min_scale": 0
+  },
+  "NW": {
+    "name": "Nordrhein-Westfalen",
+    "landesschluessel": "05",
+    "wms": "https://www.wms.nrw.de/geobasis/wms_nw_alkis",
+    "layers": [
+      "adv_alkis_tatsaechliche_nutzung",
+      "adv_alkis_gebaeude",
+      "adv_alkis_flurstuecke"
+    ],
+    "wfs": "https://www.wfs.nrw.de/geobasis/wfs_nw_alkis_vereinfacht",
+    "epsg": 25832,
+    "attribution": "Land NRW 2026 (Datenlizenz Deutschland – Zero – Version 2.0)",
+    "min_scale": 0
+  },
+  "HE": {
+    "name": "Hessen",
+    "landesschluessel": "06",
+    "wms": "https://www.gds-srv.hessen.de/cgi-bin/lika-services/ogc-free-maps.ows",
+    "layers": [
+      "he_alk"
+    ],
+    "wfs": "https://inspire-hessen.de/ows/services/org.2.07247d95-adc7-4c7d-9c7a-ed17af855317_wfs",
+    "epsg": 25832,
+    "attribution": "Hessische Verwaltung für Bodenmanagement und Geoinformation",
+    "min_scale": 0
+  },
+  "RP": {
+    "name": "Rheinland-Pfalz",
+    "landesschluessel": "07",
+    "wms": "https://www.geoportal.rlp.de/owsproxy/00000000000000000000000000000000/85fd2a2e2b058ab4a6b0a9c331b07246",
+    "layers": [
+      "rp_lika"
+    ],
+    "wfs": "https://geo5.service24.rlp.de/wfs/alkis_rp.fcgi",
+    "epsg": 25832,
+    "attribution": "© GeoBasis-DE/LVermGeoRP 2026 (dl-de/by-2-0)",
+    "min_scale": 0,
+    "wms_capabilities": "https://www.geoportal.rlp.de/mapbender/php/wms.php?layer_id=61689"
+  },
+  "BW": {
+    "name": "Baden-Württemberg",
+    "landesschluessel": "08",
+    "wms": "https://owsproxy.lgl-bw.de/owsproxy/ows/WMS_LGL-BW_ALKIS_Basis_Vertrieb",
+    "layers": [
+      "nora:ALKIS_Basis_Vertrieb",
+      "nora:ALKIS_Beschriftung"
+    ],
+    "wfs": "https://owsproxy.lgl-bw.de/owsproxy/wfs/WFS_LGL-BW_ALKIS",
+    "epsg": 25832,
+    "attribution": "© GeoBasis-DE/LGL Baden-Württemberg 2026",
+    "min_scale": 0
+  },
+  "BY": {
+    "name": "Bayern",
+    "landesschluessel": "09",
+    "wms": "https://geoservices.bayern.de/od/wms/alkis/v1/parzellarkarte",
+    "layers": [
+      "by_alkis_parzellarkarte_farbe"
+    ],
+    "wfs": "https://geoservices.bayern.de/wfs/v1/ogc_alkis_ave.cgi",
+    "epsg": 25832,
+    "attribution": "© Bayerische Vermessungsverwaltung 2026; Lizenzangaben des WMS siehe Abrufnachweise",
+    "min_scale": 0,
+    "hinweis": "Freie Parzellarkarte ohne Flurstücksnummern. Vollständige Flurstücksdaten benötigen einen berechtigten Zugang."
+  },
+  "SL": {
+    "name": "Saarland",
+    "landesschluessel": "10",
+    "wms": "https://geoportal.saarland.de/gdi-sl/inspirewms_Flurstuecke_Grundstuecke_ALKIS",
+    "layers": [
+      "CP.CadastralParcel"
+    ],
+    "wfs": "https://geoportal.saarland.de/gdi-sl/inspirewfs_Flurstuecke_Grundstuecke_ALKIS",
+    "epsg": 25832,
+    "attribution": "© GeoBasis DE/LVGL-SL 2026 (dl-de/by-2-0)",
+    "min_scale": 0,
+    "wms_capabilities": "https://geoportal.saarland.de/mapbender/php/wms.php?layer_id=42092"
+  },
+  "BE": {
+    "name": "Berlin",
+    "landesschluessel": "11",
+    "wms": "https://gdi.berlin.de/services/wms/alkis",
+    "layers": [
+      "a_alkis_raster"
+    ],
+    "wfs": "https://gdi.berlin.de/services/wfs/alkis",
+    "epsg": 25832,
+    "attribution": "Geoportal Berlin / ALKIS Berlin",
+    "min_scale": 500
+  },
+  "BB": {
+    "name": "Brandenburg",
+    "landesschluessel": "12",
+    "wms": "https://isk.geobasis-bb.de/ows/alkis_wms",
+    "layers": [
+      "adv_alkis_tatsaechliche_nutzung",
+      "adv_alkis_gebaeude",
+      "adv_alkis_flurstuecke"
+    ],
+    "wfs": "https://isk.geobasis-bb.de/ows/alkis_vereinf_wfs",
+    "epsg": 25832,
+    "attribution": "© GeoBasis-DE/LGB 2026 (dl-de/by-2-0)",
+    "min_scale": 0
+  },
+  "MV": {
+    "name": "Mecklenburg-Vorpommern",
+    "landesschluessel": "13",
+    "wms": "https://www.geodaten-mv.de/dienste/alkis_wms",
+    "layers": [
+      "adv_alkis_tatsaechliche_nutzung",
+      "adv_alkis_gebaeude",
+      "adv_alkis_flurstuecke"
+    ],
+    "wfs": "https://www.geodaten-mv.de/dienste/alkis_wfs_sf",
+    "epsg": 25833,
+    "attribution": "© GeoBasis-DE/M-V 2026",
+    "min_scale": 0
+  },
+  "SN": {
+    "name": "Sachsen",
+    "landesschluessel": "14",
+    "wms": "https://geodienste.sachsen.de/wms_geosn_alkis-adv/guest",
+    "layers": [
+      "adv_alkis_tatsaechliche_nutzung",
+      "adv_alkis_gebaeude",
+      "adv_alkis_flurstuecke"
+    ],
+    "wfs": "https://geodienste.sachsen.de/aaa/public_alkis/vereinf/wfs",
+    "epsg": 25832,
+    "attribution": "© GeoSN, dl-de/by-2-0",
+    "min_scale": 0
+  },
+  "ST": {
+    "name": "Sachsen-Anhalt",
+    "landesschluessel": "15",
+    "wms": "https://geodatenportal.sachsen-anhalt.de/ows_INSPIRE_LVermGeo_ALKIS_CP_WMS",
+    "layers": [
+      "CP.CadastralParcel"
+    ],
+    "wfs": "https://www.geodatenportal.sachsen-anhalt.de/wss/service/ST_LVermGeo_ALKIS_WFS_OpenData/guest",
+    "epsg": 25832,
+    "attribution": "© GeoBasis-DE/LVermGeo LSA 2026",
+    "min_scale": 0
+  },
+  "TH": {
+    "name": "Thüringen",
+    "landesschluessel": "16",
+    "wms": "https://www.geoproxy.geoportal-th.de/geoproxy/services/adv_alkis_wms_th",
+    "layers": [
+      "adv_alkis_siedlung",
+      "adv_alkis_verkehr",
+      "adv_alkis_vegetation",
+      "adv_alkis_gewaesser",
+      "adv_alkis_gebaeude",
+      "adv_alkis_flurstuecke"
+    ],
+    "wfs": "https://www.geoproxy.geoportal-th.de/geoproxy/services/adv_alkis_wfs",
+    "epsg": 25832,
+    "attribution": "© GDI-Th 2026",
+    "min_scale": 0
+  }
+}

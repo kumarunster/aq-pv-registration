@@ -10,6 +10,7 @@ from src.migrations.runner import gelesene_version, pruefe_stand, run_all
 from src.routers import admin, status, installer, docs
 from src.services import zerez
 from src.routers.lageplan.router import router as lageplan_router
+from src.routers.kataster import router as kataster_router
 from src.services import database
 from src.version import VERSION
 
@@ -46,6 +47,8 @@ app.include_router(admin.router)
 app.include_router(installer.router)
 app.include_router(docs.router)
 app.include_router(lageplan_router)
+app.include_router(kataster_router, prefix="/api/admin/liegenschaftskarte")
+app.include_router(kataster_router, prefix="/api/installer/liegenschaftskarte")
 
 
 
