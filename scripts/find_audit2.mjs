@@ -1,0 +1,33 @@
+import puppeteer from 'puppeteer-core';
+const CHROME = '/home/moltbot/.cache/puppeteer/chrome/linux-146.0.7680.76/chrome-linux64/chrome';
+const BASE = 'http://localhost:8092';
+const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox','--disable-dev-shm-usage','--disable-gpu'] });
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+await page.goto(BASE + '/admin/login', { waitUntil: 'networkidle0' });
+await page.type('input[type="email"]', 'admin@amelanq.com');
+await page.type('input[type="password"]', 'Admin1234!');
+await page.click('button[type="submit"]');
+await new Promise(r => setTimeout(r, 3000));
+await page.goto(BASE + '/admin/kunden', { waitUntil: 'networkidle0' });
+await new Promise(r => setTimeout(r, 1500));
+const apiReqs = [];
+page.on('response', r => { if (r.url().includes('/api/')) apiReqs.push({ status: r.status(), url: r.url().replace(BASE,'') }); });
+const ok = await page.evaluate(() => {
+  const inp = document.querySelector('input[type="search"]');
+  if (!inp) return 'no-input';
+  const d = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+  d.set.call(inp, 'P211Test');
+  inp.dispatchEvent(new Event('input', { bubbles: true }));
+  return 'typed';
+});
+console.log('search:', ok);
+await new Promise(r => setTimeout(r, 2500));
+console.log('API after search:', JSON.stringify(apiReqs.filter(x => x.url.includes('search') || x.url.includes('q='))));
+const body = await page.evaluate(() => {
+  const rows = [...document.querySelectorAll('tr')];
+  const r = rows.find(x => x.textContent.includes('P211Test'));
+  if (r) return 'ROW: ' + r.textContent.replace(/\s+/g,' ').trim();
+  return 'NO-ROW. tbody-rows=' + rows.length + ' body-snippet: ' + document.body.innerText.slice(0, 800);
+});
+console.log(body);
+await browser.close();

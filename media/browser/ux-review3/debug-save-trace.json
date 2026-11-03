@@ -1,0 +1,346 @@
+{
+  "trace": [
+    {
+      "type": "req",
+      "method": "GET",
+      "url": "admin/login"
+    },
+    {
+      "type": "res",
+      "status": 200,
+      "url": "admin/login"
+    },
+    {
+      "type": "req",
+      "method": "GET",
+      "url": "assets/index-wRjgSyg7.js"
+    },
+    {
+      "type": "req",
+      "method": "GET",
+      "url": "assets/axios-C4Z93elZ.js"
+    },
+    {
+      "type": "req",
+      "method": "GET",
+      "url": "assets/index-B2BVy3rW.css"
+    },
+    {
+      "type": "res",
+      "status": 200,
+      "url": "assets/index-B2BVy3rW.css"
+    },
+    {
+      "type": "res",
+      "status": 200,
+      "url": "assets/axios-C4Z93elZ.js"
+    },
+    {
+      "type": "res",
+      "status": 200,
+      "url": "assets/index-wRjgSyg7.js"
+    },
+    {
+      "type": "req",
+      "method": "GET",
+      "url": "assets/LoginView-DsYMcVGJ.js"
+    },
+    {
+      "type": "req",
+      "method": "GET",
+      "url": "favicon.ico"
+    },
+    {
+      "type": "res",
+      "status": 200,
+      "url": "assets/LoginView-DsYMcVGJ.js"
+    },
+    {
+      "type": "res",
+      "status": 200,
+      "url": "favicon.ico"
+    },
+    {
+      "type": "req",
+      "method": "GET",
+      "url": "logout?token=%2Fadmin%2F"
+    },
+    {
+      "type": "res",
+      "status": 200,
+      "url": "logout?token=%2Fadmin%2F"
+    },
+    {
+      "type": "req",
+      "method": "GET",
+      "url": "kratos/self-service/login/browser?redirect_to=http:%2F%2Flocalhost:8092%2Fadmin%2F"
+    },
+    {
+      "type": "fail",
+      "url": "logout?token=%2Fadmin%2F",
+      "err": "net::ERR_ABORTED"
+    },
+    {
+      "type": "res",
+      "status": 200,
+      "url": "kratos/self-service/login/browser?redirect_to=http:%2F%2Flocalhost:8092%2Fadmin%2F"
+    },
+    {
+      "type": "req",
+      "method": "POST",
+      "url": "kratos/self-service/login?flow=227871e0-0f8e-4ddb-b4cb-5daaa9e6fa36"
+    },
+    {
+      "type": "res",
+      "status": 200,
+      "url": "kratos/self-service/login?flow=227871e0-0f8e-4ddb-b4cb-5daaa9e6fa36"
+    },
+    {
+      "type": "req",
+      "method": "GET",
+      "url": "kratos/sessions/whoami"
+    },
+    {
+      "type": "res",
+      "status": 200,
+      "url": "kratos/sessions/whoami"
+    },
+    {
+      "type": "req",
+      "method": "GET",
+      "url": "assets/AdminLayout-ChI9lCEE.js"
+    },
+    {
+      "type": "req",
+      "method": "GET",
+      "url": "assets/AdminHome-CsgqDtKQ.js"
+    },
+    {
+      "type": "res",
+      "status": 200,
+      "url": "assets/AdminLayout-ChI9lCEE.js"
+    },
+    {
+      "type": "res",
+      "status": 200,
+      "url": "assets/AdminHome-CsgqDtKQ.js"
+    },
+    {
+      "type": "req",
+      "method": "GET",
+      "url": "kratos/sessions/whoami"
+    },
+    {
+      "type": "res",
+      "status": 200,
+      "url": "kratos/sessions/whoami"
+    },
+    {
+      "type": "req",
+      "method": "GET",
+      "url": "favicon.ico"
+    },
+    {
+      "type": "res",
+      "status": 304,
+      "url": "favicon.ico"
+    },
+    {
+      "type": "req",
+      "method": "GET",
+      "url": "admin/firmen"
+    },
+    {
+      "type": "res",
+      "status": 200,
+      "url": "admin/firmen"
+    },
+    {
+      "type": "req",
+      "method": "GET",
+      "url": "assets/index-wRjgSyg7.js"
+    },
+    {
+      "type": "res",
+      "status": 200,
+      "url": "assets/index-wRjgSyg7.js"
+    },
+    {
+      "type": "req",
+      "method": "GET",
+      "url": "assets/axios-C4Z93elZ.js"
+    },
+    {
+      "type": "res",
+      "status": 200,
+      "url": "assets/axios-C4Z93elZ.js"
+    },
+    {
+      "type": "req",
+      "method": "GET",
+      "url": "assets/index-B2BVy3rW.css"
+    },
+    {
+      "type": "res",
+      "status": 200,
+      "url": "assets/index-B2BVy3rW.css"
+    },
+    {
+      "type": "req",
+      "method": "GET",
+      "url": "kratos/sessions/whoami"
+    },
+    {
+      "type": "res",
+      "status": 200,
+      "url": "kratos/sessions/whoami"
+    },
+    {
+      "type": "req",
+      "method": "GET",
+      "url": "assets/FirmenView-COUu0EA5.js"
+    },
+    {
+      "type": "req",
+      "method": "GET",
+      "url": "assets/ConfirmDialog-C5dXlMTB.js"
+    },
+    {
+      "type": "req",
+      "method": "GET",
+      "url": "assets/FirmenView-wkeII-qg.css"
+    },
+    {
+      "type": "req",
+      "method": "GET",
+      "url": "assets/AdminLayout-ChI9lCEE.js"
+    },
+    {
+      "type": "res",
+      "status": 200,
+      "url": "assets/AdminLayout-ChI9lCEE.js"
+    },
+    {
+      "type": "req",
+      "method": "GET",
+      "url": "favicon.ico"
+    },
+    {
+      "type": "res",
+      "status": 200,
+      "url": "assets/FirmenView-wkeII-qg.css"
+    },
+    {
+      "type": "res",
+      "status": 304,
+      "url": "favicon.ico"
+    },
+    {
+      "type": "res",
+      "status": 200,
+      "url": "assets/ConfirmDialog-C5dXlMTB.js"
+    },
+    {
+      "type": "res",
+      "status": 200,
+      "url": "assets/FirmenView-COUu0EA5.js"
+    },
+    {
+      "type": "req",
+      "method": "GET",
+      "url": "kratos/sessions/whoami"
+    },
+    {
+      "type": "res",
+      "status": 200,
+      "url": "kratos/sessions/whoami"
+    },
+    {
+      "type": "req",
+      "method": "GET",
+      "url": "api/admin/companies"
+    },
+    {
+      "type": "res",
+      "status": 200,
+      "url": "api/admin/companies"
+    },
+    {
+      "type": "req",
+      "method": "GET",
+      "url": "logout?token=%2Fadmin%2Flogin"
+    },
+    {
+      "type": "res",
+      "status": 200,
+      "url": "logout?token=%2Fadmin%2Flogin"
+    },
+    {
+      "type": "req",
+      "method": "GET",
+      "url": "admin/login"
+    },
+    {
+      "type": "fail",
+      "url": "logout?token=%2Fadmin%2Flogin",
+      "err": "net::ERR_ABORTED"
+    },
+    {
+      "type": "res",
+      "status": 304,
+      "url": "admin/login"
+    },
+    {
+      "type": "req",
+      "method": "GET",
+      "url": "assets/index-wRjgSyg7.js"
+    },
+    {
+      "type": "res",
+      "status": 200,
+      "url": "assets/index-wRjgSyg7.js"
+    },
+    {
+      "type": "req",
+      "method": "GET",
+      "url": "assets/axios-C4Z93elZ.js"
+    },
+    {
+      "type": "res",
+      "status": 200,
+      "url": "assets/axios-C4Z93elZ.js"
+    },
+    {
+      "type": "req",
+      "method": "GET",
+      "url": "assets/index-B2BVy3rW.css"
+    },
+    {
+      "type": "res",
+      "status": 200,
+      "url": "assets/index-B2BVy3rW.css"
+    },
+    {
+      "type": "req",
+      "method": "GET",
+      "url": "assets/LoginView-DsYMcVGJ.js"
+    },
+    {
+      "type": "res",
+      "status": 200,
+      "url": "assets/LoginView-DsYMcVGJ.js"
+    },
+    {
+      "type": "req",
+      "method": "GET",
+      "url": "favicon.ico"
+    },
+    {
+      "type": "res",
+      "status": 304,
+      "url": "favicon.ico"
+    }
+  ],
+  "hookData": {},
+  "url": "http://localhost:8092/admin/login"
+}

@@ -1,0 +1,446 @@
+[
+  {
+    "t": 1793602250203,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/admin/login"
+  },
+  {
+    "t": 1793602250219,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/admin/login"
+  },
+  {
+    "t": 1793602250231,
+    "type": "NAV",
+    "url": "http://localhost:8092/admin/login"
+  },
+  {
+    "t": 1793602250259,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/assets/index-CDKrGo4t.js"
+  },
+  {
+    "t": 1793602250260,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/assets/axios-C4Z93elZ.js"
+  },
+  {
+    "t": 1793602250260,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/assets/index-B2BVy3rW.css"
+  },
+  {
+    "t": 1793602250263,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/assets/index-B2BVy3rW.css"
+  },
+  {
+    "t": 1793602250275,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/assets/axios-C4Z93elZ.js"
+  },
+  {
+    "t": 1793602250276,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/assets/index-CDKrGo4t.js"
+  },
+  {
+    "t": 1793602250302,
+    "type": "NAV",
+    "url": "http://localhost:8092/admin/login"
+  },
+  {
+    "t": 1793602250303,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/assets/LoginView-CtS5Sk0T.js"
+  },
+  {
+    "t": 1793602250350,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/favicon.ico"
+  },
+  {
+    "t": 1793602250351,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/assets/LoginView-CtS5Sk0T.js"
+  },
+  {
+    "t": 1793602250358,
+    "type": "NAV",
+    "url": "http://localhost:8092/admin/login"
+  },
+  {
+    "t": 1793602250363,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/favicon.ico"
+  },
+  {
+    "t": 1793602251781,
+    "type": "MARK",
+    "text": "LOGIN-CLICK"
+  },
+  {
+    "t": 1793602251848,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/logout?token=%2Fadmin%2F"
+  },
+  {
+    "t": 1793602251855,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/logout?token=%2Fadmin%2F"
+  },
+  {
+    "t": 1793602251856,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/kratos/self-service/login/browser?redirect_to=http:%2F%2Flocalhost:8092%2Fadmin%2F"
+  },
+  {
+    "t": 1793602251876,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/kratos/self-service/login/browser?redirect_to=http:%2F%2Flocalhost:8092%2Fadmin%2F"
+  },
+  {
+    "t": 1793602251878,
+    "type": "REQ",
+    "method": "POST",
+    "url": "http://localhost:8092/kratos/self-service/login?flow=a0335043-242a-4f6f-9e21-4524991d1ee6"
+  },
+  {
+    "t": 1793602251933,
+    "type": "RES",
+    "status": 200,
+    "method": "POST",
+    "url": "http://localhost:8092/kratos/self-service/login?flow=a0335043-242a-4f6f-9e21-4524991d1ee6"
+  },
+  {
+    "t": 1793602252445,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/kratos/sessions/whoami"
+  },
+  {
+    "t": 1793602252463,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/kratos/sessions/whoami"
+  },
+  {
+    "t": 1793602252463,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/assets/AdminLayout-sJgFwUuX.js"
+  },
+  {
+    "t": 1793602252464,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/assets/AdminHome-DWeXH-BQ.js"
+  },
+  {
+    "t": 1793602252494,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/assets/AdminHome-DWeXH-BQ.js"
+  },
+  {
+    "t": 1793602252496,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/assets/AdminLayout-sJgFwUuX.js"
+  },
+  {
+    "t": 1793602252510,
+    "type": "NAV",
+    "url": "http://localhost:8092/admin/login"
+  },
+  {
+    "t": 1793602252524,
+    "type": "NAV",
+    "url": "http://localhost:8092/admin"
+  },
+  {
+    "t": 1793602252530,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/kratos/sessions/whoami"
+  },
+  {
+    "t": 1793602252530,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/favicon.ico"
+  },
+  {
+    "t": 1793602252531,
+    "type": "RES",
+    "status": 304,
+    "method": "GET",
+    "url": "http://localhost:8092/favicon.ico"
+  },
+  {
+    "t": 1793602252548,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/kratos/sessions/whoami"
+  },
+  {
+    "t": 1793602254861,
+    "type": "INFO",
+    "text": "URL: http://localhost:8092/admin"
+  },
+  {
+    "t": 1793602254882,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/admin/firmen"
+  },
+  {
+    "t": 1793602254899,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/admin/firmen"
+  },
+  {
+    "t": 1793602254922,
+    "type": "NAV",
+    "url": "http://localhost:8092/admin/firmen"
+  },
+  {
+    "t": 1793602254952,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/assets/index-CDKrGo4t.js"
+  },
+  {
+    "t": 1793602254953,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/assets/index-CDKrGo4t.js"
+  },
+  {
+    "t": 1793602254955,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/assets/axios-C4Z93elZ.js"
+  },
+  {
+    "t": 1793602254956,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/assets/axios-C4Z93elZ.js"
+  },
+  {
+    "t": 1793602254960,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/assets/index-B2BVy3rW.css"
+  },
+  {
+    "t": 1793602254960,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/assets/index-B2BVy3rW.css"
+  },
+  {
+    "t": 1793602254998,
+    "type": "NAV",
+    "url": "http://localhost:8092/admin/firmen"
+  },
+  {
+    "t": 1793602254999,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/kratos/sessions/whoami"
+  },
+  {
+    "t": 1793602255043,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/favicon.ico"
+  },
+  {
+    "t": 1793602255054,
+    "type": "RES",
+    "status": 304,
+    "method": "GET",
+    "url": "http://localhost:8092/favicon.ico"
+  },
+  {
+    "t": 1793602255082,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/kratos/sessions/whoami"
+  },
+  {
+    "t": 1793602255083,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/assets/FirmenView-DL5cvUz7.js"
+  },
+  {
+    "t": 1793602255084,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/assets/ConfirmDialog-CDUlUpA6.js"
+  },
+  {
+    "t": 1793602255084,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/assets/FirmenView-wkeII-qg.css"
+  },
+  {
+    "t": 1793602255084,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/assets/AdminLayout-sJgFwUuX.js"
+  },
+  {
+    "t": 1793602255084,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/assets/AdminLayout-sJgFwUuX.js"
+  },
+  {
+    "t": 1793602255087,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/assets/FirmenView-DL5cvUz7.js"
+  },
+  {
+    "t": 1793602255106,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/assets/FirmenView-wkeII-qg.css"
+  },
+  {
+    "t": 1793602255106,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/assets/ConfirmDialog-CDUlUpA6.js"
+  },
+  {
+    "t": 1793602255112,
+    "type": "NAV",
+    "url": "http://localhost:8092/admin/firmen"
+  },
+  {
+    "t": 1793602255122,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/kratos/sessions/whoami"
+  },
+  {
+    "t": 1793602255125,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/kratos/sessions/whoami"
+  },
+  {
+    "t": 1793602255145,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/api/admin/companies"
+  },
+  {
+    "t": 1793602255226,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/api/admin/companies"
+  },
+  {
+    "t": 1793602258006,
+    "type": "MARK",
+    "text": "NEUE-FIRMA-CLICK"
+  },
+  {
+    "t": 1793602258820,
+    "type": "MARK",
+    "text": "FORMULAR-AUSFUELLEN 258820"
+  },
+  {
+    "t": 1793602259334,
+    "type": "MARK",
+    "text": "SAVE-CLICK"
+  },
+  {
+    "t": 1793602259383,
+    "type": "REQ",
+    "method": "POST",
+    "url": "http://localhost:8092/api/admin/companies"
+  },
+  {
+    "t": 1793602259396,
+    "type": "RES",
+    "status": 201,
+    "method": "POST",
+    "url": "http://localhost:8092/api/admin/companies"
+  },
+  {
+    "t": 1793602259405,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/api/admin/companies"
+  },
+  {
+    "t": 1793602259451,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/api/admin/companies"
+  },
+  {
+    "t": 1793602264386,
+    "type": "INFO",
+    "text": "URL nach Save: http://localhost:8092/admin/firmen"
+  },
+  {
+    "t": 1793602264399,
+    "type": "INFO",
+    "text": "Toast: kein Toast-Element"
+  },
+  {
+    "t": 1793602264492,
+    "type": "MARK",
+    "text": "END"
+  }
+]

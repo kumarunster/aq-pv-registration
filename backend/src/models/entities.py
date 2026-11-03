@@ -196,6 +196,7 @@ class CustomerUpdate(BaseModel):
     phone: Optional[str] = None
     email: Optional[str] = None
     iban: Optional[str] = None
+    company_id: Optional[str] = None
     plants: Optional[list["PlantUpdate"]] = None
 
 

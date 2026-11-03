@@ -1,0 +1,538 @@
+[
+  {
+    "t": 1793601984402,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/admin/login"
+  },
+  {
+    "t": 1793601984432,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/admin/login"
+  },
+  {
+    "t": 1793601984504,
+    "type": "NAV",
+    "url": "http://localhost:8092/admin/login"
+  },
+  {
+    "t": 1793601984544,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/assets/index-C1Rcq20z.js"
+  },
+  {
+    "t": 1793601984545,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/assets/axios-C4Z93elZ.js"
+  },
+  {
+    "t": 1793601984545,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/assets/index-B2BVy3rW.css"
+  },
+  {
+    "t": 1793601984582,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/assets/index-B2BVy3rW.css"
+  },
+  {
+    "t": 1793601984585,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/assets/index-C1Rcq20z.js"
+  },
+  {
+    "t": 1793601984589,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/assets/axios-C4Z93elZ.js"
+  },
+  {
+    "t": 1793601984790,
+    "type": "NAV",
+    "url": "http://localhost:8092/admin/login"
+  },
+  {
+    "t": 1793601984791,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/assets/LoginView-_1LxSX1A.js"
+  },
+  {
+    "t": 1793601984984,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/assets/LoginView-_1LxSX1A.js"
+  },
+  {
+    "t": 1793601984996,
+    "type": "NAV",
+    "url": "http://localhost:8092/admin/login"
+  },
+  {
+    "t": 1793601985013,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/favicon.ico"
+  },
+  {
+    "t": 1793601985056,
+    "type": "CONSOLE",
+    "text": "[DOM] Input elements should have autocomplete attributes (suggested: \"current-password\"): (More info: https://goo.gl/9p2vKq) %o"
+  },
+  {
+    "t": 1793601985063,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/favicon.ico"
+  },
+  {
+    "t": 1793601985927,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/admin/login"
+  },
+  {
+    "t": 1793601985974,
+    "type": "RES",
+    "status": 304,
+    "method": "GET",
+    "url": "http://localhost:8092/admin/login"
+  },
+  {
+    "t": 1793601985986,
+    "type": "NAV",
+    "url": "http://localhost:8092/admin/login"
+  },
+  {
+    "t": 1793601986029,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/assets/index-C1Rcq20z.js"
+  },
+  {
+    "t": 1793601986031,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/assets/index-C1Rcq20z.js"
+  },
+  {
+    "t": 1793601986032,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/assets/axios-C4Z93elZ.js"
+  },
+  {
+    "t": 1793601986032,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/assets/axios-C4Z93elZ.js"
+  },
+  {
+    "t": 1793601986033,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/assets/index-B2BVy3rW.css"
+  },
+  {
+    "t": 1793601986033,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/assets/index-B2BVy3rW.css"
+  },
+  {
+    "t": 1793601986036,
+    "type": "CONSOLE",
+    "text": "HOOKS installed @ 1793601985993"
+  },
+  {
+    "t": 1793601986043,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/assets/LoginView-_1LxSX1A.js"
+  },
+  {
+    "t": 1793601986044,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/assets/LoginView-_1LxSX1A.js"
+  },
+  {
+    "t": 1793601986080,
+    "type": "NAV",
+    "url": "http://localhost:8092/admin/login"
+  },
+  {
+    "t": 1793601986097,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/favicon.ico"
+  },
+  {
+    "t": 1793601986098,
+    "type": "RES",
+    "status": 304,
+    "method": "GET",
+    "url": "http://localhost:8092/favicon.ico"
+  },
+  {
+    "t": 1793601986159,
+    "type": "CONSOLE",
+    "text": "[DOM] Input elements should have autocomplete attributes (suggested: \"current-password\"): (More info: https://goo.gl/9p2vKq) %o"
+  },
+  {
+    "t": 1793601987251,
+    "type": "MARK",
+    "text": "--- LOGIN-CLICK ---"
+  },
+  {
+    "t": 1793601987303,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/logout?token=%2Fadmin%2F"
+  },
+  {
+    "t": 1793601987323,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/logout?token=%2Fadmin%2F"
+  },
+  {
+    "t": 1793601987323,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/kratos/self-service/login/browser?redirect_to=http:%2F%2Flocalhost:8092%2Fadmin%2F"
+  },
+  {
+    "t": 1793601987325,
+    "type": "REQFAIL",
+    "method": "GET",
+    "url": "http://localhost:8092/logout?token=%2Fadmin%2F",
+    "err": "net::ERR_ABORTED"
+  },
+  {
+    "t": 1793601987435,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/kratos/self-service/login/browser?redirect_to=http:%2F%2Flocalhost:8092%2Fadmin%2F"
+  },
+  {
+    "t": 1793601987437,
+    "type": "REQ",
+    "method": "POST",
+    "url": "http://localhost:8092/kratos/self-service/login?flow=b713315f-bd4c-4c26-8406-6fc00b6b0eeb"
+  },
+  {
+    "t": 1793601987586,
+    "type": "RES",
+    "status": 200,
+    "method": "POST",
+    "url": "http://localhost:8092/kratos/self-service/login?flow=b713315f-bd4c-4c26-8406-6fc00b6b0eeb"
+  },
+  {
+    "t": 1793601988090,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/kratos/sessions/whoami"
+  },
+  {
+    "t": 1793601988135,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/kratos/sessions/whoami"
+  },
+  {
+    "t": 1793601988136,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/assets/AdminLayout-CFYUGoYT.js"
+  },
+  {
+    "t": 1793601988137,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/assets/AdminHome-DZc30SUD.js"
+  },
+  {
+    "t": 1793601988147,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/assets/AdminLayout-CFYUGoYT.js"
+  },
+  {
+    "t": 1793601988150,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/assets/AdminHome-DZc30SUD.js"
+  },
+  {
+    "t": 1793601988157,
+    "type": "NAV",
+    "url": "http://localhost:8092/admin/login"
+  },
+  {
+    "t": 1793601988165,
+    "type": "NAV",
+    "url": "http://localhost:8092/admin"
+  },
+  {
+    "t": 1793601988173,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/kratos/sessions/whoami"
+  },
+  {
+    "t": 1793601988179,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/favicon.ico"
+  },
+  {
+    "t": 1793601988196,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/kratos/sessions/whoami"
+  },
+  {
+    "t": 1793601988197,
+    "type": "RES",
+    "status": 304,
+    "method": "GET",
+    "url": "http://localhost:8092/favicon.ico"
+  },
+  {
+    "t": 1793601990306,
+    "type": "INFO",
+    "text": "URL nach Login: http://localhost:8092/admin"
+  },
+  {
+    "t": 1793601990315,
+    "type": "CONSOLE",
+    "text": "HOOK-BEFOREUNLOAD fired, dirty? @ 1793601990313"
+  },
+  {
+    "t": 1793601990317,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/admin/firmen"
+  },
+  {
+    "t": 1793601990326,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/admin/firmen"
+  },
+  {
+    "t": 1793601990337,
+    "type": "NAV",
+    "url": "http://localhost:8092/admin/firmen"
+  },
+  {
+    "t": 1793601990352,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/assets/index-C1Rcq20z.js"
+  },
+  {
+    "t": 1793601990353,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/assets/index-C1Rcq20z.js"
+  },
+  {
+    "t": 1793601990353,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/assets/axios-C4Z93elZ.js"
+  },
+  {
+    "t": 1793601990353,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/assets/axios-C4Z93elZ.js"
+  },
+  {
+    "t": 1793601990354,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/assets/index-B2BVy3rW.css"
+  },
+  {
+    "t": 1793601990354,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/assets/index-B2BVy3rW.css"
+  },
+  {
+    "t": 1793601990355,
+    "type": "CONSOLE",
+    "text": "HOOKS installed @ 1793601990336"
+  },
+  {
+    "t": 1793601990364,
+    "type": "NAV",
+    "url": "http://localhost:8092/admin/firmen"
+  },
+  {
+    "t": 1793601990365,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/kratos/sessions/whoami"
+  },
+  {
+    "t": 1793601990383,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/kratos/sessions/whoami"
+  },
+  {
+    "t": 1793601990383,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/assets/FirmenView-DVCjWGbX.js"
+  },
+  {
+    "t": 1793601990384,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/assets/ConfirmDialog-CoUQWTJp.js"
+  },
+  {
+    "t": 1793601990384,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/assets/FirmenView-wkeII-qg.css"
+  },
+  {
+    "t": 1793601990384,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/assets/AdminLayout-CFYUGoYT.js"
+  },
+  {
+    "t": 1793601990385,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/assets/AdminLayout-CFYUGoYT.js"
+  },
+  {
+    "t": 1793601990385,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/favicon.ico"
+  },
+  {
+    "t": 1793601990390,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/assets/FirmenView-wkeII-qg.css"
+  },
+  {
+    "t": 1793601990392,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/assets/FirmenView-DVCjWGbX.js"
+  },
+  {
+    "t": 1793601990393,
+    "type": "RES",
+    "status": 304,
+    "method": "GET",
+    "url": "http://localhost:8092/favicon.ico"
+  },
+  {
+    "t": 1793601990393,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/assets/ConfirmDialog-CoUQWTJp.js"
+  },
+  {
+    "t": 1793601990405,
+    "type": "NAV",
+    "url": "http://localhost:8092/admin/firmen"
+  },
+  {
+    "t": 1793601990406,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/kratos/sessions/whoami"
+  },
+  {
+    "t": 1793601990418,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/kratos/sessions/whoami"
+  },
+  {
+    "t": 1793601990419,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/api/admin/companies"
+  },
+  {
+    "t": 1793601990569,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/api/admin/companies"
+  },
+  {
+    "t": 1793601994657,
+    "type": "MARK",
+    "text": "--- SAVE-CLICK ---"
+  },
+  {
+    "t": 1793601998671,
+    "type": "INFO",
+    "text": "URL nach Save: http://localhost:8092/admin/firmen"
+  },
+  {
+    "t": 1793601998677,
+    "type": "REQ",
+    "method": "GET",
+    "url": "http://localhost:8092/kratos/sessions/whoami"
+  },
+  {
+    "t": 1793601998694,
+    "type": "RES",
+    "status": 200,
+    "method": "GET",
+    "url": "http://localhost:8092/kratos/sessions/whoami"
+  },
+  {
+    "t": 1793601998695,
+    "type": "INFO",
+    "text": "whoami-Status: 200"
+  }
+]
