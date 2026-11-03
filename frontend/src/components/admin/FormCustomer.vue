@@ -179,11 +179,11 @@
 
     <div class="flex gap-2 pt-4">
       <div class="flex items-center gap-3 justify-end">
-        <button v-if="!isInstaller()" type="button" id="customer-export-json" @click="exportJson" :disabled="exporting" class="text-sm text-slate-400 hover:text-slate-200 disabled:opacity-50">{{ exporting ? 'Exportiere…' : '⬇️ JSON exportieren' }}</button>
         <button type="button" id="customer-form-cancel" @click="$emit('cancel')" class="text-sm text-slate-400 hover:text-slate-200">Abbrechen</button>
         <button type="submit" id="customer-form-save" :disabled="saving" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded-lg text-sm disabled:opacity-50">
           {{ saving ? 'Speichert…' : (initial ? 'Speichern' : 'Kunde anlegen') }}
         </button>
+        <button v-if="!isInstaller()" type="button" id="customer-export-json" @click="exportJson" :disabled="exporting" class="text-sm text-slate-400 hover:text-slate-200 disabled:opacity-50">{{ exporting ? 'Exportiere…' : '⬇️ JSON' }}</button>
       </div>
     </div>
   </form>
