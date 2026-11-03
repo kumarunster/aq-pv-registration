@@ -194,16 +194,16 @@
       <div class="max-w-7xl mx-auto p-4">
         <div class="flex items-center justify-between mb-3">
           <h2 class="text-lg font-bold">📐 Lageplan — Anlage {{ lageplanDialog.plantIndex + 1 }}</h2>
-          <button type="button" @click="closeLageplan" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm">
+          <button type="button" id="lageplan-dialog-close-top" @click.stop="closeLageplan" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm">
             ✖️ Schließen (ohne Speichern)
           </button>
         </div>
         <LageplanEditor ref="lageplanEditorRef" :initial-layout="lageplanDialog.initialLayout" />
-        <div class="flex gap-2 mt-3 pb-6">
-          <button type="button" @click="saveLageplan" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded-lg text-sm">
+        <div class="flex gap-2 mt-3 pb-6" @mousedown.stop @mouseup.stop @wheel.stop>
+          <button type="button" id="lageplan-dialog-save" @click.stop="saveLageplan" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded-lg text-sm">
             ✅ Lageplan speichern
           </button>
-          <button type="button" @click="closeLageplan" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm">
+          <button type="button" id="lageplan-dialog-close" @click.stop="closeLageplan" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm">
             Abbrechen
           </button>
         </div>
@@ -473,6 +473,8 @@ const PlantForm = defineComponent({
 
     // P1-4: Accordion-Sections
     const openSections = ref(new Set(['adresse', 'typ', 'wechselrichter']))
+    // PV: Lageplan ist Pflicht → Accordion automatisch öffnen
+    if (p.plant.anlagetyp === 'pv') openSections.value.add('lageplan')
     function toggleSection(id) {
       if (openSections.value.has(id)) openSections.value.delete(id)
       else openSections.value.add(id)
@@ -1063,7 +1065,7 @@ function saveLageplan() {
     form.plants[i].lageplan = layout
   }
   formDirty.value = true
-  emitDirty()
+  emit('dirty', true)
   lageplanDialog.value = null
 }
 
@@ -1098,12 +1100,12 @@ async function save() {
       email: form.email || null,
       iban: form.iban || null,
     }
-    // Firmen-ID nur im Admin-Modus; Installer-Anlagen bekommen company_id: null
-    if (form.plants.length && (isInstaller() || form.company_id)) {
+    // Firmen-ID: Installer-Anlagen bekommen company_id: null, Admin-Anlagen die gewählte Firma
+    if (form.plants.length) {
       payload.plants = form.plants.map(p => ({
         anlagetyp: p.anlagetyp,
         commission_date: toISO(p.commission_date),
-        company_id: isInstaller() ? null : form.company_id,
+        company_id: isInstaller() ? null : (form.company_id || null),
         kwp: p.kwp || null,
         kw: p.kw || null,
         kwh: p.kwh || null,

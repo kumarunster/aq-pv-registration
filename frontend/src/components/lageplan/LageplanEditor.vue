@@ -10,18 +10,21 @@
       </div>
       <div class="flex flex-wrap gap-2">
         <button
+          id="lp-btn-import-image"
           class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-sm hover:bg-slate-700"
           @click="onImportImage"
         >
           📷 Hintergrundbild
         </button>
         <button
+          id="lp-btn-export-json"
           class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-sm hover:bg-slate-700"
           @click="onExportJson"
         >
           ⬇️ JSON
         </button>
         <button
+          id="lp-btn-undo"
           class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-sm hover:bg-slate-700"
           :disabled="historyIndex <= 0"
           @click="undo"
@@ -29,6 +32,7 @@
           ↩️ Undo
         </button>
         <button
+          id="lp-btn-redo"
           class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-sm hover:bg-slate-700"
           :disabled="historyIndex >= history.length - 1"
           @click="redo"
@@ -36,6 +40,7 @@
           ↪️ Redo
         </button>
         <button
+          id="lp-btn-pdf"
           class="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-500 disabled:opacity-50"
           :disabled="pdfBusy"
           @click="onExportPdf"
@@ -62,6 +67,7 @@
         <label class="col-span-2">
           <span class="text-slate-400">Titel</span>
           <input
+            id="lp-meta-title"
             v-model="store.layout.title"
             class="mt-1 w-full px-2 py-1 rounded bg-slate-800 text-slate-200"
             placeholder="z.B. Lageplan PV-Anlage Musterstraße 5"
@@ -71,6 +77,7 @@
         <label class="col-span-2">
           <span class="text-slate-400">Adresse</span>
           <input
+            id="lp-meta-adresse"
             v-model="meta.adresse"
             class="mt-1 w-full px-2 py-1 rounded bg-slate-800 text-slate-200"
             placeholder="Straße, PLZ Ort"
@@ -80,6 +87,7 @@
         <label>
           <span class="text-slate-400">Gemarkung</span>
           <input
+            id="lp-meta-gemarkung"
             v-model="meta.gemarkung"
             class="mt-1 w-full px-2 py-1 rounded bg-slate-800 text-slate-200"
             placeholder="z.B. Musterort"
@@ -89,6 +97,7 @@
         <label>
           <span class="text-slate-400">Flur</span>
           <input
+            id="lp-meta-flur"
             v-model="meta.flur"
             class="mt-1 w-full px-2 py-1 rounded bg-slate-800 text-slate-200"
             placeholder="z.B. 3"
@@ -98,6 +107,7 @@
         <label class="col-span-2">
           <span class="text-slate-400">Flurstück</span>
           <input
+            id="lp-meta-flurstueck"
             v-model="meta.flurstueck"
             class="mt-1 w-full px-2 py-1 rounded bg-slate-800 text-slate-200"
             placeholder="z.B. 123/2"
@@ -120,6 +130,7 @@
           </span>
         </h3>
         <button
+          id="lp-btn-delete-selected"
           class="px-2 py-1 rounded bg-red-900/40 text-red-300 text-xs hover:bg-red-900/60"
           @click="removeSelected"
         >
@@ -133,6 +144,7 @@
           <label class="col-span-2">
             <span class="text-slate-400">Text</span>
             <input
+              id="lp-el-text"
               v-model="store.selectedElement.text"
               class="mt-1 w-full px-2 py-1 rounded bg-slate-800 text-slate-200"
               @change="onFieldChanged('text')"
@@ -141,6 +153,7 @@
           <label>
             <span class="text-slate-400">Schriftgröße (mm)</span>
             <input
+              id="lp-el-font-size"
               v-model.number="store.selectedElement.font_size"
               type="number"
               min="2"
@@ -154,6 +167,7 @@
         <label v-if="store.selectedElement.kind !== 'text'">
           <span class="text-slate-400">Füllfarbe</span>
           <input
+            id="lp-el-fill"
             v-model="store.selectedElement.fill"
             type="color"
             class="mt-1 w-full px-2 py-1 rounded bg-slate-800 text-slate-200"
@@ -163,6 +177,7 @@
         <label v-if="store.selectedElement.kind !== 'text'">
           <span class="text-slate-400">Linienfarbe</span>
           <input
+            id="lp-el-stroke"
             v-model="store.selectedElement.stroke"
             type="color"
             class="mt-1 w-full px-2 py-1 rounded bg-slate-800 text-slate-200"
@@ -174,6 +189,7 @@
         <label class="col-span-2">
           <span class="text-slate-400">Label</span>
           <input
+            id="lp-el-label"
             v-model="store.selectedElement.label"
             class="mt-1 w-full px-2 py-1 rounded bg-slate-800 text-slate-200"
             placeholder="z.B. Grundstück, PV-Feld, Nord"
