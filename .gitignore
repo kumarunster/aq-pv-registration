@@ -36,3 +36,10 @@ memory/
 
 # Build-Zeit, wird bei jedem Vite-Build neu erzeugt
 frontend/src/build-time.ts
+
+# Netzportal journals contain private installation data
+.state/
+*.sqlite3*
+
+# Bind-mounted Netzportal runtime data
+_infrastructure/na-netzportal/volume/

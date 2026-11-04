@@ -187,6 +187,8 @@ services:
         condition: service_healthy
       na-migrate:
         condition: service_completed_successfully
+      na-netzportal:
+        condition: service_healthy
       na-weasyprint:
         condition: service_started
       na-minio:
@@ -196,6 +198,9 @@ services:
       - MONGO_URI=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@na-mongodb:27017
       - MONGO_DATABASE=${MONGO_DATABASE}
       - TZ=${TZ}
+      - NETZPORTAL_URL=http://na-netzportal:8080
+      - NETZPORTAL_API_KEY=${NETZPORTAL_API_KEY:?Set NETZPORTAL_API_KEY}
+      - NETZPORTAL_TIMEOUT_SECONDS=180
       - WEASYPRINT_URL=http://na-weasyprint:8012
       - MINIO_ENDPOINT=na-minio:9000
       - MINIO_ACCESS_KEY=${MINIO_USER:-naadmin}
@@ -203,9 +208,10 @@ services:
     volumes:
       # Dev: Quellcode bind-mounten, damit --reload greift.
       - ../backend/src:/app/src
-    # 🔒 KEIN ports-Mapping - nur nginx erreicht das Backend
+    # Backend is the only member shared with the portal service.
     networks:
       - na-intranet
+      - na-netzportal-relay
     logging:
       options:
         max-size: "30m"
@@ -273,9 +279,38 @@ services:
         max-size: "30m"
         max-file: "5"
 
+  # Separate portal integration. No nginx route and no published host port.
+  na-netzportal:
+    build:
+      context: ../netzportal
+    image: na-netzportal:0.3.0
+    restart: unless-stopped
+    env_file:
+      - ./na-netzportal/.env
+    environment:
+      NRM_API_KEY: ${NETZPORTAL_API_KEY:?Set NETZPORTAL_API_KEY}
+      NRM_HOST: 0.0.0.0
+      NRM_PORT: "8080"
+      PV_DATA_DIR: /data
+    volumes:
+      - ./na-netzportal/volume:/data
+    networks:
+      - na-netzportal-relay
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    init: true
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+
 networks:
   na-intranet:
     driver: bridge
+  na-netzportal-relay:
+    driver: bridge
+    # Outbound Internet is required for portal login; no host ports are exposed.
 
 volumes:
   na-redis-data:
