@@ -105,6 +105,20 @@ class ChecklistItem(BaseModel):
     image_url: Optional[str] = None  # blob_key in MinIO
 
 
+class KatasterInfo(BaseModel):
+    """Quelle und Uebernahmestand; die UI prueft zusaetzlich die aktuelle Adresse/Felder."""
+    adresse: str = Field(min_length=5, max_length=300)
+    abgerufen_am: Optional[datetime] = None
+    grundstueck_status: str
+    bild_status: str
+    hintergrund_uebernommen: bool = False
+    gemarkung: Optional[str] = None
+    flur: Optional[str] = None
+    flurstueck: Optional[str] = None
+    flurstueckskennzeichen: Optional[str] = None
+    amtliche_flaeche_m2: Optional[float] = None
+
+
 class PlantCreate(BaseModel):
     """Anlage eines Kunden.
 
@@ -133,6 +147,7 @@ class PlantCreate(BaseModel):
     gemarkung: Optional[str] = None
     flur: Optional[str] = None
     flurstueck: Optional[str] = None
+    kataster: Optional[KatasterInfo] = None
     panels: Optional[PanelInfo] = None
     inverters: list[InverterInfo] = []
     battery: Optional[BatteryInfo] = None
@@ -163,6 +178,7 @@ class PlantUpdate(BaseModel):
     gemarkung: Optional[str] = None
     flur: Optional[str] = None
     flurstueck: Optional[str] = None
+    kataster: Optional[KatasterInfo] = None
     panels: Optional[PanelInfo] = None
     inverters: Optional[list[InverterInfo]] = None
     battery: Optional[BatteryInfo] = None

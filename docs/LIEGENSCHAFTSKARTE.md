@@ -96,8 +96,46 @@ const response = await client.post('/admin/liegenschaftskarte/auszug', {
 }, { timeout: 330000 })
 ```
 
-Die bestehenden Eingabemasken und der Lageplan-Editor werden durch diese technische
-Integration nicht verändert. Ein UI-Button ist nicht Bestandteil dieser Integration.
+## Abruf in der Anlagenmaske
+
+Im Anlageneditor (Admin und Installer) steht oberhalb des Lageplan-Abschnitts die
+Aktion **„Karte & Grundstücksdaten laden“**. Sie verwendet die Kundenadresse, wenn
+„Adresse vom Kunden übernehmen“ gesetzt ist, ansonsten die eigene Anlagenadresse.
+Voraussetzung sind Straße mit Hausnummer, fünfstellige PLZ und Ort. Der Abruf ist
+auch vor dem erstmaligen Speichern eines Kunden möglich und startet bewusst per
+Klick, nicht bei jedem Tastendruck.
+
+Nach erfolgreicher Suche werden Gemarkung, Flur und Flurstück übernommen. Eine im
+Datensatz nicht geführte Flur bleibt leer (beispielsweise Hamburg). Nur ein einzelner,
+eindeutiger und vollständiger Grundstückstreffer wird übertragen. Bei Grenzfällen,
+fehlenden Zugängen oder mehreren Treffern bleiben vorhandene Grundstücksfelder erhalten.
+
+Das Kartenbild wird über den authentifizierten Relay heruntergeladen und als
+Data-URL im `lageplan` gespeichert. Dadurch kann der vorhandene Editor es unmittelbar
+verwenden, und gespeicherte Pläne bleiben auch für andere berechtigte Benutzer sowie
+beim PDF-Export unabhängig von der benutzergebundenen Download-URL verfügbar.
+Vorhandene Zeichnungselemente und eigene Layout-Metadaten bleiben erhalten. Nach
+einem erneuten Bildabruf muss die Ausrichtung bestehender Zeichnungen geprüft werden.
+
+Statusanzeigen:
+
+- `✓ erfasst`: Ein Lageplan ist in der Anlage vorhanden.
+- `✓ Hintergrundbild geladen`: Katasterbild zur aktuellen Adresse übernommen.
+- `✓ Grundstücksinfos gefunden`: Eindeutiger Treffer zur aktuellen Adresse; Felder
+  stimmen weiterhin mit dem übernommenen Treffer überein.
+- Laden, Fehler, Teilresultate und geänderte Adressen erhalten eigene Hinweise.
+
+Die Bestätigung wird in `plants[].kataster` zusammen mit Adresse, Abrufzeit,
+Flurstückskennzeichen und Fläche gespeichert. Änderungen an Adresse oder manuell
+bearbeiteten Grundstücksfeldern verhindern eine veraltete grüne Trefferanzeige.
+Ein im Editor manuell ersetztes Bild entfernt die Bestätigung des Katasterhintergrunds.
+Während des Abrufs ist Speichern gesperrt; Antworten für inzwischen geänderte
+Adressen oder entfernte Anlagen werden verworfen. Netzwerkfehler lassen vorhandene
+Lagepläne unverändert. Karte und Grundstücksdaten können auch unabhängig voneinander
+als Teilresultat übernommen werden.
+
+**Die Übernahme ändert zunächst das Formular. Mit „Speichern“ werden Bild,
+Grundstücksfelder und Abrufstatus zusammen mit den Anlagendaten dauerhaft gesichert.**
 
 ## Fehler und Teilresultate
 
@@ -170,7 +208,7 @@ Ein kompletter Start mit Nginx, Oathkeeper, MongoDB und Katastercontainer muss a
 einem Docker-Zielsystem verifiziert werden. Auf dem Entwicklungscomputer wird
 ausdrücklich keine Docker Engine gestartet.
 
-Prüfstand 03.11.2026: 47 Backend-Tests und 23 Katastertests bestanden;
+Ursprünglicher Integrationsprüfstand 03.11.2026: 47 Backend-Tests und 23 Katastertests bestanden;
 Compose-Konfiguration erfolgreich validiert. Zusätzlich wurde „Im Schönenfelde 14,
 21109 Hamburg“ über den echten lokalen Python-Katasterservice und den Backend-Relay
 abgerufen: Wilhelmsburg, Flurstück 2798, Fläche 1005 m²; PNG- und JSON-Download
@@ -180,3 +218,11 @@ Test-Backend gesetzt. Oathkeeper, Docker-Netze und Container wurden nicht gestar
 
 Referenz für die konfigurierten Oathkeeper-Timeouts:
 [Versionsschema v0.40.7](https://github.com/ory/oathkeeper/blob/v0.40.7/.schema/config.schema.json).
+
+Frontend-Erweiterung: 23 Frontend-Tests, 49 Backend-Tests und
+Frontend-Produktionsbuild erfolgreich. Frontend-Tests prüfen Admin/Installer,
+Kunden-/Anlagenadresse, Übernahme, Speicherung/Wiederöffnen, Teilresultate,
+Adresse-Änderungen während eines Requests und Fehlerzustände. Der echte
+Lageplan-Editor ist in den Formulartests durch einen kontrollierten Test-Editor
+ersetzt; eine zusätzliche visuelle Prüfung im echten Browser ließ sich in dieser
+Umgebung nicht zuverlässig starten. Es wurde keine Docker Engine gestartet.

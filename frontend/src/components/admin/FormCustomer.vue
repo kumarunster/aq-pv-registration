@@ -136,6 +136,7 @@
                   Leistung {{ sortArrow('leistung') }}
                 </th>
                 <th class="p-2 text-left">Lageplan</th>
+                <th class="p-2 text-left">Grundstück</th>
               </tr>
             </thead>
             <tbody>
@@ -147,7 +148,8 @@
                 <td class="p-2">{{ plantAddressShort(row.p) }}</td>
                 <td class="p-2">{{ statusLabel(row.p.status) || '–' }}</td>
                 <td class="p-2">{{ row.p.kwp ? row.p.kwp + ' kWp' : row.p.kw ? row.p.kw + ' kW' : '–' }}</td>
-                <td class="p-2">{{ row.p.lageplan ? '✅' : (row.p.anlagetyp === 'pv' ? '⚠️' : '–') }}</td>
+                <td class="p-2">{{ row.p.lageplan ? '✓ erfasst' : (row.p.anlagetyp === 'pv' ? '⚠️ fehlt' : '–') }}</td>
+                <td class="p-2 text-xs" :class="propertyFound(row.p, form) ? 'text-green-400' : 'text-slate-400'">{{ propertyFound(row.p, form) ? '✓ Grundstücksinfos gefunden' : katasterStale(row.p, form) ? 'Adresse geändert' : row.p.gemarkung && row.p.flurstueck ? '✓ erfasst' : '–' }}</td>
               </tr>
             </tbody>
           </table>
@@ -172,7 +174,7 @@
           </div>
           <button type="button" @click="removePlant(editingPlant)" class="text-slate-400 hover:text-red-400 text-sm">🗑️ Entfernen</button>
         </div>
-        <PlantForm :plant="form.plants[editingPlant]" :onUpdate="updatePlant" :index="editingPlant"
+        <PlantForm :key="editingPlant" :plant="form.plants[editingPlant]" :onUpdate="updatePlant" :index="editingPlant"
           :isInstaller="isInstaller()" :customerId="form.customer_id" @open-lageplan="openLageplan" />
       </div>
     </div>
@@ -180,7 +182,7 @@
     <div class="flex gap-2 pt-4">
       <div class="flex items-center gap-3 justify-end">
         <button type="button" id="customer-form-cancel" @click="$emit('cancel')" class="text-sm text-slate-400 hover:text-slate-200">Abbrechen</button>
-        <button type="submit" id="customer-form-save" :disabled="saving" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded-lg text-sm disabled:opacity-50">
+        <button type="submit" id="customer-form-save" :disabled="saving || katasterBusy" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded-lg text-sm disabled:opacity-50">
           {{ saving ? 'Speichert…' : (initial ? 'Speichern' : 'Kunde anlegen') }}
         </button>
         <button v-if="!isInstaller()" type="button" id="customer-export-json" @click="exportJson" :disabled="exporting" class="text-sm text-slate-400 hover:text-slate-200 disabled:opacity-50">{{ exporting ? 'Exportiere…' : '⬇️ JSON' }}</button>
@@ -220,6 +222,9 @@ import * as docsApi from '@/api/docs'
 import { zerezSearch } from '@/api/client'
 import LageplanEditor from '@/components/lageplan/LageplanEditor.vue'
 import { useLayoutStore } from '@/components/lageplan/useLayoutStore.js'
+import KatasterLookup from '@/components/lageplan/KatasterLookup.vue'
+import { loadKataster, katasterError } from '@/api/kataster'
+import { plantAddress, addressKey, propertyFound, katasterStale, buildKatasterUpdate } from '@/lib/kataster'
 
 const props = defineProps({
   companies: { type: Array, default: () => [] },
@@ -361,6 +366,7 @@ const emptyPlant = () => ({
   gemarkung: '',
   flur: '',
   flurstueck: '',
+  kataster: null,
   panels: { manufacturer: '', type: '', count: 0, kwp: '' },
   inverters: [],
   battery: null,
@@ -663,7 +669,7 @@ const PlantForm = defineComponent({
       ]),
 
       // 🏡 Grundstueck (Accordion)
-      sectionEl('grundstueck', '🏡 Grundstueck', p.plant.gemarkung ? 'erfasst' : null, [
+      sectionEl('grundstueck', '🏡 Grundstück', propertyFound(p.plant, form) ? '✓ Grundstücksinfos gefunden' : katasterStale(p.plant, form) ? 'Adresse geändert' : p.plant.gemarkung && p.plant.flurstueck ? '✓ erfasst' : null, [
         h('div', { class: 'grid grid-cols-1 md:grid-cols-3 gap-2' }, [
           h('div', [
             h('label', { class: 'block text-xs text-slate-500 mb-1' }, 'Gemarkung'),
@@ -849,8 +855,16 @@ const PlantForm = defineComponent({
       // 📋 Checkliste El. Installation
       checklistSection(p.plant),
 
+      // Der Abruf ist auch ohne gespeicherten Kunden und vor dem Lageplan nutzbar.
+      h(KatasterLookup, {
+        plant: p.plant, customer: form, busy: katasterBusy.value,
+        loading: katasterState(p.plant).loading, error: katasterState(p.plant).error,
+        notice: katasterState(p.plant).notice,
+        onLoad: () => fetchPlantKataster(p.plant),
+      }),
+
       // 📐 Lageplan (Accordion, PV: Pflichtfeld, sonst optional)
-      sectionEl('lageplan', '📐 Lageplan', p.plant.lageplan ? 'erfasst' : 'leer', [
+      sectionEl('lageplan', '📐 Lageplan', p.plant.lageplan ? '✓ erfasst' : 'leer', [
         h('div', { class: 'flex items-center justify-between' }, [
           h('div', { class: 'flex items-center gap-2' }, [
             p.plant.anlagetyp === 'pv'
@@ -954,6 +968,8 @@ onMounted(() => {
   window.addEventListener('beforeunload', onBeforeUnload)
 })
 onUnmounted(() => {
+  formActive = false
+  katasterController?.abort()
   window.removeEventListener('beforeunload', onBeforeUnload)
 })
 
@@ -1011,6 +1027,56 @@ function updatePlant(i, key, val) {
   form.plants[i][key] = val
 }
 
+// Kataster-Requests sind an das Anlagenobjekt gebunden, nicht an wechselnde Listenindizes.
+const katasterBusy = ref(false)
+const katasterStates = new WeakMap()
+let katasterController = null
+let formActive = true
+function katasterState(plant) {
+  if (!katasterStates.has(plant)) katasterStates.set(plant, reactive({ loading: false, error: '', notice: '' }))
+  return katasterStates.get(plant)
+}
+
+async function fetchPlantKataster(plant) {
+  if (katasterBusy.value) return
+  const address = plantAddress(plant, form)
+  const state = katasterState(plant)
+  state.error = ''
+  state.notice = ''
+  if (!address.complete) {
+    state.error = 'Bitte zuerst die vollständige Anlagenadresse ergänzen.'
+    return
+  }
+  if (lageplanDialog.value) {
+    state.error = 'Bitte den geöffneten Lageplan zuerst speichern oder schließen.'
+    return
+  }
+  katasterBusy.value = true
+  state.loading = true
+  const controller = new AbortController()
+  katasterController = controller
+  try {
+    const { result, background, imageError } = await loadKataster(address.text, { installer: isInstaller(), signal: controller.signal })
+    if (!formActive || !form.plants.includes(plant)) return
+    if (addressKey(address.text) !== addressKey(plantAddress(plant, form).text)) {
+      state.error = 'Die Anlagenadresse wurde während der Abfrage geändert. Bitte erneut abrufen; es wurden keine Daten übernommen.'
+      return
+    }
+    const update = buildKatasterUpdate(plant, result, background, address.text)
+    Object.assign(plant, update)
+    state.notice = imageError || (!background ? 'Kein neues Hintergrundbild verfügbar. Ein vorhandener Lageplan bleibt erhalten.' : '')
+    if (result.bild?.status === 'ersatzdarstellung') state.notice = 'Als Hintergrund wurde eine Flurstücksskizze geladen; die vollständige Katasterkarte ist derzeit nicht verfügbar.'
+    if (propertyFound(plant, form)) toast.success('Grundstücksinfos gefunden und in die Anlage übernommen.')
+    else if (background) toast.info('Hintergrundbild geladen. Hinweise zu den Grundstücksdaten beachten.')
+  } catch (error) {
+    if (!controller.signal.aborted && formActive && form.plants.includes(plant)) state.error = katasterError(error)
+  } finally {
+    state.loading = false
+    katasterBusy.value = false
+    if (katasterController === controller) katasterController = null
+  }
+}
+
 // 📐 Lageplan: Dialog öffnen/schließen
 function plantAddressLine(p) {
   if (!p) return ''
@@ -1018,6 +1084,7 @@ function plantAddressLine(p) {
 }
 
 function openLageplan(i) {
+  if (katasterBusy.value) { toast.info('Bitte den Katasterabruf abwarten.'); return }
   const p = form.plants[i]
   if (!p) return
   // Adresse: Häkchen => Kundendaten, sonst eigene Adressfelder
@@ -1050,6 +1117,10 @@ function saveLageplan() {
       const adresse = p.address_from_customer !== false ? plantAddressLine(form) : plantAddressLine(p)
       layout.metadata = { ...layout.metadata, adresse, gemarkung: p.gemarkung || '', flur: p.flur || '', flurstueck: p.flurstueck || '' }
     }
+    if (p?.kataster?.hintergrund_uebernommen && layout.background_image_url !== p.lageplan?.background_image_url) {
+      p.kataster.hintergrund_uebernommen = false
+      if (layout.metadata) delete layout.metadata.kataster
+    }
     form.plants[i].lageplan = layout
   }
   formDirty.value = true
@@ -1070,6 +1141,7 @@ function toISO(d) {
 }
 
 async function save() {
+  if (katasterBusy.value) { toast.info('Bitte den Katasterabruf vor dem Speichern abwarten.'); return }
   // PV-Anlagen benötigen einen Lageplan (Pflichtfeld, Roadmap Phase 5e)
   const pvWithout = form.plants.filter(p => p.anlagetyp === 'pv' && !p.lageplan)
   if (pvWithout.length) {
@@ -1107,6 +1179,7 @@ async function save() {
         gemarkung: p.gemarkung || null,
         flur: p.flur || null,
         flurstueck: p.flurstueck || null,
+        kataster: p.kataster || null,
         panels: p.panels && p.panels.manufacturer ? p.panels : null,
         inverters: p.inverters || [],
         battery: p.battery || null,
