@@ -23,8 +23,8 @@ async def snapshot(customer_id, plant_index):
     plant = customer['plants'][plant_index]
     if plant.get('anlagetyp') != 'pv':
         raise HTTPException(422, 'Automatisierung ist derzeit nur fuer PV-Anlagen vorgesehen')
-    if plant.get('status') != 'in_pruefung':
-        raise HTTPException(409, 'Netzanmeldung ist nur fuer Anlagen mit Status In Pruefung freigegeben')
+    if plant.get('status') not in ('in_pruefung', 'angemeldet', 'abgeschlossen'):
+        raise HTTPException(409, 'Netzanmeldung ist erst ab Anlagenstatus In Pruefung freigegeben')
     company = await companies.get_by_id(plant['company_id']) if plant.get('company_id') else None
     operator = {k: customer.get(k) for k in ('firstname', 'lastname', 'address_street', 'address_plz', 'address_city', 'phone', 'email')}
     return {'customer_id': customer_id, 'plant_index': plant_index, 'operator': operator,

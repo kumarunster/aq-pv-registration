@@ -67,6 +67,6 @@ Der Browser ruft nur den Admin-Relay auf. Der Relay ermittelt aus dem Datenbanks
 
 Vorschau, Prüfung und Start ermitteln den Betreiber jeweils erneut. Der Prüf-Request enthält `expected_operator_id` aus der Vorschau, aber keinen frei wählbaren Provider. Datenhash, Betreiber-ID, Status und Admin-Freigabe werden vor dem Schreiben geprüft. Das Suchergebnis wird am anlagenbezogenen Registrierungsvorgang protokolliert; keine Änderung der gespeicherten Kundenadresse erfolgt automatisch. Ungeklärte Treffer werden nicht persistiert und nicht geraten.
 
-Das UI zeigt den ermittelten Namen, die Quellseite und die gefundene Adresse. Bei ungespeicherten Änderungen ist die Netzanmeldung deaktiviert; nach Speichern und erneutem Öffnen wird der aktuelle Stand verwendet. Installateure sehen keinen Startbereich. Der Server lehnt die Aktionen unabhängig von der Oberfläche ohne Admin-Schema oder ohne `status=in_pruefung` ab.
+Das UI zeigt den ermittelten Namen, die Quellseite und die gefundene Adresse. Bei ungespeicherten Änderungen ist die Netzanmeldung deaktiviert; nach Speichern und erneutem Öffnen wird der aktuelle Stand verwendet. Installateure sehen keinen Startbereich. Der Server lehnt die Aktionen unabhängig von der Oberfläche ohne Admin-Schema oder bei Status unterhalb „In Prüfung“ ab.
 
 Die Registrierung bleibt auf die bisherigen Entwurfsfunktionen begrenzt; insbesondere unterstützt Mainzer weiterhin ausschließlich lokale Vorbereitung. Kein endgültiges Absenden.
