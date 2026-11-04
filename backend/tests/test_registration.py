@@ -181,8 +181,8 @@ async def test_unexpected_submission_response_is_uncertain(system):
     assert stored['state'] == 'uncertain'
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize('status',[None, 'offen', 'angemeldet', 'abgeschlossen'])
-async def test_only_in_review_status_allowed(system,status):
+@pytest.mark.parametrize('status',[None, 'offen', 'unbekannt'])
+async def test_status_below_review_blocks_registration(system,status):
     system[2]['plants'][0]['status'] = status
     assert (await request(system,'GET','/customers/123/plants/0/preview')).status_code == 409
     system[3].assert_not_awaited()
@@ -241,3 +241,10 @@ async def test_status_changed_during_lookup_blocks_start(system,monkeypatch):
     monkeypatch.setattr(reg, 'resolve_operator', lookup)
     assert (await request(system,'POST',f"/jobs/{job['id']}/start")).status_code == 409
     system[3].assert_not_awaited()
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('status',['in_pruefung','angemeldet','abgeschlossen'])
+async def test_registration_available_from_review_onwards(system,status):
+    system[2]['plants'][0]['status'] = status
+    assert (await request(system,'GET','/customers/123/plants/0/preview')).status_code == 200
+    assert (await approve(system)).status_code == 201

@@ -14,7 +14,7 @@ Das JSON-Format, alle neuen Endpunkte und die genauen Grenzen stehen in **[Entwu
 
 `POST /api/v1/network-operators/resolve` ermittelt über die öffentliche VNBdigital-Adresssuche den Niederspannungsnetzbetreiber. Der Endpunkt verlangt den Service-Bearer. Er überträgt ausschließlich Straße, Hausnummer, PLZ und Ort; keine Betreiber-/Komponentendaten. Details und verifizierte Live-Beispiele: [VNBdigital](docs/VNBDIGITAL.md).
 
-In der integrierten Anwendung erscheint die Netzanmeldung unten in der gespeicherten PV-Anlagenmaske, nur für Admins bei Status „In Prüfung“. Die Betreiberauswahl erfolgt automatisch; Mehrdeutigkeiten oder nicht angebundene Betreiber sperren den Start.
+In der integrierten Anwendung erscheint die Netzanmeldung im eigenen Tab „Netzanmeldung“ der PV-Anlagenmaske, nur für Admins ab Status „In Prüfung“ (einschließlich „Angemeldet“ und „Abgeschlossen“). Die Betreiberauswahl erfolgt automatisch; Mehrdeutigkeiten oder nicht angebundene Betreiber sperren den Start.
 
 ## Verifizierter Funktionsumfang
 

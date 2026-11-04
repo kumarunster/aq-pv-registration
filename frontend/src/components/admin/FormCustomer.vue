@@ -174,17 +174,27 @@
           </div>
           <button type="button" @click="removePlant(editingPlant)" class="text-slate-400 hover:text-red-400 text-sm">🗑️ Entfernen</button>
         </div>
-        <PlantForm :key="editingPlant" :plant="form.plants[editingPlant]" :onUpdate="updatePlant" :index="editingPlant"
+        <nav class="flex gap-4 border-b border-slate-700 mb-4" aria-label="Anlagenbearbeitung">
+          <button type="button" id="plant-tab-details" @click="plantTab = 'details'"
+            :aria-pressed="plantTab === 'details'"
+            :class="plantTab === 'details' ? 'text-amber-400 border-b-2 border-amber-500 pb-2 font-semibold' : 'text-slate-400 pb-2'">
+            Anlagendaten
+          </button>
+          <button v-if="registrationAvailable" type="button" id="plant-tab-registration" @click="plantTab = 'registration'"
+            :aria-pressed="plantTab === 'registration'"
+            :class="plantTab === 'registration' ? 'text-amber-400 border-b-2 border-amber-500 pb-2 font-semibold' : 'text-slate-400 pb-2'">
+            Netzanmeldung
+          </button>
+        </nav>
+        <PlantForm v-if="plantTab === 'details'" :plant="form.plants[editingPlant]" :onUpdate="updatePlant" :index="editingPlant"
           :isInstaller="isInstaller()" :customerId="form.customer_id" @open-lageplan="openLageplan" />
-        <div v-if="!isInstaller() && form.plants[editingPlant].anlagetyp === 'pv'" class="mt-5">
+        <div v-else-if="registrationAvailable">
           <RegistrationPanel
-            v-if="form.plants[editingPlant].status === 'in_pruefung' && form.customer_id && !formDirty"
+            v-if="form.customer_id && !formDirty"
             :key="`${form.customer_id}-${editingPlant}`"
             :customer-id="form.customer_id" :plant-index="editingPlant" />
           <p v-else class="text-sm text-slate-400 border border-slate-700 rounded-lg p-3">
-            Netzanmeldung: {{ form.plants[editingPlant].status !== 'in_pruefung'
-              ? 'Wird für diese Anlage im Status „In Prüfung“ aktiviert.'
-              : 'Bitte zuerst die Installationsdaten speichern und diese Anlage erneut öffnen.' }}
+            Bitte zuerst die Installationsdaten speichern und diese Anlage erneut öffnen.
           </p>
         </div>
       </div>
@@ -257,6 +267,14 @@ const plantStatusFilter = ref('')
 const plantPage = ref(0)
 const PLANT_PAGE_SIZE = 20
 const editingPlant = ref(null)
+const plantTab = ref('details')
+const registrationAvailable = computed(() => {
+  if (editingPlant.value === null) return false
+  const plant = form.plants[editingPlant.value]
+  return !isInstaller() && plant?.anlagetyp === 'pv'
+    && ['in_pruefung', 'angemeldet', 'abgeschlossen'].includes(plant.status)
+})
+watch(registrationAvailable, available => { if (!available) plantTab.value = 'details' })
 
 const sortKey = ref(null)
 const sortDir = ref(1) // 1 = aufsteigend, -1 = absteigend
@@ -339,10 +357,12 @@ function statusLabel(s) {
 }
 
 function openPlant(i) {
+  plantTab.value = 'details'
   editingPlant.value = i
 }
 
 function closePlant() {
+  plantTab.value = 'details'
   editingPlant.value = null
 }
 
@@ -1052,6 +1072,7 @@ onMounted(() => {
 
 
 function addPlant() {
+  plantTab.value = 'details'
   form.plants.push(emptyPlant())
   mainTab.value = 'anlagen'
   editingPlant.value = form.plants.length - 1

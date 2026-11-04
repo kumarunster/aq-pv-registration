@@ -6,7 +6,7 @@ Der Branch `auto-registry` ergänzt einen **eigenständigen Netzportal-Service**
 
 ## Netzanmeldung
 
-Unter **Admin → Kunden & Anlagen → Kunde bearbeiten → Anlagen → Anlage öffnen** wird die Netzanmeldung unten bei gespeicherten PV-Anlagen im Status **„In Prüfung“** aktiviert. Der Netzbetreiber wird über die Anlagenadresse und VNBdigital automatisch ermittelt. Daten prüfen und mit Prüfvermerk freigeben. Erst danach kann derselbe Admin die lokale JSON-Vorbereitung oder einen unterstützten Portalentwurf starten. Installateure können diese API nicht auslösen. Änderungen am geprüften Datenstand erfordern eine erneute Prüfung.
+Unter **Admin → Kunden & Anlagen → Kunde bearbeiten → Anlagen → Anlage öffnen** ist bei PV-Anlagen ab Status **„In Prüfung“** der eigene Tab **„Netzanmeldung“** verfügbar (auch bei „Angemeldet“ und „Abgeschlossen“). Der Netzbetreiber wird über die Anlagenadresse und VNBdigital automatisch ermittelt. Daten prüfen und mit Prüfvermerk freigeben. Erst danach kann derselbe Admin die lokale JSON-Vorbereitung oder einen unterstützten Portalentwurf starten. Installateure können diese API nicht auslösen. Änderungen am geprüften Datenstand erfordern eine erneute Prüfung.
 
 NRM/ENM unterstützen derzeit leere Produktentwürfe, e-netz Südhessen die initiale Strommeldung mit Standort. Mainzer unterstützt bislang ausschließlich lokale JSON-Vorbereitung. Vollständige technische Formularbefüllung und endgültiges Absenden sind nicht implementiert. Die Portal-Schreibabläufe sind noch nicht live verifiziert.
 

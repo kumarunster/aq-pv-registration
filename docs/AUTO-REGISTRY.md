@@ -29,7 +29,7 @@ Das Backend vertraut ausschließlich Identitätsheadern des internen Oathkeeper-
 
 ## Admin-Ablauf
 
-Unter **Kunden & Anlagen → Kunde bearbeiten → Anlagen → Anlage öffnen**, unten in der Anlagenmaske. Der Bereich wird ausschließlich für gespeicherte PV-Anlagen mit `status=in_pruefung` und nur für Admins aktiviert. Bei ungespeicherten Änderungen zuerst speichern und die Anlage erneut öffnen:
+Unter **Kunden & Anlagen → Kunde bearbeiten → Anlagen → Anlage öffnen**, im eigenen Tab **Netzanmeldung**. Der Tab ist ausschließlich für Admins bei PV-Anlagen ab `status=in_pruefung` verfügbar, einschließlich `angemeldet` und `abgeschlossen`. Bei ungespeicherten Änderungen zuerst speichern und die Anlage erneut öffnen:
 
 1. Der Netzbetreiber wird automatisch aus der gespeicherten Anlagenadresse über VNBdigital ermittelt (Strom/Niederspannung). Bei abweichender Anlagenadresse wird diese verwendet. Mehrdeutige, fehlende oder noch nicht angebundene Betreiber sperren den Ablauf. Es gibt keine freie Betreiberauswahl. [Analyse und Suchprotokoll](../netzportal/docs/VNBDIGITAL.md).
 2. Gespeicherte Daten zur Prüfung laden. Angezeigt werden Betreiber, ausgewählte Anlage, referenzierte Installateurfirma und Änderungsstand. Der Server liefert einen Hash dieser Vorschau.
@@ -108,7 +108,7 @@ Bei bestehenden eigenständigen Service-Installationen die Schlüsselvariable in
 
 ## Validierung
 
-- Backend: 48 Tests mit ASGI-Requests, Mongo-Mock und simuliertem Relay: fehlende Identität, Installateur, fehlendes Admin-Schema, Hashänderungen, Firmenänderungen, abgelaufene/fremde Freigabe, Parallelstarts, Wiederholungen, unklare Ergebnisse, Payload-Mapping und Mainzer-Sperre.
+- Backend: 50 Tests mit ASGI-Requests, Mongo-Mock und simuliertem Relay: fehlende Identität, Installateur, fehlendes Admin-Schema, Hashänderungen, Firmenänderungen, abgelaufene/fremde Freigabe, Parallelstarts, Wiederholungen, unklare Ergebnisse, Payload-Mapping und Mainzer-Sperre.
 - Netzportal-Service: 57 Tests für Login-/Leseadapter, Entwurfserstellung und Idempotenz.
 - Durchgehender Test mit echtem separaten Python-Service: Anlagenprüfung → Relay → Live-VNBdigital-Suche → lokale SQLite-Speicherung erfolgreich; keine Schreibaktion im Netzbetreiberportal.
 - Vue-Komponente zusätzlich mit DOM-Emulation geprüft: automatische Betreiberdarstellung, anlagenbezogene Vorschau, gesperrter unbekannter Betreiber, Prüf-Request ohne Provider und keine versehentlichen Formular-Submits. Ein echter Chrome-Prozess ließ sich in dieser Umgebung nicht starten.
