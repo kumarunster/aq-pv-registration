@@ -82,7 +82,7 @@ class OutputContract(unittest.TestCase):
             x0,y0,x1,y1=result['bild']['bbox']
             self.assertAlmostEqual(x1-x0,60);self.assertAlmostEqual(y1-y0,45)
             self.assertTrue(Path(tmp,'grundstueck.json').is_file())
-            with Image.open(Path(tmp,'karte.png')) as image:self.assertEqual(image.size,(1600,1340))
+            with Image.open(Path(tmp,'karte.png')) as image:self.assertEqual(image.size,(1600,1280))
     def test_two_address_points_on_different_parcels_rejected(self):
         lon,lat=8.6527898,49.9723433
         x,y=Transformer.from_crs(4326,25832,always_xy=True).transform(lon,lat)
