@@ -505,13 +505,12 @@ def draw_parcels(parcels,bbox):
 
 def save_image(img,path,address,state,width_m,image_info,esri_used=False):
     # Footer lies outside the 60 x 45 m geographic map, preserving its extent.
-    out=Image.new('RGB',(1600,1340),'white');out.paste(img,(0,0));d=ImageDraw.Draw(out)
+    out=Image.new('RGB',(1600,1310 if esri_used else 1280),'white');out.paste(img,(0,0));d=ImageDraw.Draw(out)
     d.line((0,1200,1600,1200),fill='#cccccc',width=2)
-    d.text((22,1212),address[:110],font=font(25),fill='#222222')
     caption=f"{PROVIDERS[state]['name']} | Ausschnitt {width_m:g} × {width_m*0.75:g} m | "+('Flurstücksskizze (ohne Gebäude)' if image_info['typ']=='Flurstuecksskizze' else 'Katasterkarte')
-    d.text((22,1248),caption,font=font(21),fill='#333333')
-    d.text((22,1280),PROVIDERS[state]['attribution']+' | '+OSM_CREDIT,font=font(16),fill='#444444')
-    if esri_used:d.text((22,1307),'Flurstücksdaten: Esri Deutschland / ALKIS der Länder [Daten geändert]; vollständiger Quellenvermerk im JSON.',font=font(16),fill='#444444')
+    d.text((22,1212),caption,font=font(21),fill='#333333')
+    d.text((22,1244),PROVIDERS[state]['attribution'],font=font(16),fill='#444444')
+    if esri_used:d.text((22,1271),'Flurstücksdaten: Esri Deutschland / ALKIS der Länder [Daten geändert]; vollständiger Quellenvermerk im JSON.',font=font(16),fill='#444444')
     info=PngImagePlugin.PngInfo();info.add_text('Description',caption);info.add_text('Source',image_info.get('url','amtliche Flurstücksgeometrien'))
     info.add_text('Attribution',PROVIDERS[state]['attribution']+'; '+OSM_CREDIT+('; '+ESRI_CREDIT if esri_used else ''))
     out.save(path,pnginfo=info)
