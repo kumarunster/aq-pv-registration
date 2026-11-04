@@ -14,7 +14,8 @@ from .errors import PortalError
 from .models import ErrorResponse, InstallationList
 from .platform import build_adapters, router
 from .errors import ProviderNotConfigured
-from .drafts import DraftService, Journal, router as draft_router
+from .drafts import DraftService, Journal, Site, router as draft_router
+from .vnbdigital import VNBDigitalClient
 
 bearer = HTTPBearer(auto_error=False)
 
@@ -34,7 +35,7 @@ def create_app(settings: Settings | None = None, portal: NRMClient | None = None
                 provider.close()
 
     app = FastAPI(
-        title="PV Netzanmeldung Multi-Provider API", version="0.3.0",
+        title="PV Netzanmeldung Multi-Provider API", version="0.4.0",
         description=(
             "Unofficial adapters for NRM, ENM, Mainzer Netze and e-netz Suedhessen. Read operations and limited draft initialization; no final submission. "
             "Lists the configured account's applications from Bestellungen / Alle. "
@@ -80,7 +81,7 @@ def create_app(settings: Settings | None = None, portal: NRMClient | None = None
     @app.get("/health", tags=["Operations"])
     def health() -> dict[str, str]:
         """Process liveness only; does not contact NRM or verify its availability."""
-        return {"status": "ok", "version": "0.3.0"}
+        return {"status": "ok", "version": "0.4.0"}
 
     @app.get(
         "/api/v1/installations", response_model=InstallationList,
@@ -105,6 +106,11 @@ def create_app(settings: Settings | None = None, portal: NRMClient | None = None
             retrieved_at=datetime.now(timezone.utc), total=len(installations),
             installations=installations,
         )
+
+    @app.post("/api/v1/network-operators/resolve", tags=["Network operators"], dependencies=[Depends(authenticate)])
+    def resolve_network_operator(site: Site):
+        """Read-only VNBdigital lookup for a house-level low-voltage address."""
+        return VNBDigitalClient().resolve(site)
 
     app.include_router(router(authenticate))
     app.include_router(draft_router(authenticate))

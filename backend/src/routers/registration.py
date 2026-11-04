@@ -17,7 +17,7 @@ def require_admin(
 
 class Review(BaseModel):
     model_config = ConfigDict(extra='forbid')
-    provider: Literal['nrm', 'enm', 'mainzer', 'enetz']
+    expected_operator_id: str = Field(min_length=1, max_length=100)
     target: Literal['local', 'portal'] = 'local'
     product_id: int | None = Field(None, ge=1)
     expected_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
@@ -36,8 +36,7 @@ async def providers():
 
 @router.get('/customers/{customer_id}/plants/{plant_index}/preview')
 async def preview(customer_id: str, plant_index: int = Path(ge=0)):
-    data = await service.snapshot(customer_id, plant_index)
-    return {"snapshot": data, "snapshot_hash": service.digest(data)}
+    return await service.preview(customer_id, plant_index)
 
 
 @router.post('/customers/{customer_id}/plants/{plant_index}/review', status_code=201)

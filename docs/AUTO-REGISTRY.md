@@ -1,6 +1,6 @@
 # auto-registry – Analyse und Integration
 
-Stand: 3. November 2026. Branch: `auto-registry`.
+Stand: 4. November 2026. Branch: `auto-registry`.
 
 ## Analyse des bestehenden Projekts
 
@@ -29,9 +29,9 @@ Das Backend vertraut ausschließlich Identitätsheadern des internen Oathkeeper-
 
 ## Admin-Ablauf
 
-Unter **Kunden & Anlagen → Netzanmeldung**:
+Unter **Kunden & Anlagen → Kunde bearbeiten → Anlagen → Anlage öffnen**, unten in der Anlagenmaske. Der Bereich wird ausschließlich für gespeicherte PV-Anlagen mit `status=in_pruefung` und nur für Admins aktiviert. Bei ungespeicherten Änderungen zuerst speichern und die Anlage erneut öffnen:
 
-1. Gespeicherte PV-Anlage, Netzbetreiber und Ziel auswählen. Formulardaten vorher speichern. Netzbetreiber wird ausdrücklich vom Admin gewählt; keine automatische Zuordnung anhand der PLZ.
+1. Der Netzbetreiber wird automatisch aus der gespeicherten Anlagenadresse über VNBdigital ermittelt (Strom/Niederspannung). Bei abweichender Anlagenadresse wird diese verwendet. Mehrdeutige, fehlende oder noch nicht angebundene Betreiber sperren den Ablauf. Es gibt keine freie Betreiberauswahl. [Analyse und Suchprotokoll](../netzportal/docs/VNBDIGITAL.md).
 2. Gespeicherte Daten zur Prüfung laden. Angezeigt werden Betreiber, ausgewählte Anlage, referenzierte Installateurfirma und Änderungsstand. Der Server liefert einen Hash dieser Vorschau.
 3. Daten und angezeigten Funktionsumfang bestätigen, Prüfvermerk eingeben und **Prüfung speichern**. Der Server prüft, ob die Vorschau weiterhin aktuell ist. Allein die Prüfung löst keinen Portalaufruf aus.
 4. **Lokale Vorbereitung starten** bzw. **Portalentwurf anlegen**. Der auslösende Admin muss selbst geprüft haben; die Freigabe gilt 30 Minuten. Vor dem Start werden Kunde, Anlage und Firma erneut geladen und mit dem geprüften Stand verglichen.
@@ -62,7 +62,7 @@ Alle unter `/api/admin/registration`, nur Schema `admin`:
 |---|---|---|
 | GET | `/providers` | Servicefähigkeiten / konfigurierte Anbieter |
 | GET | `/customers/{id}/plants/{index}/preview` | Gespeicherter Datenstand mit Hash |
-| POST | `/customers/{id}/plants/{index}/review` | Prüfung bestätigen; noch kein Portalaufruf |
+| POST | `/customers/{id}/plants/{index}/review` | Prüfung bestätigen und Betreiber erneut ermitteln; keine Antragserstellung |
 | POST | `/jobs/{id}/start` | Genau einen Service-Schreibversuch anstoßen |
 | GET | `/customers/{id}/plants/{index}/jobs` | Letzte 100 Prüfungen/Vorgänge |
 
@@ -70,7 +70,7 @@ Prüf-Body, Hash aus der Vorschau übernehmen:
 
 ```json
 {
-  "provider": "enm",
+  "expected_operator_id": "350",
   "target": "local",
   "expected_hash": "<64-stelliger Hash der Vorschau>",
   "data_checked": true,
@@ -79,7 +79,11 @@ Prüf-Body, Hash aus der Vorschau übernehmen:
 }
 ```
 
+`expected_operator_id` stammt aus der automatischen Vorschau und wird bei Prüfung und Start erneut serverseitig abgeglichen. `provider` wird nicht mehr als Eingabefeld akzeptiert.
+
 `product_id` ist optional und nur für NRM/ENM-Portalentwürfe erforderlich. Anmeldedaten und beliebige technische JSONs werden nicht vom Browser an den Relay weitergereicht: Die Nutzdaten stammen aus der Datenbank.
+
+Die Suche erfolgt im separaten Service über `POST /api/v1/network-operators/resolve`. Sie überträgt ausschließlich die Anlagenadresse an VNBdigital. Prüf- und Startaktionen bleiben im Admin-Relay. Der Admin-Update-Payload erhält nun den Anlagenstatus; zuvor ging dieser im Update-Modell verloren.
 
 ## Parallelität und Fehler
 
@@ -104,9 +108,10 @@ Bei bestehenden eigenständigen Service-Installationen die Schlüsselvariable in
 
 ## Validierung
 
-- Backend: 34 Tests mit ASGI-Requests, Mongo-Mock und simuliertem Relay: fehlende Identität, Installateur, fehlendes Admin-Schema, Hashänderungen, Firmenänderungen, abgelaufene/fremde Freigabe, Parallelstarts, Wiederholungen, unklare Ergebnisse, Payload-Mapping und Mainzer-Sperre.
-- Netzportal-Service: 35 Tests für Login-/Leseadapter, Entwurfserstellung und Idempotenz.
-- Durchgehender Test mit echtem separaten Python-Service: Admin-Prüfung → Relay → lokale SQLite-Speicherung erfolgreich; kein Portalkontakt.
+- Backend: 48 Tests mit ASGI-Requests, Mongo-Mock und simuliertem Relay: fehlende Identität, Installateur, fehlendes Admin-Schema, Hashänderungen, Firmenänderungen, abgelaufene/fremde Freigabe, Parallelstarts, Wiederholungen, unklare Ergebnisse, Payload-Mapping und Mainzer-Sperre.
+- Netzportal-Service: 57 Tests für Login-/Leseadapter, Entwurfserstellung und Idempotenz.
+- Durchgehender Test mit echtem separaten Python-Service: Anlagenprüfung → Relay → Live-VNBdigital-Suche → lokale SQLite-Speicherung erfolgreich; keine Schreibaktion im Netzbetreiberportal.
+- Vue-Komponente zusätzlich mit DOM-Emulation geprüft: automatische Betreiberdarstellung, anlagenbezogene Vorschau, gesperrter unbekannter Betreiber, Prüf-Request ohne Provider und keine versehentlichen Formular-Submits. Ein echter Chrome-Prozess ließ sich in dieser Umgebung nicht starten.
 - Vue-Produktionsbuild erfolgreich. Compose-Struktur zusätzlich statisch geprüft; kein Containerbuild oder Browser-E2E gegen einen laufenden Gesamtstack.
 
 ```bash
