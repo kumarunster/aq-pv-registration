@@ -5,6 +5,10 @@ log:
 serve:
   proxy:
     port: 4455
+    # Der Backend-Relay wartet bis zu 300s auf Kataster-/Landesdienste.
+    timeout:
+      write: 330s
+      idle: 330s
     cors:
       enabled: false
   api:

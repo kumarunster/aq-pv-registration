@@ -1,0 +1,1 @@
+"""Adressbasierter Katasterabruf für Deutschland."""
