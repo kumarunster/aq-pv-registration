@@ -3,7 +3,7 @@
   "info": {
     "title": "PV Netzanmeldung Multi-Provider API",
     "description": "Unofficial adapters for NRM, ENM, Mainzer Netze and e-netz Suedhessen. Read operations and limited draft initialization; no final submission. Lists the configured account's applications from Bestellungen / Alle. Uses server-side provider credentials; API callers authenticate with a separate bearer key.",
-    "version": "0.3.0"
+    "version": "0.4.0"
   },
   "paths": {
     "/health": {
@@ -80,6 +80,51 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/network-operators/resolve": {
+      "post": {
+        "tags": [
+          "Network operators"
+        ],
+        "summary": "Resolve Network Operator",
+        "description": "Read-only VNBdigital lookup for a house-level low-voltage address.",
+        "operationId": "resolve_network_operator_api_v1_network_operators_resolve_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Site"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }

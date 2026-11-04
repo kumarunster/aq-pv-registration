@@ -2,11 +2,11 @@
 
 Erfassung von Kunden und PV-Anlagen, Wallboxen und Wärmepumpen mit getrennten Admin-/Installateurbereichen. FastAPI/MongoDB-Backend, Vue-Frontend, Kratos/Oathkeeper-Authentifizierung, MinIO-Dokumentablage und separater PDF-Service.
 
-Der Branch `auto-registry` ergänzt einen **eigenständigen Netzportal-Service** und einen **Admin-Relay** für die geprüfte Vorbereitung von PV-Netzanmeldungen. Aktueller Stand vom 3. November 2026: [Analyse, Ablauf und Grenzen](docs/AUTO-REGISTRY.md).
+Der Branch `auto-registry` ergänzt einen **eigenständigen Netzportal-Service** und einen **Admin-Relay** für die geprüfte Vorbereitung von PV-Netzanmeldungen. Aktueller Stand vom 4. November 2026: [Analyse, Ablauf und Grenzen](docs/AUTO-REGISTRY.md).
 
 ## Netzanmeldung
 
-Unter **Admin → Kunden & Anlagen → Netzanmeldung** gespeicherte Installationsdaten laden, prüfen und mit Prüfvermerk freigeben. Erst danach kann derselbe Admin die lokale JSON-Vorbereitung oder einen unterstützten Portalentwurf starten. Installateure können diese API nicht auslösen. Änderungen am geprüften Datenstand erfordern eine erneute Prüfung.
+Unter **Admin → Kunden & Anlagen → Kunde bearbeiten → Anlagen → Anlage öffnen** wird die Netzanmeldung unten bei gespeicherten PV-Anlagen im Status **„In Prüfung“** aktiviert. Der Netzbetreiber wird über die Anlagenadresse und VNBdigital automatisch ermittelt. Daten prüfen und mit Prüfvermerk freigeben. Erst danach kann derselbe Admin die lokale JSON-Vorbereitung oder einen unterstützten Portalentwurf starten. Installateure können diese API nicht auslösen. Änderungen am geprüften Datenstand erfordern eine erneute Prüfung.
 
 NRM/ENM unterstützen derzeit leere Produktentwürfe, e-netz Südhessen die initiale Strommeldung mit Standort. Mainzer unterstützt bislang ausschließlich lokale JSON-Vorbereitung. Vollständige technische Formularbefüllung und endgültiges Absenden sind nicht implementiert. Die Portal-Schreibabläufe sind noch nicht live verifiziert.
 

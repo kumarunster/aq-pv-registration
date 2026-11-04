@@ -5,7 +5,7 @@ Stand: v0.3.1 - Lageplan + Dokumente an Anlage (28.10.2026).
 
 from datetime import date, datetime
 from enum import Enum
-from typing import Optional
+from typing import Optional, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -198,6 +198,14 @@ class CustomerUpdate(BaseModel):
     iban: Optional[str] = None
     company_id: Optional[str] = None
     plants: Optional[list["PlantUpdate"]] = None
+
+
+class AdminPlantUpdate(PlantUpdate):
+    status: Optional[Literal['in_pruefung', 'angemeldet', 'abgeschlossen']] = None
+
+
+class AdminCustomerUpdate(CustomerUpdate):
+    plants: Optional[list[AdminPlantUpdate]] = None
 
 
 

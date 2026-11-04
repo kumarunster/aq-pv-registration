@@ -23,17 +23,16 @@ async def snapshot(customer_id, plant_index):
     plant = customer['plants'][plant_index]
     if plant.get('anlagetyp') != 'pv':
         raise HTTPException(422, 'Automatisierung ist derzeit nur fuer PV-Anlagen vorgesehen')
+    if plant.get('status') != 'in_pruefung':
+        raise HTTPException(409, 'Netzanmeldung ist nur fuer Anlagen mit Status In Pruefung freigegeben')
     company = await companies.get_by_id(plant['company_id']) if plant.get('company_id') else None
     operator = {k: customer.get(k) for k in ('firstname', 'lastname', 'address_street', 'address_plz', 'address_city', 'phone', 'email')}
     return {'customer_id': customer_id, 'plant_index': plant_index, 'operator': operator,
             'plant': plant, 'licensed_company': company, 'customer_updated_at': customer.get('updated_at')}
 
 
-def payload_for(data, provider, target, product_id):
+def site_for(data):
     operator, plant = data['operator'], data['plant']
-    required = ('firstname', 'lastname', 'address_street', 'address_plz', 'address_city')
-    if any(not str(operator.get(k) or '').strip() for k in required):
-        raise HTTPException(422, 'Betreibername und Adresse muessen vollstaendig sein')
     address = operator if plant.get('address_from_customer', True) else plant
     street = (address.get('address_street') or '').strip()
     match = re.fullmatch(r'(.+?)\s+(\d+\S*(?:\s*[-/]\s*\d+\S*)?)', street)
@@ -41,6 +40,32 @@ def payload_for(data, provider, target, product_id):
         raise HTTPException(422, 'Anlagenadresse benoetigt Strasse mit Hausnummer, fuenfstellige PLZ und Ort')
     site = {'postal_code': address['address_plz'], 'city': address['address_city'],
             'street': match[1], 'house_number': match[2]}
+    return site
+
+
+async def resolve_operator(data):
+    return await relay('POST', '/api/v1/network-operators/resolve', payload=site_for(data))
+
+
+async def preview(customer_id, plant_index):
+    data = await snapshot(customer_id, plant_index)
+    resolution = await resolve_operator(data)
+    return {'snapshot': data, 'snapshot_hash': digest(data), 'network_operator': resolution}
+
+
+def resolved_provider(resolution):
+    if (resolution.get('status') != 'resolved' or resolution.get('provider') not in ('nrm', 'enm', 'mainzer', 'enetz')
+            or not (resolution.get('operator') or {}).get('id')):
+        raise HTTPException(409, 'Kein eindeutig angebundener Netzbetreiber ermittelt; Adresse und VNBdigital-Ergebnis pruefen')
+    return resolution['provider']
+
+
+def payload_for(data, provider, target, product_id):
+    operator, plant = data['operator'], data['plant']
+    required = ('firstname', 'lastname', 'address_street', 'address_plz', 'address_city')
+    if any(not str(operator.get(k) or '').strip() for k in required):
+        raise HTTPException(422, 'Betreibername und Adresse muessen vollstaendig sein')
+    site = site_for(data)
     if target == 'local':
         return {'target': 'local', 'site': site, 'plant': {'operator': operator, 'installation': plant, 'licensed_company': data['licensed_company']}}
     if provider == 'mainzer':
@@ -81,14 +106,18 @@ async def review(customer_id, plant_index, body, admin):
     data = await snapshot(customer_id, plant_index)
     if digest(data) != body.expected_hash:
         raise HTTPException(409, "Daten seit Vorschau geaendert; Vorschau neu laden")
-    payload = payload_for(data, body.provider, body.target, body.product_id)
-    scope = scope_for(body.provider, body.target)
+    resolution = await resolve_operator(data)
+    provider = resolved_provider(resolution)
+    if resolution['operator']['id'] != body.expected_operator_id:
+        raise HTTPException(409, 'Netzbetreiber hat sich seit der Vorschau geaendert; erneut pruefen')
+    payload = payload_for(data, provider, body.target, body.product_id)
+    scope = scope_for(provider, body.target)
     fingerprint = digest(data)
     operation_id = digest({'customer': customer_id, 'index': plant_index, 'fingerprint': fingerprint,
-                           'provider': body.provider, 'payload': payload})
+                           'provider': provider, 'payload': payload})
     record = {'_id': operation_id, 'customer_id': customer_id, 'plant_index': plant_index,
-              'provider': body.provider, 'snapshot_hash': fingerprint, 'snapshot': data,
-              'payload': payload, 'scope': scope, 'state': 'reviewed', 'reviewed_by': admin['id'],
+              'provider': provider, 'snapshot_hash': fingerprint, 'snapshot': data,
+              'network_operator': resolution, 'payload': payload, 'scope': scope, 'state': 'reviewed', 'reviewed_by': admin['id'],
               'reviewed_at': datetime.now(timezone.utc), 'review_note': body.review_note,
               'submitted': False}
     collection = get_db()['registration_jobs']
@@ -99,7 +128,7 @@ async def review(customer_id, plant_index, body, admin):
         if record['state'] == 'reviewed':
             # Refresh approval atomically, never reset a started/uncertain job.
             await collection.update_one({'_id': operation_id, 'state': 'reviewed'}, {'$set': {
-                'reviewed_by': admin['id'], 'reviewed_at': datetime.now(timezone.utc), 'review_note': body.review_note}})
+                'reviewed_by': admin['id'], 'reviewed_at': datetime.now(timezone.utc), 'review_note': body.review_note, 'network_operator': resolution}})
             record = await collection.find_one({'_id': operation_id})
     return public(record)
 
@@ -125,6 +154,14 @@ async def start(job_id, admin):
     current = await snapshot(record['customer_id'], record['plant_index'])
     if digest(current) != record['snapshot_hash']:
         raise HTTPException(409, 'Installationsdaten wurden geaendert; erneute Pruefung erforderlich')
+    resolution = await resolve_operator(current)
+    if (resolved_provider(resolution) != record['provider']
+            or resolution['operator']['id'] != (record.get('network_operator') or {}).get('operator', {}).get('id')):
+        raise HTTPException(409, 'Netzbetreiber-Zuordnung geaendert; erneute Pruefung erforderlich')
+    # The lookup can take several HTTP exchanges; check status/data again afterwards.
+    latest = await snapshot(record['customer_id'], record['plant_index'])
+    if digest(latest) != record['snapshot_hash']:
+        raise HTTPException(409, 'Installationsdaten waehrend der Netzbetreibersuche geaendert; erneut pruefen')
     claimed = await collection.find_one_and_update(
         {'_id': job_id, 'state': 'reviewed', 'reviewed_by': admin['id'], 'reviewed_at': record['reviewed_at']},
         {'$set': {'state': 'pending', 'started_by': admin['id'], 'started_at': now}}, return_document=True)

@@ -1,4 +1,4 @@
-# Entwurfs-API – Version 0.3
+# Entwurfs-API – Version 0.4
 
 Diese Erweiterung bereitet PV-Netzanmeldungen vor. Sie enthält keinen Endpunkt zum endgültigen Absenden. Zugangsdaten bleiben serverseitig; alle folgenden Endpunkte verlangen den vorhandenen Bearer-Schlüssel.
 

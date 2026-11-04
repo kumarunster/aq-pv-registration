@@ -283,7 +283,7 @@ services:
   na-netzportal:
     build:
       context: ../netzportal
-    image: na-netzportal:0.3.0
+    image: na-netzportal:0.4.0
     restart: unless-stopped
     env_file:
       - ./na-netzportal/.env

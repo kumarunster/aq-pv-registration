@@ -1,6 +1,6 @@
 # PV-Netzanmeldung – Multi-Provider API
 
-**Version 0.3.0 · Stand: 2. November 2026**
+**Version 0.4.0 · Stand: 4. November 2026**
 
 Dieses Projekt ist die technische Grundlage für eine betreiberübergreifende Automatisierung von PV-Netzanmeldungen. Es bindet **NRM**, **Energienetze Mittelrhein (ENM)**, **Mainzer Netze** und **e-netz Südhessen** über getrennte Adapter an eine gemeinsame HTTP-API an.
 
@@ -9,6 +9,12 @@ Die Anmeldung erfolgt serverseitig mit den konfigurierten Zugangsdaten. API-Aufr
 **Aktueller Umfang:** automatischer Login, Vorgangslisten, ausgewählte Lesefunktionen und eine erste API für Entwürfe. NRM/ENM: leerer Produktentwurf im Warenkorb; e-netz: initiale Strommeldung mit Standort; Mainzer: ausschließlich lokale JSON-Vorbereitung. Technische PV-Daten werden derzeit nur lokal gespeichert. **Kein endgültiges Absenden ist implementiert.** Portal-Schreibvorgänge sind synthetisch getestet, aber ohne reale Anlagendaten noch nicht live verifiziert. Die Integration ist inoffiziell.
 
 Das JSON-Format, alle neuen Endpunkte und die genauen Grenzen stehen in **[Entwurfs-API](docs/DRAFTS.md)**.
+
+## Automatische Netzbetreibersuche
+
+`POST /api/v1/network-operators/resolve` ermittelt über die öffentliche VNBdigital-Adresssuche den Niederspannungsnetzbetreiber. Der Endpunkt verlangt den Service-Bearer. Er überträgt ausschließlich Straße, Hausnummer, PLZ und Ort; keine Betreiber-/Komponentendaten. Details und verifizierte Live-Beispiele: [VNBdigital](docs/VNBDIGITAL.md).
+
+In der integrierten Anwendung erscheint die Netzanmeldung unten in der gespeicherten PV-Anlagenmaske, nur für Admins bei Status „In Prüfung“. Die Betreiberauswahl erfolgt automatisch; Mehrdeutigkeiten oder nicht angebundene Betreiber sperren den Start.
 
 ## Verifizierter Funktionsumfang
 
@@ -222,7 +228,7 @@ Die Live-Ergebnisse unten stammen aus der vorausgehenden Einzelservice-Analyse v
 python -m pytest -q
 ```
 
-Derzeit **35 automatisierte Tests** mit synthetischen Daten. Sie prüfen unter anderem:
+Derzeit **57 automatisierte Tests** mit synthetischen Daten. Sie prüfen unter anderem:
 
 - Bestehenden NRM-SAML-Ablauf und Rückwärtskompatibilität.
 - ENM-Anmeldung, anbietergebundene Host-/Token-Verwendung und Sitzungswiederverwendung.

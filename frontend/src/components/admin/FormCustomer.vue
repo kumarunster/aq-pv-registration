@@ -174,6 +174,17 @@
         </div>
         <PlantForm :plant="form.plants[editingPlant]" :onUpdate="updatePlant" :index="editingPlant"
           :isInstaller="isInstaller()" :customerId="form.customer_id" @open-lageplan="openLageplan" />
+        <div v-if="!isInstaller() && form.plants[editingPlant].anlagetyp === 'pv'" class="mt-5">
+          <RegistrationPanel
+            v-if="form.plants[editingPlant].status === 'in_pruefung' && form.customer_id && !formDirty"
+            :key="`${form.customer_id}-${editingPlant}`"
+            :customer-id="form.customer_id" :plant-index="editingPlant" />
+          <p v-else class="text-sm text-slate-400 border border-slate-700 rounded-lg p-3">
+            Netzanmeldung: {{ form.plants[editingPlant].status !== 'in_pruefung'
+              ? 'Wird für diese Anlage im Status „In Prüfung“ aktiviert.'
+              : 'Bitte zuerst die Installationsdaten speichern und diese Anlage erneut öffnen.' }}
+          </p>
+        </div>
       </div>
     </div>
 
@@ -215,6 +226,7 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted, onUnmounted, h, defineComponent } from 'vue'
 import client from '@/api/client'
+import RegistrationPanel from '@/components/admin/RegistrationPanel.vue'
 import toast from '@/api/toast'
 import * as docsApi from '@/api/docs'
 import { zerezSearch } from '@/api/client'
