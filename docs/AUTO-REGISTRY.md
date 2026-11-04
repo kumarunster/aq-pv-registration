@@ -95,7 +95,9 @@ Der geprüfte Snapshot wird unverändert übertragen. Eine Änderung nach der le
 2. `_infrastructure/na-netzportal/.env.example` nach `_infrastructure/na-netzportal/.env` kopieren und Zugangspaare konfigurieren. Mindestens ein Anbieter ist erforderlich. Beide Dateien mit `chmod 600` schützen. Es wurden keine realen Zugangsdaten in dieses Repository kopiert.
 Vor dem ersten Start auf dem Linux-Docker-Host das Datenverzeichnis für Service-UID 10001 vorbereiten: `sudo install -d -o 10001 -g 10001 -m 700 _infrastructure/na-netzportal/volume` (aus dem Projektstamm). Hinweise zur Übernahme vorhandener Volume-Daten: [Serviceverzeichnis](../_infrastructure/na-netzportal/README.md).
 
-3. Compose übergibt denselben `NETZPORTAL_API_KEY` an Backend und Service; im Service heißt er kompatibel `NRM_API_KEY`. Er überschreibt den Platzhalter der Service-`.env`.
+3. Compose übergibt denselben `NETZPORTAL_API_KEY` an Backend und Service unter identischem Namen. Er überschreibt den Platzhalter der Service-`.env`.
+Bei bestehenden eigenständigen Service-Installationen die Schlüsselvariable in der Service-`.env` auf `NETZPORTAL_API_KEY` umbenennen. Der alte Variablenname wird nicht mehr gelesen. Bei Compose bleibt der vorhandene Wert in `_infrastructure/.env` unverändert; Backend und Service müssen mit der aktualisierten Konfiguration neu erstellt werden. NRM-Benutzername und -Passwort bleiben unverändert.
+
 4. Auf dem Zielserver aus `_infrastructure`: `docker compose up -d --build`. Hier wurde Docker nicht gestartet und kein Image veröffentlicht.
 
 `_infrastructure/na-netzportal/volume` (im Container `/data`) enthält das Servicejournal und lokale JSONs. MongoDB enthält Prüfungen und Snapshots. Beide sind personenbezogene Klartextdaten; gemeinsam sichern und niemals Journale zur Wiederholungsfreigabe löschen. Dateirechte des Servicejournals: 0600; Service-UID 10001. Keine Secrets oder Laufzeitdaten werden in den Image-Kontext kopiert. Horizontale Service-Replikation mit getrennten SQLite-Volumes wird nicht unterstützt.
@@ -103,7 +105,7 @@ Vor dem ersten Start auf dem Linux-Docker-Host das Datenverzeichnis für Service
 ## Validierung
 
 - Backend: 34 Tests mit ASGI-Requests, Mongo-Mock und simuliertem Relay: fehlende Identität, Installateur, fehlendes Admin-Schema, Hashänderungen, Firmenänderungen, abgelaufene/fremde Freigabe, Parallelstarts, Wiederholungen, unklare Ergebnisse, Payload-Mapping und Mainzer-Sperre.
-- Netzportal-Service: 34 vorhandene Tests für Login-/Leseadapter, Entwurfserstellung und Idempotenz.
+- Netzportal-Service: 35 Tests für Login-/Leseadapter, Entwurfserstellung und Idempotenz.
 - Durchgehender Test mit echtem separaten Python-Service: Admin-Prüfung → Relay → lokale SQLite-Speicherung erfolgreich; kein Portalkontakt.
 - Vue-Produktionsbuild erfolgreich. Compose-Struktur zusätzlich statisch geprüft; kein Containerbuild oder Browser-E2E gegen einen laufenden Gesamtstack.
 

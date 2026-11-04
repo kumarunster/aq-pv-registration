@@ -27,7 +27,7 @@ class Settings:
         if not any(u and p for u, p in pairs):
             raise ValueError("Configure credentials for at least one provider")
         if len(self.api_key) < 32:
-            raise ValueError("NRM_API_KEY must contain at least 32 characters")
+            raise ValueError("NETZPORTAL_API_KEY must contain at least 32 characters")
         if not 1 <= self.timeout_seconds <= 120:
             raise ValueError("NRM_TIMEOUT_SECONDS must be between 1 and 120")
 
@@ -39,7 +39,7 @@ class Settings:
         return cls(
             username=os.environ.get("NRM_USERNAME", ""),
             password=os.environ.get("NRM_PASSWORD", ""),
-            api_key=os.environ.get("NRM_API_KEY", ""),
+            api_key=os.environ.get("NETZPORTAL_API_KEY", ""),
             timeout_seconds=float(os.environ.get("NRM_TIMEOUT_SECONDS", "30")),
             draft_directory=os.environ.get("PV_DATA_DIR", ""),
             enm_username=os.environ.get("ENM_USERNAME", ""),

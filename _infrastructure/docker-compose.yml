@@ -329,7 +329,7 @@ services:
     env_file:
       - ./na-netzportal/.env
     environment:
-      NRM_API_KEY: ${NETZPORTAL_API_KEY:?Set NETZPORTAL_API_KEY}
+      NETZPORTAL_API_KEY: ${NETZPORTAL_API_KEY:?Set NETZPORTAL_API_KEY}
       NRM_HOST: 0.0.0.0
       NRM_PORT: "8080"
       PV_DATA_DIR: /data
