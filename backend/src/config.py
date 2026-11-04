@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     minio_access_key: str = "naadmin"
     minio_secret_key: str = "naadmin123"
     minio_bucket: str = "na-docs"
+    netzportal_url: str = "http://na-netzportal:8080"
+    netzportal_api_key: str = ""
+    netzportal_timeout_seconds: float = 180
     zerez_url: str = "https://app-zerez-weeu-gatewaysvc-prod-01.azurewebsites.net/graphql/"
 
     class Config:

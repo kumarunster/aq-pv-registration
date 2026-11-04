@@ -367,7 +367,7 @@ const emptyPlant = () => ({
   flur: '',
   flurstueck: '',
   kataster: null,
-  panels: { manufacturer: '', type: '', count: 0, kwp: '' },
+  panels: { manufacturer: '', type: '', module_watt: '', count: 0, kwp: '' },
   inverters: [],
   battery: null,
   mstr_see_plant: '',
@@ -413,6 +413,57 @@ const PlantForm = defineComponent({
     function setInverter(i, key, val) {
       p.plant.inverters[i][key] = val
       set('inverters', [...p.plant.inverters])
+    }
+
+    // Berechnete Werte: kW aus Wechselrichtern, kWp aus PV-Modulen, kWh aus Speicher
+    const plantKw = computed(() => {
+      const list = p.plant.inverters || []
+      const total = list.reduce((sum, inv) => {
+        const kw = parseFloat(String(inv.kw || '').replace(',', '.')) || 0
+        return sum + kw
+      }, 0)
+      return total || 0
+    })
+    const plantKwp = computed(() => {
+      const panels = p.plant.panels || {}
+      const mw = parseFloat((panels.module_watt || '').replace(',', '.')) || 0
+      const cnt = parseInt(panels.count) || 0
+      return mw && cnt ? (mw * cnt) / 1000 : 0
+    })
+    const plantKwh = computed(() => {
+      const bat = p.plant.battery
+      if (!bat) return 0
+      const v = parseFloat(String(bat.kwh || '').replace(',', '.')) || 0
+      return v
+    })
+    function fmtKw(v) { return v ? String(v) : '–' }
+
+    // Berechnete Leistung/Speicher-Anzeige (read-only) für „Anlagetyp & Leistung"
+    function computedDisplay() {
+      return h('div', { class: 'mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-slate-300' }, [
+        h('span', { class: 'text-slate-500' }, 'Berechnet:'),
+        h('span', { id: 'plant-kw-computed-' + p.index }, 'kW: ' + fmtKw(plantKw.value)),
+        p.plant.anlagetyp === 'pv'
+          ? h('span', { id: 'plant-kwp-computed-' + p.index }, 'kWp: ' + fmtKw(plantKwp.value))
+          : null,
+        h('span', { id: 'plant-kwh-computed-' + p.index }, 'Speicher: ' + (plantKwh.value ? String(plantKwh.value) : '–') + ' kWh'),
+      ])
+    }
+
+    // PV-Module: Feld setzen + Gesamtleistung (module_watt * count) neu berechnen
+    function setPanels(_plant, patch) {
+      const cur = p.plant.panels
+      const next = { ...cur, ...patch }
+      const mw = parseFloat((next.module_watt || '').replace(',', '.')) || 0
+      const cnt = parseInt(next.count) || 0
+      next.kwp = mw && cnt ? String((mw * cnt) / 1000) : '0'
+      p.plant.panels = next
+      set('panels', next)
+    }
+    function panelKwp(panels) {
+      const mw = parseFloat((panels.module_watt || '').replace(',', '.')) || 0
+      const cnt = parseInt(panels.count) || 0
+      return mw && cnt ? String((mw * cnt) / 1000) : '0'
     }
 
     // ⬇️ JSON-Export (nur Admin) — Button im Footer, Funktion im Haupt-Scope
@@ -478,7 +529,7 @@ const PlantForm = defineComponent({
     }
 
     // P1-4: Accordion-Sections
-    const openSections = ref(new Set(['adresse', 'typ', 'wechselrichter']))
+    const openSections = ref(new Set(['adresse', 'typ', 'wechselrichter', 'module']))
     // PV: Lageplan ist Pflicht → Accordion automatisch öffnen
     if (p.plant.anlagetyp === 'pv') openSections.value.add('lageplan')
     function toggleSection(id) {
@@ -686,7 +737,7 @@ const PlantForm = defineComponent({
         ]),
       ]),
 
-      // Anlagetyp / Inbetriebnahme / kW (Accordion, default open)
+      // Anlagetyp / Inbetriebnahme (Accordion, default open) — kW/kWp/Speicher sind berechnet
       sectionEl('typ', '⚙️ Anlagetyp & Leistung', p.plant.anlagetyp ? (p.plant.anlagetyp === 'pv' ? 'PV' : p.plant.anlagetyp === 'wallbox' ? 'Wallbox' : 'WP') : null, [
       h('div', { class: 'grid grid-cols-1 md:grid-cols-3 gap-3' }, [
         h('div', [
@@ -710,49 +761,27 @@ const PlantForm = defineComponent({
             onInput: (e) => set('commission_date', e.target.value),
           }),
         ]),
-        h('div', [
-          h('label', { class: 'block text-sm text-slate-400 mb-1' }, 'kW (Leistung)'),
-          h('input', {
-            class: 'input',
-            value: p.plant.kw,
-            placeholder: '6',
-            onInput: (e) => set('kw', e.target.value),
-          }),
-        ]),
       ]),
+      computedDisplay(),
       ]),
 
-      // PV-spezifisch
+      // PV-Module (Accordion)
       p.plant.anlagetyp === 'pv'
         ? h('div', { class: 'space-y-3' }, [
-            h('div', { class: 'grid grid-cols-1 md:grid-cols-3 gap-3' }, [
-              h('div', [
-                h('label', { class: 'block text-sm text-slate-400 mb-1' }, 'kWp (Nennleistung)'),
-                h('input', {
-                  class: 'input',
-                  value: p.plant.kwp,
-                  placeholder: '6,9',
-                  onInput: (e) => set('kwp', e.target.value),
-                }),
-              ]),
-              h('div', [
-                h('label', { class: 'block text-sm text-slate-400 mb-1' }, 'Speicher (kWh)'),
-                h('input', {
-                  class: 'input',
-                  value: p.plant.kwh,
-                  placeholder: '5,1',
-                  onInput: (e) => set('kwh', e.target.value),
-                }),
-              ]),
-              h('div'),
-            ]),
-            // PV-Module (Accordion)
             sectionEl('module', 'PV-Module', p.plant.panels.manufacturer ? p.plant.panels.manufacturer : null, [
               h('div', { class: 'grid grid-cols-1 md:grid-cols-4 gap-2' }, [
-                h('input', { class: 'input', placeholder: 'Hersteller', value: p.plant.panels.manufacturer, onInput: (e) => set('panels', { ...p.plant.panels, manufacturer: e.target.value }) }),
-                h('input', { class: 'input', placeholder: 'Typ', value: p.plant.panels.type, onInput: (e) => set('panels', { ...p.plant.panels, type: e.target.value }) }),
-                h('input', { class: 'input', placeholder: 'Anzahl', type: 'number', value: String(p.plant.panels.count), onInput: (e) => set('panels', { ...p.plant.panels, count: parseInt(e.target.value) || 0 }) }),
-                h('input', { class: 'input', placeholder: 'kWp', value: p.plant.panels.kwp, onInput: (e) => set('panels', { ...p.plant.panels, kwp: e.target.value }) }),
+                h('input', { class: 'input', placeholder: 'Hersteller', value: p.plant.panels.manufacturer, onInput: (e) => setPanels(p, { manufacturer: e.target.value }) }),
+                h('input', { class: 'input', placeholder: 'Typ', value: p.plant.panels.type, onInput: (e) => setPanels(p, { type: e.target.value }) }),
+                h('input', { class: 'input', placeholder: 'Leistung je Modul (W)', type: 'number', step: '1', value: p.plant.panels.module_watt, onInput: (e) => setPanels(p, { module_watt: e.target.value }) }),
+                h('input', { class: 'input', placeholder: 'Anzahl', type: 'number', value: String(p.plant.panels.count), onInput: (e) => setPanels(p, { count: parseInt(e.target.value) || 0 }) }),
+              ]),
+              h('div', { class: 'mt-2 text-sm text-slate-300' }, [
+                h('span', { class: 'text-slate-500' }, 'Gesamtleistung: '),
+                h('span', { id: 'plant-panels-kwp-' + p.index, class: 'font-semibold text-amber-400' }, (() => {
+                  const mw = parseFloat((p.plant.panels.module_watt || '').replace(',', '.')) || 0
+                  const cnt = parseInt(p.plant.panels.count) || 0
+                  return (mw && cnt ? String((mw * cnt) / 1000) : '0') + ' kWp'
+                })()),
               ]),
             ]),
             // MStR (Accordion)
@@ -999,7 +1028,7 @@ onMounted(() => {
           address_plz: p.address_from_customer === false ? (p.address_plz || '') : '',
           address_city: p.address_from_customer === false ? (p.address_city || '') : '',
           checklist: p.checklist && p.checklist.length ? p.checklist : DEFAULT_CHECKLIST(),
-          panels: p.panels || emptyPlant().panels,
+          panels: p.panels ? { ...emptyPlant().panels, ...p.panels } : emptyPlant().panels,
           battery: p.battery || null,
           inverters: p.inverters || [],
         }))
@@ -1180,7 +1209,18 @@ async function save() {
         flur: p.flur || null,
         flurstueck: p.flurstueck || null,
         kataster: p.kataster || null,
-        panels: p.panels && p.panels.manufacturer ? p.panels : null,
+        panels: p.panels && p.panels.manufacturer ? {
+          manufacturer: p.panels.manufacturer,
+          type: p.panels.type,
+          module_watt: p.panels.module_watt || '',
+          count: p.panels.count || 0,
+          // Gesamtleistung: Modul-Leistung (W) * Anzahl / 1000
+          kwp: (() => {
+            const mw = parseFloat((p.panels.module_watt || '').replace(',', '.')) || 0
+            const cnt = p.panels.count || 0
+            return mw && cnt ? String((mw * cnt) / 1000) : '0'
+          })(),
+        } : null,
         inverters: p.inverters || [],
         battery: p.battery || null,
         mstr_see_plant: p.mstr_see_plant || null,

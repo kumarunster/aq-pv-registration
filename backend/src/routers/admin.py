@@ -32,6 +32,8 @@ def _admin_identity(
     if not x_kratos_identity_id:
         logger.warning("Admin-Request ohne X-Kratos-Identity-ID")
         raise HTTPException(401, "Keine Identitaet (Oathkeeper-Mutator fehlt)")
+    if x_kratos_identity_schema != "admin":
+        raise HTTPException(403, "Nur Administratoren erlaubt")
     return {
         "id": x_kratos_identity_id,
         "email": x_kratos_identity_email,

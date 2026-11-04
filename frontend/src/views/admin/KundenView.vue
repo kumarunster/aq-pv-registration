@@ -80,10 +80,12 @@
               </div>
             </div>
             <div class="flex gap-2" @click.stop>
+              <button v-if="c.plants?.some(p => p.anlagetyp === 'pv')" @click="registrationCustomer = registrationCustomer === c._id ? null : c._id" class="text-amber-400 text-sm px-2">Netzanmeldung</button>
               <button @click="editCustomer(c)" class="text-slate-400 hover:text-amber-400 text-sm px-2">✏️ Bearbeiten</button>
               <button @click="deleteCustomer(c)" class="text-slate-400 hover:text-red-400 text-sm px-2">🗑️</button>
             </div>
           </div>
+          <RegistrationPanel v-if="registrationCustomer === c._id" :customer="c" />
         </div>
       </div>
 
@@ -122,10 +124,12 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import client from '@/api/client'
+import RegistrationPanel from '@/components/admin/RegistrationPanel.vue'
 import FormCustomer from '@/components/admin/FormCustomer.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
 
+const registrationCustomer = ref(null)
 const customers = ref([])
 const companies = ref([])
 const loading = ref(true)
