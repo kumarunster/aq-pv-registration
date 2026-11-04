@@ -41,6 +41,18 @@ Standardzugang: `http://localhost:8092`. Nginx veröffentlicht den einzigen Host
 
 Backend und Netzportal-Service verwenden getrennte Python-Umgebungen. Der Frontend-Build läuft mit `npm ci && npm run build` im Verzeichnis `frontend`.
 
+## Automatische Liegenschaftskarte
+
+Der eigenständige Dienst `na-kataster` erzeugt aus einer Adresse ein Kartenbild
+(standardmäßig 60 Meter Breite) und Grundstücksinformationen. Port `8765` wird
+nicht am Host veröffentlicht. Der Zugriff erfolgt über das authentifizierte
+Backend-Relay unter `/api/admin/liegenschaftskarte` bzw.
+`/api/installer/liegenschaftskarte`, einschließlich benutzergebundener Downloads.
+
+Architektur, API-Beispiele, Konfiguration und Tests:
+[docs/LIEGENSCHAFTSKARTE.md](docs/LIEGENSCHAFTSKARTE.md).
+
+## Status
 ```bash
 python3.12 -m venv .venv
 .venv/bin/pip install -r backend/requirements.txt -r backend/requirements-dev.txt

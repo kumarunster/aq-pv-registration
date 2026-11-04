@@ -193,6 +193,8 @@ services:
         condition: service_started
       na-minio:
         condition: service_healthy
+      na-kataster:
+        condition: service_healthy
     environment:
       - APP_ENV=${APP_ENV}
       - MONGO_URI=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@na-mongodb:27017
@@ -202,6 +204,8 @@ services:
       - NETZPORTAL_API_KEY=${NETZPORTAL_API_KEY:?Set NETZPORTAL_API_KEY}
       - NETZPORTAL_TIMEOUT_SECONDS=180
       - WEASYPRINT_URL=http://na-weasyprint:8012
+      - KATASTER_URL=http://na-kataster:8765
+      - KATASTER_TIMEOUT_SECONDS=${KATASTER_TIMEOUT_SECONDS:-300}
       - MINIO_ENDPOINT=na-minio:9000
       - MINIO_ACCESS_KEY=${MINIO_USER:-naadmin}
       - MINIO_SECRET_KEY=${MINIO_PASSWORD}
@@ -211,6 +215,7 @@ services:
     # Backend is the only member shared with the portal service.
     networks:
       - na-intranet
+      - na-kataster-private
       - na-netzportal-relay
     logging:
       options:
@@ -279,6 +284,42 @@ services:
         max-size: "30m"
         max-file: "5"
 
+  # ===========================================
+  # KATASTER - Adresssuche, 60-m-Karte und Grundstuecksdaten
+  # Nur das Backend hat Zugriff auf das private Service-Netz.
+  # Ein separates Netz erlaubt ausgehende Abfragen der Landesdienste.
+  # ===========================================
+  na-kataster:
+    build:
+      context: ../kataster
+      dockerfile: Dockerfile
+    image: na-kataster
+    container_name: na-kataster
+    init: true
+    restart: unless-stopped
+    expose:
+      - "8765"
+    # Kein ports-Mapping und keine direkte Nginx-Route.
+    environment:
+      - KATASTER_PHOTON_URL=${KATASTER_PHOTON_URL:-https://photon.komoot.io/api/}
+      - KATASTER_BY_USER=${KATASTER_BY_USER:-}
+      - KATASTER_BY_PASSWORD=${KATASTER_BY_PASSWORD:-}
+    volumes:
+      - na-kataster-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - na-kataster-private
+      - na-kataster-egress
+    logging:
+      options:
+        max-size: "30m"
+        max-file: "5"
   # Separate portal integration. No nginx route and no published host port.
   na-netzportal:
     build:
@@ -308,9 +349,15 @@ services:
 networks:
   na-intranet:
     driver: bridge
+  na-kataster-private:
+    driver: bridge
+    internal: true
+  na-kataster-egress:
+    driver: bridge
   na-netzportal-relay:
     driver: bridge
     # Outbound Internet is required for portal login; no host ports are exposed.
 
 volumes:
   na-redis-data:
+  na-kataster-data:
