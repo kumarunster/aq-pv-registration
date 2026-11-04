@@ -76,9 +76,17 @@ class CompanyUpdate(BaseModel):
 # ---------------------------------------------------------------- Anlage
 
 class PanelInfo(BaseModel):
-    """PV-Module (eine Gruppe)."""
+    """PV-Module (eine Gruppe).
+
+    - manufacturer: Hersteller
+    - type: Modul-Typ/Modell
+    - module_watt: Leistung je Modul in W
+    - count: Anzahl Module
+    - kwp: Gesamtleistung in kWp (berechnet: module_watt * count / 1000)
+    """
     manufacturer: str
     type: str
+    module_watt: str = "0"
     count: int
     kwp: str = "0"
 
