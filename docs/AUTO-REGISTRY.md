@@ -92,11 +92,13 @@ Der geprüfte Snapshot wird unverändert übertragen. Eine Änderung nach der le
 ## Einrichtung auf dem Zielserver
 
 1. `_infrastructure/.env.template` nach `.env` kopieren und bestehende Infrastruktur-Secrets konfigurieren. `NETZPORTAL_API_KEY` zufällig erzeugen, mindestens 32 Zeichen.
-2. `netzportal/.env.example` nach `netzportal/.env` kopieren und Zugangspaare konfigurieren. Mindestens ein Anbieter ist erforderlich. Beide Dateien mit `chmod 600` schützen. Es wurden keine realen Zugangsdaten in dieses Repository kopiert.
+2. `_infrastructure/na-netzportal/.env.example` nach `_infrastructure/na-netzportal/.env` kopieren und Zugangspaare konfigurieren. Mindestens ein Anbieter ist erforderlich. Beide Dateien mit `chmod 600` schützen. Es wurden keine realen Zugangsdaten in dieses Repository kopiert.
+Vor dem ersten Start auf dem Linux-Docker-Host das Datenverzeichnis für Service-UID 10001 vorbereiten: `sudo install -d -o 10001 -g 10001 -m 700 _infrastructure/na-netzportal/volume` (aus dem Projektstamm). Hinweise zur Übernahme vorhandener Volume-Daten: [Serviceverzeichnis](../_infrastructure/na-netzportal/README.md).
+
 3. Compose übergibt denselben `NETZPORTAL_API_KEY` an Backend und Service; im Service heißt er kompatibel `NRM_API_KEY`. Er überschreibt den Platzhalter der Service-`.env`.
 4. Auf dem Zielserver aus `_infrastructure`: `docker compose up -d --build`. Hier wurde Docker nicht gestartet und kein Image veröffentlicht.
 
-`na-netzportal-data:/data` enthält das Servicejournal und lokale JSONs. MongoDB enthält Prüfungen und Snapshots. Beide sind personenbezogene Klartextdaten; gemeinsam sichern und niemals Journale zur Wiederholungsfreigabe löschen. Dateirechte des Servicejournals: 0600; Service-UID 10001. Keine Secrets oder Laufzeitdaten werden in den Image-Kontext kopiert. Horizontale Service-Replikation mit getrennten SQLite-Volumes wird nicht unterstützt.
+`_infrastructure/na-netzportal/volume` (im Container `/data`) enthält das Servicejournal und lokale JSONs. MongoDB enthält Prüfungen und Snapshots. Beide sind personenbezogene Klartextdaten; gemeinsam sichern und niemals Journale zur Wiederholungsfreigabe löschen. Dateirechte des Servicejournals: 0600; Service-UID 10001. Keine Secrets oder Laufzeitdaten werden in den Image-Kontext kopiert. Horizontale Service-Replikation mit getrennten SQLite-Volumes wird nicht unterstützt.
 
 ## Validierung
 

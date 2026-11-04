@@ -26,13 +26,14 @@ VERSION             Gemeinsame Version des bestehenden Projekts
 ```bash
 cd _infrastructure
 cp .env.template .env
-cp ../netzportal/.env.example ../netzportal/.env
+cp na-netzportal/.env.example na-netzportal/.env
 # Infrastruktur-Secrets, NETZPORTAL_API_KEY und Portal-Zugangspaare setzen
-chmod 600 .env ../netzportal/.env
+chmod 600 .env na-netzportal/.env
+sudo install -d -o 10001 -g 10001 -m 700 na-netzportal/volume
 docker compose up -d --build
 ```
 
-`NETZPORTAL_API_KEY` muss zufällig und mindestens 32 Zeichen lang sein. Compose verwendet ihn für Backend und Service. Zugangspaare gehören ausschließlich in `netzportal/.env`; reale Zugangsdaten sind nicht enthalten. Details zu Konfiguration, Persistenz und Fehlerabgleich: [AUTO-REGISTRY.md](docs/AUTO-REGISTRY.md).
+`NETZPORTAL_API_KEY` muss zufällig und mindestens 32 Zeichen lang sein. Compose verwendet ihn für Backend und Service. Zugangspaare gehören ausschließlich in `_infrastructure/na-netzportal/.env`; reale Zugangsdaten sind nicht enthalten. Details zu Konfiguration, Persistenz und Fehlerabgleich: [AUTO-REGISTRY.md](docs/AUTO-REGISTRY.md).
 
 Standardzugang: `http://localhost:8092`. Nginx veröffentlicht den einzigen Host-Port. Der Netzportal-Service ist ausschließlich über den Backend-Relay erreichbar, hat ein eigenes Netz und ein persistentes Journal. Docker wurde bei dieser Erweiterung lokal nicht gestartet.
 

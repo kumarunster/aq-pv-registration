@@ -212,7 +212,7 @@ Die alte NRM-Route behält ihre bisherigen `nrm_*`-Fehlercodes. Bei anderen Prov
 
 ## Docker/Compose in diesem Repository
 
-Der Service ist als `na-netzportal` in `../_infrastructure/docker-compose.yml` eingebunden. Er veröffentlicht keinen Host-Port und nutzt das persistente Volume `na-netzportal-data`. Der Backend-Relay ist unter `/api/admin/registration` erreichbar. Konfiguration und Ablauf: [Integration](../docs/AUTO-REGISTRY.md).
+Der Service ist als `na-netzportal` in `../_infrastructure/docker-compose.yml` eingebunden. Er veröffentlicht keinen Host-Port und nutzt den Bind-Mount `_infrastructure/na-netzportal/volume:/data`. Der Backend-Relay ist unter `/api/admin/registration` erreichbar. Konfiguration und Ablauf: [Integration](../docs/AUTO-REGISTRY.md).
 
 Die Live-Ergebnisse unten stammen aus der vorausgehenden Einzelservice-Analyse vom 2. November 2026; es wurde in dieser Repository-Integration kein Portal-Schreibvorgang ausgelöst.
 

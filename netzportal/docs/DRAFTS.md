@@ -86,4 +86,4 @@ Erfolgsantwort: HTTP 201, `storage=portal|local`, `status=draft`, `submitted=fal
 
 Journal nicht löschen oder zwischen Instanzen trennen: Sonst geht der Schutz gegen doppelte Schreibversuche verloren. Mehrere Prozesse auf demselben Host müssen dieselbe SQLite-Datei verwenden; verteilte Hosts mit getrennten Journalen sind nicht unterstützt. Gleichzeitige externe Portalbearbeitung kann durch die API-Sperren nicht ausgeschlossen werden.
 
-Die integrierte Compose-Datei unter `_infrastructure` verwendet `/data` und das persistente Volume `na-netzportal-data`. Docker wurde lokal nicht gestartet. Ohne Docker genügt der bisherige Python-Start. Es gibt derzeit keine Änderungs-, Lösch-, Upload- oder Absende-Endpunkte für Entwürfe.
+Die integrierte Compose-Datei unter `_infrastructure` verwendet `/data` und den Bind-Mount `_infrastructure/na-netzportal/volume:/data`. Docker wurde lokal nicht gestartet. Ohne Docker genügt der bisherige Python-Start. Es gibt derzeit keine Änderungs-, Lösch-, Upload- oder Absende-Endpunkte für Entwürfe.

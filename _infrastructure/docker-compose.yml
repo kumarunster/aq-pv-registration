@@ -286,14 +286,14 @@ services:
     image: na-netzportal:0.3.0
     restart: unless-stopped
     env_file:
-      - ../netzportal/.env
+      - ./na-netzportal/.env
     environment:
       NRM_API_KEY: ${NETZPORTAL_API_KEY:?Set NETZPORTAL_API_KEY}
       NRM_HOST: 0.0.0.0
       NRM_PORT: "8080"
       PV_DATA_DIR: /data
     volumes:
-      - na-netzportal-data:/data
+      - ./na-netzportal/volume:/data
     networks:
       - na-netzportal-relay
     read_only: true
@@ -314,4 +314,3 @@ networks:
 
 volumes:
   na-redis-data:
-  na-netzportal-data:
