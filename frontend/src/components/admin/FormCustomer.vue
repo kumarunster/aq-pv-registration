@@ -186,7 +186,7 @@
             Netzanmeldung
           </button>
         </nav>
-        <PlantForm v-if="plantTab === 'details'" :plant="form.plants[editingPlant]" :onUpdate="updatePlant" :index="editingPlant"
+        <PlantForm v-if="plantTab === 'details'" :plant="form.plants[editingPlant]" :customer="form" :onUpdate="updatePlant" :index="editingPlant"
           :isInstaller="isInstaller()" :customerId="form.customer_id" @open-lageplan="openLageplan" />
         <div v-else-if="registrationAvailable">
           <RegistrationPanel
@@ -413,24 +413,52 @@ const emptyPlant = () => ({
 // PlantForm als inline-Komponente (klein genug für dieses Formular)
 const PlantForm = defineComponent({
   name: 'PlantForm',
-  props: ['plant', 'index', 'onUpdate', 'isInstaller', 'customerId'],
+  props: ['plant', 'index', 'customer', 'onUpdate', 'isInstaller', 'customerId'],
   emits: ['open-lageplan'],
   setup(p, { emit }) {
     function set(key, val) {
       p.onUpdate(p.index, key, val)
     }
 
-    // TASK-008: Lageplan-Pflicht-Banner (PV ohne Lageplan)
-    const lageplanRequired = computed(() => p.plant.anlagetyp === 'pv' && !p.plant.lageplan)
+    // TASK-008: Lageplan-Pflicht-Banner (PV ohne Lageplan, wenn Adresse existiert)
+    const lageplanRequired = computed(() => {
+      if (p.plant.anlagetyp !== 'pv' || p.plant.lageplan) return false
+      const a = plantAddress(p.plant, p.customer || {})
+      return a.complete
+    })
+    const lageplanBusy = ref(false)
+    async function createLageplanNow() {
+      if (katasterBusy.value || lageplanBusy.value) return
+      lageplanBusy.value = true
+      // Spinner mindestens 2s zeigen
+      const minDone = new Promise(r => setTimeout(r, 2000))
+      try {
+        // Erst Karte & Grundstücksdaten laden, dann erst den Editor öffnen
+        await fetchPlantKataster(p.plant)
+        await minDone
+        if (katasterBusy.value) return
+        const state = katasterState(p.plant)
+        if (state.error) { toast.error(state.error); return }
+        openLageplan(p.index)
+      } finally {
+        lageplanBusy.value = false
+      }
+    }
     function lageplanBanner() {
       if (!lageplanRequired.value) return null
       return h('div', { class: 'bg-red-900/40 border border-red-700 rounded-lg p-3 mb-4 flex items-center justify-between' }, [
         h('span', { class: 'text-sm text-red-300' }, '⚠️ Lageplan fehlt (PV-Pflicht) – Anlage kann ohne Lageplan nicht gespeichert werden.'),
         h('button', {
           type: 'button',
-          class: 'px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white text-sm font-semibold rounded-lg',
-          onClick: () => emit('open-lageplan'),
-        }, '📐 Jetzt erstellen'),
+          disabled: lageplanBusy.value,
+          class: 'px-3 py-1.5 bg-red-600 hover:bg-red-500 disabled:opacity-60 text-white text-sm font-semibold rounded-lg inline-flex items-center gap-1.5',
+          onClick: () => createLageplanNow(),
+        }, [
+          lageplanBusy.value
+            ? h('span', { class: 'inline-block w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin' })
+            : null,
+          h('span', {}, lageplanBusy.value ? 'Lade Kataster…' : '📐 Jetzt erstellen'),
+        ]),
       ])
     }
     function addInverter() {
@@ -1154,8 +1182,20 @@ function openLageplan(i) {
     ? plantAddressLine(form)
     : plantAddressLine(p)
   const title = `Lageplan ${p.anlagetyp === 'pv' ? 'PV-Anlage' : p.anlagetyp} ${form.lastname || ''} ${form.firstname || ''}`.trim()
-  const existing = p.lageplan || null
-  const initialLayout = existing ? { ...existing } : { title, background_image_url: null, background_image_width: null, background_image_height: null, elements: [], metadata: {} }
+  // Wenn der Lageplan keine eigenen Elemente hat, zählt er nicht als "erfasst";
+  // das frische Kataster-Hintergrundbild kommt aus plant.kataster.
+  const existing = p.lageplan && Array.isArray(p.lageplan.elements) && p.lageplan.elements.length > 0 ? p.lageplan : null
+  // TIEF kopieren: der Editor mutiert den Store, p.lageplan muss isoliert bleiben.
+  const initialLayout = existing
+    ? JSON.parse(JSON.stringify(existing))
+    : {
+        title,
+        background_image_url: p.kataster?.background_image_url || null,
+        background_image_width: p.kataster?.background_image_width || null,
+        background_image_height: p.kataster?.background_image_height || null,
+        elements: [],
+        metadata: {},
+      }
   // Titel/Adresse/Grundstueck immer frisch vorbefuellen (auch ueber alten metadata)
   initialLayout.title = title
   initialLayout.metadata = { ...(existing?.metadata || {}), adresse, gemarkung: p.gemarkung || '', flur: p.flur || '', flurstueck: p.flurstueck || '' }
@@ -1173,17 +1213,27 @@ function saveLageplan() {
   const editor = lageplanEditorRef.value
   const layout = editor ? editor.getLayout() : null
   if (layout) {
-    // Adresse/Grundstueck aktuell in den metadata spiegeln (PDF-Header)
     const p = form.plants[i]
-    if (p && layout.metadata) {
-      const adresse = p.address_from_customer !== false ? plantAddressLine(form) : plantAddressLine(p)
-      layout.metadata = { ...layout.metadata, adresse, gemarkung: p.gemarkung || '', flur: p.flur || '', flurstueck: p.flurstueck || '' }
+    // Nur "erfasst" wenn der Nutzer selbst Elemente gezeichnet hat.
+    // Das Kataster-Hintergrundbild liegt in plant.kataster; ein frischer Abruf ersetzt es dort.
+    const hasUserContent = Array.isArray(layout.elements) && layout.elements.length > 0
+    if (!hasUserContent) {
+      delete p.lageplan
+    } else {
+      // Adresse/Grundstueck aktuell in den metadata spiegeln (PDF-Header)
+      if (p && layout.metadata) {
+        const adresse = p.address_from_customer !== false ? plantAddressLine(form) : plantAddressLine(p)
+        layout.metadata = { ...layout.metadata, adresse, gemarkung: p.gemarkung || '', flur: p.flur || '', flurstueck: p.flurstueck || '' }
+      }
+      // Frisches Kataster-Hintergrundbild (aus plant.kataster) in den Plan übernehmen
+      const k = p.kataster
+      if (k?.hintergrund_uebernommen && k.background_image_url) {
+        layout.background_image_url = k.background_image_url
+        layout.background_image_width = k.background_image_width || null
+        layout.background_image_height = k.background_image_height || null
+      }
+      p.lageplan = layout
     }
-    if (p?.kataster?.hintergrund_uebernommen && layout.background_image_url !== p.lageplan?.background_image_url) {
-      p.kataster.hintergrund_uebernommen = false
-      if (layout.metadata) delete layout.metadata.kataster
-    }
-    form.plants[i].lageplan = layout
   }
   formDirty.value = true
   emit('dirty', true)

@@ -9,7 +9,7 @@
         aria-labelledby="confirm-title"
         @keydown.esc="$emit('cancel')"
       >
-        <h3 id="confirm-title" class="text-lg font-semibold mb-2">{{ title }}</h3>
+        <h3 id="confirm-title" class="text-lg font-semibold mb-2 text-slate-100">{{ title }}</h3>
         <p class="text-sm text-slate-300 mb-5 whitespace-pre-line">{{ message }}</p>
         <div class="flex gap-2 justify-end">
           <button
