@@ -65,7 +65,9 @@ Danach kann man sich unter `/admin/login` mit E-Mail + Passwort einloggen.
 
 **Alternative ohne Skript:**
 ```bash
-KRATOS_PASSWORD='***' ./scripts/create_identity.sh \
+# create_identity.sh ist ein symlink/Wrapper um scripts/create_account.sh
+# oder direkt aufrufen:
+bash ../scripts/create_account.sh \
   admin@amelanq.com 'DeinPasswortMin8' "Kolya Raitsev" admin
 ```
 

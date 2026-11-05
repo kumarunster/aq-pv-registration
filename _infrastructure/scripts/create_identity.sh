@@ -1,21 +1,16 @@
 #!/usr/bin/env bash
 # Legt eine Kratos-Identity an oder setzt das Passwort einer bestehenden.
 #
-#   bash create_identity.sh <email> <passwort> <name> <admin|installer> [firma]
+#   bash create_identity.sh <email> <passwort> [name] [admin|installer] [firma]
 #
-# admin:     Traits = email + name
-# installer: Traits = email + name + company (Pflichtfeld, 5. Argument)
-#
-# Das Skript legt nur die Kratos-Identity + das Passwort an. Es macht keinen
-# Oathkeeper-Grant, keine Session und keinen Login. Existiert die E-Mail
-# schon, wird das Passwort der bestehenden Identity aktualisiert (Schema wird
-# nicht gewechselt).
+# Kratos-Admin-API wird ueber Docker aufgerufen (aus dem Docker-Netz heraus),
+# das Passwort hash't Kratos selbst. NIEMALS Credentials direkt in der DB setzen!
 set -euo pipefail
 
-EMAIL="${1:?Aufruf: create_identity.sh <email> <passwort> <name> <admin|installer> [firma]}"
+EMAIL="${1:?Aufruf: create_identity.sh <email> <passwort> [name] [admin|installer] [firma]}"
 PASSWORD="${2:?Passwort fehlt}"
-NAME="${3:?Name fehlt}"
-ROLE="${4:?Rolle fehlt (admin|installer)}"
+NAME="${3:-}"
+ROLE="${4:-admin}"
 COMPANY="${5:-}"
 
 if [ "${#PASSWORD}" -lt 8 ]; then
@@ -26,39 +21,31 @@ if [ "$ROLE" != "admin" ] && [ "$ROLE" != "installer" ]; then
   echo "Rolle muss admin oder installer sein." >&2
   exit 1
 fi
-if [ "$ROLE" = "installer" ] && [ -z "$COMPANY" ]; then
-  echo "Installer-Identity braucht das 5. Argument: Firmenname." >&2
-  exit 1
-fi
 
-CONTAINER="${NA_KRATOS_CONTAINER:-na-kratos}"
-
-if ! docker ps --format '{{.Names}}' | grep -qx "$CONTAINER"; then
-  echo "Kratos-Container '$CONTAINER' laeuft nicht." >&2
-  exit 1
-fi
+COMPOSE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$COMPOSE_DIR"
 
 curl_json() {
   local method="$1" url="$2" data="${3:-}"
   if [ -n "$data" ]; then
-    printf '%s' "$data" | docker run --rm -i --network "container:${CONTAINER}" \
+    printf '%s' "$data" | docker run --rm -i --network container:na-kratos \
       curlimages/curl:latest -fsS -X "$method" \
       "$url" -H "Content-Type: application/json" --data-binary @-
   else
-    docker run --rm --network "container:${CONTAINER}" \
+    docker run --rm --network container:na-kratos \
       curlimages/curl:latest -fsS -X "$method" "$url"
   fi
 }
 
-WORKDIR="$(mktemp -d)"
+WORKDIR="$(mktemp -d "${COMPOSE_DIR}/.na-ident-XXXXXX")"
 trap 'rm -rf "$WORKDIR"' EXIT
 
 echo "Suche Identity: $EMAIL"
-if ! curl_json GET "http://localhost:4434/admin/identities?per_page=250" > "$WORKDIR/all.json" 2>&1; then
+curl_json GET "http://localhost:4434/admin/identities?per_page=250" > "$WORKDIR/all.json" 2>&1 || {
   echo "Fehler beim Abrufen der Identities:" >&2
   cat "$WORKDIR/all.json" >&2
   exit 1
-fi
+}
 
 IDENT_ID="$(EMAIL_TARGET="$EMAIL" python3 - "$WORKDIR/all.json" <<'EOF'
 import json, os, sys
@@ -72,54 +59,54 @@ EOF
 
 if [ -n "$IDENT_ID" ]; then
   echo "Bestehende Identity gefunden: $IDENT_ID"
-  echo "Setze neues Passwort (Schema bleibt unveraendert) ..."
+  echo "Setze neues Passwort ..."
 
-  if ! curl_json GET "http://localhost:4434/admin/identities/$IDENT_ID" > "$WORKDIR/current.json" 2>&1; then
+  curl_json GET "http://localhost:4434/admin/identities/$IDENT_ID" > "$WORKDIR/current.json" 2>&1 || {
     echo "Fehler beim Lesen der Identity:" >&2
     cat "$WORKDIR/current.json" >&2
     exit 1
-  fi
+  }
 
-  if ! NEW_PASSWORD="$PASSWORD" python3 - "$WORKDIR/current.json" > "$WORKDIR/payload.json" <<'EOF'
+  NEW_PASSWORD="$PASSWORD" python3 - "$WORKDIR/current.json" > "$WORKDIR/payload.json" <<'EOF'
 import json, os, sys
 d = json.load(open(sys.argv[1]))
 d["credentials"] = {"password": {"config": {"password": os.environ["NEW_PASSWORD"]}}}
 print(json.dumps(d))
 EOF
-  then
-    echo "Payload-Fehler" >&2
-    exit 1
-  fi
 
-  if ! curl_json PUT "http://localhost:4434/admin/identities/$IDENT_ID" "$(cat "$WORKDIR/payload.json")" >/dev/null 2>&1; then
-    echo "Passwort-Update fehlgeschlagen:" >&2
+  response="$(curl_json PUT "http://localhost:4434/admin/identities/$IDENT_ID" "$(cat "$WORKDIR/payload.json")")" || {
+    echo "Fehlgeschlagen:" >&2
     exit 1
-  fi
-  echo "OK: Passwort fuer $EMAIL aktualisiert."
+  }
 else
-  echo "Keine Identity gefunden - lege neu an: $EMAIL ($ROLE)"
-  EMAIL_ARG="$EMAIL" NAME_ARG="$NAME" ROLE_ARG="$ROLE" COMPANY_ARG="$COMPANY" PASSWORD_ARG="$PASSWORD" \
-    python3 - > "$WORKDIR/payload.json" <<'EOF'
-import json, os
-email = os.environ["EMAIL_ARG"]
-name = os.environ["NAME_ARG"]
-role = os.environ["ROLE_ARG"]
-company = os.environ["COMPANY_ARG"]
-password = os.environ["PASSWORD_ARG"]
+  echo "Keine Identity gefunden - lege neu an: $EMAIL"
+  python3 - "$EMAIL" "$PASSWORD" "$NAME" "$ROLE" "$COMPANY" > "$WORKDIR/payload.json" <<'PY'
+import json, sys
+email, password, name, role, company = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5]
 traits = {"email": email, "name": name}
 if role == "installer":
-    traits["company"] = company
-payload = {
+    traits["company"] = company or name
+print(json.dumps({
     "schema_id": role,
     "traits": traits,
     "credentials": {"password": {"config": {"password": password}}},
-}
-print(json.dumps(payload))
-EOF
+}))
+PY
 
-  if ! curl_json POST "http://localhost:4434/admin/identities" "$(cat "$WORKDIR/payload.json")" >/dev/null 2>&1; then
-    echo "Identity-Anlage fehlgeschlagen (409 = E-Mail existiert schon in anderem Schema?)" >&2
+  response="$(curl_json POST "http://localhost:4434/admin/identities" "$(cat "$WORKDIR/payload.json")")" || {
+    echo "Fehlgeschlagen:" >&2
     exit 1
-  fi
-  echo "OK: Identity $EMAIL ($ROLE) angelegt."
+  }
 fi
+
+printf '%s' "$response" | python3 -c '
+import json, sys
+try:
+    d = json.load(sys.stdin)
+    print("Fertig.")
+    print("  ID   :", d.get("id"))
+    print("  Mail :", d.get("traits", {}).get("email"))
+    print("  Rolle:", d.get("schema_id"))
+except Exception:
+    print(sys.stdin.read())
+'
