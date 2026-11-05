@@ -130,16 +130,20 @@ services:
     command:
       - |
         set -eu
-        apk add --no-cache gettext >/dev/null 2>&1
-        envsubst < /config/kratos.yml.template > /config-out/kratos.yml
+        echo "Installiere gettext fuer die Kratos-Konfiguration ..."
+        timeout 90 apk add --no-cache gettext
+        envsubst '$${PUBLIC_BASE_URL}' < /config/kratos.yml.template > /config-out/kratos.yml.tmp
+        test -s /config-out/kratos.yml.tmp
+        chmod 644 /config-out/kratos.yml.tmp
+        mv /config-out/kratos.yml.tmp /config-out/kratos.yml
         echo "kratos.yml substituiert (PUBLIC_BASE_URL=$$PUBLIC_BASE_URL)"
     volumes:
       - type: bind
         source: ./auth-kratos/kratos-config
         target: /config
-      # substituierte kratos.yml wird direkt in das Config-Verzeichnis geschrieben
+        read_only: true
       - type: bind
-        source: ./auth-kratos/kratos-config
+        source: ./auth-kratos/kratos-config-substituted
         target: /config-out
     networks:
       - na-intranet
@@ -156,12 +160,12 @@ services:
       na-kratos-pgdb:
         condition: service_healthy
     environment:
-      - DSN=postgres://${KRATOS_DB_USER}:***}@na-kratos-pgdb:5432/${KRATOS_DB_NAME}?sslmode=disable
+      - DSN=postgres://${KRATOS_DB_USER}:${KRATOS_DB_PASSWORD}@na-kratos-pgdb:5432/${KRATOS_DB_NAME}?sslmode=disable
     entrypoint: ["kratos", "migrate", "sql", "-e", "-y"]
     volumes:
       - type: bind
         source: ./auth-kratos/kratos-config
-        target: /etc/config/kratos-templates
+        target: /etc/config/kratos
     networks:
       - na-intranet
 
@@ -178,12 +182,21 @@ services:
         condition: service_completed_successfully
     environment:
       - DSN=postgres://${KRATOS_DB_USER}:${KRATOS_DB_PASSWORD}@na-kratos-pgdb:5432/${KRATOS_DB_NAME}?sslmode=disable&max_conns=20&max_idle_conns=4
-    command: serve -c /etc/config/kratos/kratos.yml
+    command: serve -c /etc/config/kratos-generated/kratos.yml
     volumes:
-      # Config-Verzeichnis inkl. substituierten kratos.yml (na-kratos-config-init)
+      # Das Verzeichnis existiert schon im Checkout. Die Datei entsteht erst im Init.
+      # Kein einzelner Datei-Mount: dieser scheitert beim Anlegen ohne erzeugte Datei.
       - type: bind
-        source: ./auth-kratos/kratos-config
-        target: /etc/config/kratos
+        source: ./auth-kratos/kratos-config-substituted
+        target: /etc/config/kratos-generated
+        read_only: true
+      # Identity-Schemas direkt aus dem Repo
+      - type: bind
+        source: ./auth-kratos/kratos-config/identity.admin.schema.json
+        target: /etc/config/kratos/identity.admin.schema.json
+      - type: bind
+        source: ./auth-kratos/kratos-config/identity.installer.schema.json
+        target: /etc/config/kratos/identity.installer.schema.json
     # 🔒 KEIN ports-Mapping (4433/4434 intern)
     networks:
       - na-intranet
