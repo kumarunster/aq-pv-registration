@@ -183,10 +183,31 @@ sg docker -c "docker compose -f docker-compose.yml -f docker-compose.dev.yml up 
 
 | Symptom | Ursache | Fix |
 |---|---|---|
+| `bind source path does not exist: .../kratos-config-substituted/kratos.yml` | Die generierte Datei wurde einzeln gemountet, bevor sie existierte | Aktuelle Compose-Datei verwenden: Sie mountet das vorhandene Verzeichnis statt der Datei. Danach Init und Kratos wie unten neu erzeugen. |
 | `network proxy ... not found` bei `docker compose up` | Dev ohne Override | Immer mit `-f docker-compose.yml -f docker-compose.dev.yml` starten |
 | Kratos startet nicht, `length must be <= 32` | Secret zu lang (64 hex = 32 Byte) | `KRATOS_CIPHER_SECRET` mit `openssl rand -hex 16` (32 Zeichen) setzen |
 | Admin-Login klappt, aber API 403 | Identity hat Schema `installer` statt `admin` | Identity mit Schema `admin` anlegen (5. Arg. `admin`) |
 | Installer sieht keine Kunden | `created_by` weicht ab | Kunden/Anlagen über `/api/installer/` anlegen, nicht über Admin |
+
+**Kratos-Konfiguration neu erzeugen (Produktion, aus `_infrastructure/`):**
+
+```bash
+mkdir -p auth-kratos/kratos-config-substituted
+docker compose up -d na-kratos-pgdb
+docker compose run --rm na-kratos-config-init
+test -s auth-kratos/kratos-config-substituted/kratos.yml
+docker compose up -d --force-recreate na-kratos
+docker compose up -d
+```
+
+Der Init-Container ersetzt ausschließlich `PUBLIC_BASE_URL` aus `.env` im Template
+und schreibt die fertige Konfiguration atomar. Kratos liest das Ergebnis aus einem
+schreibgeschützten Verzeichnis-Mount; die Identity-Schemas kommen weiterhin aus
+`kratos-config/`. Nach Änderungen an `.env` oder am Template diese Schritte erneut
+ausführen. `docker compose restart` allein erzeugt die Konfiguration nicht neu.
+Ein leeres `touch kratos.yml` behebt nur den Mountfehler, liefert aber keine gültige
+Kratos-Konfiguration. Schlägt Init fehl, zuerst dessen Ausgabe prüfen; insbesondere
+benötigt `apk add gettext` im aktuellen Init-Image Netzwerkzugriff.
 | Frontend zeigt alten Build | Browser-Cache | Hard-Reload (iPhone: Lade-Button halten → "Laden und Aktualisieren") |
 | Backend nach Rebuild nicht gesund | `na-backend` hängt | `docker logs na-backend` prüfen, neu starten |
 
