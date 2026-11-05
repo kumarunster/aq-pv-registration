@@ -1,0 +1,30 @@
+# =============================================================================
+# Override fuer LOKALES DEVELOPMENT
+#
+# Nutzung:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+#
+# Diese Datei ueberschreibt die Standard-compose (docker-compose.yml):
+#   - na-nginx MIT Host-Port-Mapping, damit die App lokal erreichbar ist
+#   - na-nginx NUR im internen Netz (das externe 'proxy'-Netz gibt es lokal nicht)
+#
+# Die VIRTUAL_HOST / LETSENCRYPT-Variablen bleiben im Dev leer, weil sie in der
+# Base per ${VAR:-} definiert sind und die .env sie lokal nicht setzt. Ohne
+# externen nginx-proxy haben leere Werte keine Wirkung.
+# =============================================================================
+
+services:
+
+  na-nginx:
+    # Lokal erreichbar machen. na-nginx lauscht intern auf 80.
+    ports:
+      - '${PUBLIC_HTTP_PORT}:80'
+
+# Das externe 'proxy'-Netz gibt es lokal nicht. compose kann die networks-Liste
+# eines Service per Override nicht ersetzen (nur ergaenzen), darum wird 'proxy'
+# hier zu einem normalen lokalen Bridge-Netz umdefiniert. So laeuft das Dev-up
+# ohne externen nginx-proxy - na-nginx haengt harmlos an einem leeren Netz.
+networks:
+  proxy:
+    external: false
+    name: na-proxy-dev

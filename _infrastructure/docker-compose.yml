@@ -1,3 +1,17 @@
+# =============================================================================
+# Amelanq Netz-Anmeldung - Docker Compose (Base)
+#
+# HARTE REGEL: NUR na-nginx bekommt ein Host-Port-Mapping (ueber die
+# Dev-Override). Alle anderen Services laufen NUR im internen Netz
+# na-intranet.
+#
+# Start:
+#   docker compose -f docker-compose.yml up -d                 # Produktion
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d  # Dev
+#
+# Prefix: na-  (Netz-Anmeldung)
+# =============================================================================
+
 services:
 
   # ===========================================
@@ -60,6 +74,7 @@ services:
       - MINIO_ROOT_PASSWORD=${MINIO_PASSWORD:-naadmin123}
     volumes:
       - ./minio/volume:/data
+    # 🔒 KEIN ports-Mapping
     networks:
       - na-intranet
     healthcheck:
@@ -212,7 +227,7 @@ services:
     volumes:
       # Dev: Quellcode bind-mounten, damit --reload greift.
       - ../backend/src:/app/src
-    # Backend is the only member shared with the portal service.
+    # 🔒 KEIN ports-Mapping - nur ueber nginx erreichbar
     networks:
       - na-intranet
       - na-kataster-private
@@ -241,7 +256,7 @@ services:
         max-file: "5"
 
   # ===========================================
-  # NGINX - einziger externer Einstiegspunkt
+  # 🌐 REVERSE PROXY - EINZIGER OEFFENTLICHER PORT
   # ===========================================
   na-nginx:
     image: nginx:1.27-alpine
@@ -250,24 +265,29 @@ services:
     depends_on:
       - na-backend
       - na-frontend
-    ports:
-      - "${PUBLIC_HTTP_PORT:-8092}:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    environment:
+      # Reverse Proxy in Produktion: externer nginx-proxy + acme-companion
+      # erkennt diesen Container ueber diese Variablen und uebernimmt TLS.
+      # Im Dev bleiben sie leer (${VAR:-}) - ohne externen Proxy ohne Wirkung.
+      # na-nginx lauscht auf Port 80 -> kein VIRTUAL_PORT noetig.
+      VIRTUAL_HOST: ${VIRTUAL_HOST:-}
+      LETSENCRYPT_HOST: ${LETSENCRYPT_HOST:-}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:-}
+    # Produktion: KEIN Host-Port - der externe Proxy erreicht na-nginx ueber das
+    #   gemeinsame Netz 'proxy'. TLS macht der Proxy.
+    # Lokales Dev: docker-compose.dev.yml als Override nutzen.
     networks:
       - na-intranet
+      - proxy
     logging:
       options:
         max-size: "30m"
         max-file: "5"
 
-
   # ===========================================
   # WEASYPRINT - PDF-Rendering fuer den Lageplan-Editor
-  # ===========================================
-  # Eigenstaendiger, duenner Service: rendert HTML (mit eingebetteten
-  # SVG-Vektoren) zu PDF. NUR intern erreichbar (kein Host-Port-Mapping),
-  # wird ausschliesslich vom na-backend aufgerufen.
   # ===========================================
   na-weasyprint:
     build:
@@ -287,7 +307,6 @@ services:
   # ===========================================
   # KATASTER - Adresssuche, 60-m-Karte und Grundstuecksdaten
   # Nur das Backend hat Zugriff auf das private Service-Netz.
-  # Ein separates Netz erlaubt ausgehende Abfragen der Landesdienste.
   # ===========================================
   na-kataster:
     build:
@@ -299,7 +318,6 @@ services:
     restart: unless-stopped
     expose:
       - "8765"
-    # Kein ports-Mapping und keine direkte Nginx-Route.
     environment:
       - KATASTER_PHOTON_URL=${KATASTER_PHOTON_URL:-https://photon.komoot.io/api/}
       - KATASTER_BY_USER=${KATASTER_BY_USER:-}
@@ -320,7 +338,10 @@ services:
       options:
         max-size: "30m"
         max-file: "5"
-  # Separate portal integration. No nginx route and no published host port.
+
+  # ===========================================
+  # NETZPORTAL - separate Integration, kein nginx-Route
+  # ===========================================
   na-netzportal:
     build:
       context: ../netzportal
@@ -335,6 +356,7 @@ services:
       PV_DATA_DIR: /data
     volumes:
       - ./na-netzportal/volume:/data
+    # 🔒 KEIN ports-Mapping - nur na-backend erreicht diesen Service
     networks:
       - na-netzportal-relay
     read_only: true
@@ -356,7 +378,10 @@ networks:
     driver: bridge
   na-netzportal-relay:
     driver: bridge
-    # Outbound Internet is required for portal login; no host ports are exposed.
+  # Externes Netz des nginx-proxy (liegt auf dem Prod-Host bereits vor).
+  proxy:
+    external: true
+    name: proxy
 
 volumes:
   na-redis-data:
