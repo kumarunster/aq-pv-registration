@@ -59,11 +59,20 @@ kratos_container() {
   fi
   KRATOS_CONTAINER="$c"
   debug "Kratos-Container: ${KRATOS_CONTAINER}"
+  # IP des Kratos-Containers im eigenen Netzwerk (zuverlaessiger als localhost)
+  KRATOS_IP="$(docker inspect --format '{{range $name, $net := .NetworkSettings.Networks}}{{$net.IPAddress}}{{"\n"}}{{end}}' "$c" 2>/dev/null | grep -E '^[0-9]+\.' | head -1)"
+  if [ -n "$KRATOS_IP" ]; then
+    KRATOS_HOST="$KRATOS_IP"
+  else
+    KRATOS_HOST="localhost"
+  fi
+  debug "Kratos-Host: ${KRATOS_HOST}"
 }
 
 curl_json() {
   local method="$1" url="$2" data="${3:-}"
   kratos_container
+  url="${url/localhost/${KRATOS_HOST}}"
   debug "METHOD=${method} URL=${url} NETWORK=container:${KRATOS_CONTAINER}"
   if [ -n "$data" ]; then
     debug "docker run --rm -i --network container:${KRATOS_CONTAINER} curlimages/curl:latest -fsS -X ${method} ${url} -H 'Content-Type: application/json' --data-binary @-"
