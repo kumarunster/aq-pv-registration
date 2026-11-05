@@ -115,6 +115,55 @@ services:
         max-size: "30m"
         max-file: "5"
 
+  # ==================== KRATOS-CONFIG-INIT (envsubst) ====================
+  # Substituiert ${PUBLIC_BASE_URL} im Template -> kratos-config-substituted/kratos.yml
+  # ====================
+  na-kratos-config-init:
+    image: alpine:3.20
+    restart: "no"
+    depends_on:
+      na-kratos-pgdb:
+        condition: service_healthy
+    environment:
+      - PUBLIC_BASE_URL=${PUBLIC_BASE_URL:-http://localhost:8092}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -eu
+        apk add --no-cache gettext >/dev/null 2>&1
+        envsubst < /config/kratos.yml.template > /config-out/kratos.yml
+        echo "kratos.yml substituiert (PUBLIC_BASE_URL=$$PUBLIC_BASE_URL)"
+    volumes:
+      - type: bind
+        source: ./auth-kratos/kratos-config
+        target: /config
+      - type: bind
+        source: ./auth-kratos/kratos-config-substituted
+        target: /config-out
+    networks:
+      - na-intranet
+
+  # ==================== EINMALIGER KRATOS-MIGRATIONSLAUF ====================
+  # Legt die Kratos-Tabellen an (neu oder nach Upgrade). NICHT persistent.
+  # Aufruf: docker compose run --rm na-kratos-migrate
+  # Danach: docker compose up -d
+  # =====================================================
+  na-kratos-migrate:
+    image: oryd/kratos:v1.1.0
+    restart: "no"
+    depends_on:
+      na-kratos-pgdb:
+        condition: service_healthy
+    environment:
+      - DSN=postgres://${KRATOS_DB_USER}:***}@na-kratos-pgdb:5432/${KRATOS_DB_NAME}?sslmode=disable
+    entrypoint: ["kratos", "migrate", "sql", "postgres://${KRATOS_DB_USER}:***}@na-kratos-pgdb:5432/${KRATOS_DB_NAME}?sslmode=disable", "-c", "/etc/config/kratos/kratos.yml", "-y"]
+    volumes:
+      - type: bind
+        source: ./auth-kratos/kratos-config
+        target: /etc/config/kratos
+    networks:
+      - na-intranet
+
   na-kratos:
     image: oryd/kratos:v1.1.0
     container_name: 'na-kratos'
@@ -126,9 +175,17 @@ services:
       - DSN=postgres://${KRATOS_DB_USER}:${KRATOS_DB_PASSWORD}@na-kratos-pgdb:5432/${KRATOS_DB_NAME}?sslmode=disable&max_conns=20&max_idle_conns=4
     command: serve -c /etc/config/kratos/kratos.yml
     volumes:
+      # kratos.yml kommt aus dem substituierten Template (na-kratos-config-init)
       - type: bind
-        source: ./auth-kratos/kratos-config
-        target: /etc/config/kratos
+        source: ./auth-kratos/kratos-config-substituted/kratos.yml
+        target: /etc/config/kratos/kratos.yml
+      # Identity-Schemas direkt aus dem Repo
+      - type: bind
+        source: ./auth-kratos/kratos-config/identity.admin.schema.json
+        target: /etc/config/kratos/identity.admin.schema.json
+      - type: bind
+        source: ./auth-kratos/kratos-config/identity.installer.schema.json
+        target: /etc/config/kratos/identity.installer.schema.json
     # 🔒 KEIN ports-Mapping (4433/4434 intern)
     networks:
       - na-intranet
@@ -390,23 +447,3 @@ volumes:
   na-redis-data:
   na-kataster-data:
 
-# ==================== EINMALIGER KRATOS-MIGRATIONSLAUF ====================
-# Legt die Kratos-Tabellen an (neu oder nach Upgrade). NICHT persistent.
-# Aufruf: docker compose run --rm na-kratos-migrate
-# Danach: docker compose up -d
-# =====================================================
-  na-kratos-migrate:
-    image: oryd/kratos:v1.1.0
-    restart: "no"
-    depends_on:
-      na-kratos-pgdb:
-        condition: service_healthy
-    environment:
-      - DSN=postgres://${KRATOS_DB_USER}:***}@na-kratos-pgdb:5432/${KRATOS_DB_NAME}?sslmode=disable
-    entrypoint: ["kratos", "migrate", "sql", "postgres://${KRATOS_DB_USER}:***}@na-kratos-pgdb:5432/${KRATOS_DB_NAME}?sslmode=disable", "-c", "/etc/config/kratos/kratos.yml", "-y"]
-    volumes:
-      - type: bind
-        source: ./auth-kratos/kratos-config
-        target: /etc/config/kratos
-    networks:
-      - na-intranet
