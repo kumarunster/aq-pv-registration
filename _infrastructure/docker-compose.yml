@@ -360,7 +360,10 @@ services:
     # 🔒 KEIN ports-Mapping - nur na-backend erreicht diesen Service
     networks:
       - na-netzportal-relay
-    read_only: true
+    # read_only: false - der Container schreibt die SQLite-Datenbank
+    # /data/drafts.sqlite3. Der Bind-Mount muss damit beschreibbar sein.
+    tmpfs:
+      - /tmp:size=32m,mode=1777
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
     init: true
