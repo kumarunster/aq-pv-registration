@@ -389,3 +389,24 @@ networks:
 volumes:
   na-redis-data:
   na-kataster-data:
+
+# ==================== EINMALIGER KRATOS-MIGRATIONSLAUF ====================
+# Legt die Kratos-Tabellen an (neu oder nach Upgrade). NICHT persistent.
+# Aufruf: docker compose run --rm na-kratos-migrate
+# Danach: docker compose up -d
+# =====================================================
+  na-kratos-migrate:
+    image: oryd/kratos:v1.1.0
+    restart: "no"
+    depends_on:
+      na-kratos-pgdb:
+        condition: service_healthy
+    environment:
+      - DSN=postgres://${KRATOS_DB_USER}:***}@na-kratos-pgdb:5432/${KRATOS_DB_NAME}?sslmode=disable
+    entrypoint: ["kratos", "migrate", "sql", "postgres://${KRATOS_DB_USER}:***}@na-kratos-pgdb:5432/${KRATOS_DB_NAME}?sslmode=disable", "-c", "/etc/config/kratos/kratos.yml", "-y"]
+    volumes:
+      - type: bind
+        source: ./auth-kratos/kratos-config
+        target: /etc/config/kratos
+    networks:
+      - na-intranet
