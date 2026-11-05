@@ -137,8 +137,9 @@ services:
       - type: bind
         source: ./auth-kratos/kratos-config
         target: /config
+      # substituierte kratos.yml wird direkt in das Config-Verzeichnis geschrieben
       - type: bind
-        source: ./auth-kratos/kratos-config-substituted
+        source: ./auth-kratos/kratos-config
         target: /config-out
     networks:
       - na-intranet
@@ -160,7 +161,7 @@ services:
     volumes:
       - type: bind
         source: ./auth-kratos/kratos-config
-        target: /etc/config/kratos
+        target: /etc/config/kratos-templates
     networks:
       - na-intranet
 
@@ -179,17 +180,10 @@ services:
       - DSN=postgres://${KRATOS_DB_USER}:${KRATOS_DB_PASSWORD}@na-kratos-pgdb:5432/${KRATOS_DB_NAME}?sslmode=disable&max_conns=20&max_idle_conns=4
     command: serve -c /etc/config/kratos/kratos.yml
     volumes:
-      # kratos.yml kommt aus dem substituierten Template (na-kratos-config-init)
+      # Config-Verzeichnis inkl. substituierten kratos.yml (na-kratos-config-init)
       - type: bind
-        source: ./auth-kratos/kratos-config-substituted/kratos.yml
-        target: /etc/config/kratos/kratos.yml
-      # Identity-Schemas direkt aus dem Repo
-      - type: bind
-        source: ./auth-kratos/kratos-config/identity.admin.schema.json
-        target: /etc/config/kratos/identity.admin.schema.json
-      - type: bind
-        source: ./auth-kratos/kratos-config/identity.installer.schema.json
-        target: /etc/config/kratos/identity.installer.schema.json
+        source: ./auth-kratos/kratos-config
+        target: /etc/config/kratos
     # 🔒 KEIN ports-Mapping (4433/4434 intern)
     networks:
       - na-intranet

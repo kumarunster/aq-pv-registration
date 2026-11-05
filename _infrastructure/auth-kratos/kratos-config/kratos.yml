@@ -11,10 +11,10 @@ serve:
     base_url: http://na-kratos:4434/
 
 selfservice:
-  default_browser_return_url: ${PUBLIC_BASE_URL:-http://localhost:8092}/admin/
+  default_browser_return_url: http://localhost:8092/admin/
   allowed_return_urls:
-    - ${PUBLIC_BASE_URL:-http://localhost:8092}/
-    - ${PUBLIC_BASE_URL:-http://localhost:8092}
+    - http://localhost:8092/
+    - http://localhost:8092
 
   methods:
     password:
@@ -24,15 +24,15 @@ selfservice:
 
   flows:
     error:
-      ui_url: ${PUBLIC_BASE_URL:-http://localhost:8092}/admin/error
+      ui_url: http://localhost:8092/admin/error
 
     settings:
-      ui_url: ${PUBLIC_BASE_URL:-http://localhost:8092}/admin/settings
+      ui_url: http://localhost:8092/admin/settings
       privileged_session_max_age: 15m
 
     recovery:
       enabled: true
-      ui_url: ${PUBLIC_BASE_URL:-http://localhost:8092}/admin/recovery
+      ui_url: http://localhost:8092/admin/recovery
       use: link
 
     verification:
@@ -40,16 +40,16 @@ selfservice:
 
     logout:
       after:
-        default_browser_return_url: ${PUBLIC_BASE_URL:-http://localhost:8092}/admin/login
+        default_browser_return_url: http://localhost:8092/admin/login
 
     login:
-      ui_url: ${PUBLIC_BASE_URL:-http://localhost:8092}/admin/login
+      ui_url: http://localhost:8092/admin/login
       lifespan: 10m
 
     registration:
       # Selbstregistrierung AUS - Accounts werden per Kratos-Admin-API angelegt
       enabled: false
-      ui_url: ${PUBLIC_BASE_URL:-http://localhost:8092}/admin/registration
+      ui_url: http://localhost:8092/admin/registration
 
 log:
   level: info
