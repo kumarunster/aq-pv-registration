@@ -20,21 +20,25 @@ def system(monkeypatch, mongomock_motor_db):
     monkeypatch.setattr(routes, 'get_db', lambda: db)
     customer = {'_id': '123', 'firstname': 'Test', 'lastname': 'Betreiber', 'address_street': 'Testweg 12a',
                 'address_plz': '12345', 'address_city': 'Testort', 'updated_at': '2026-11-03T00:00:00Z',
-                'plants': [{'anlagetyp': 'pv', 'address_from_customer': True, 'kwp': '10', 'inverters': []}]}
+                'plants': [{'anlagetyp': 'pv', 'status': 'in_pruefung', 'address_from_customer': True, 'kwp': '10', 'inverters': []}]}
     monkeypatch.setattr(reg.customers, 'get_by_id', AsyncMock(side_effect=lambda _: deepcopy(customer)))
     monkeypatch.setattr(reg.companies, 'get_by_id', AsyncMock(return_value=None))
     relay = AsyncMock(return_value={'id': 'draft-1', 'provider': 'enm', 'storage': 'local', 'status': 'draft', 'submitted': False})
     monkeypatch.setattr(reg, 'relay', relay)
     app = FastAPI(); app.include_router(router)
-    return app, db, customer, relay
+    resolution = {'status':'resolved', 'provider':'enm', 'operator':{'id':'350','name':'ENM'}}
+    monkeypatch.setattr(reg, 'resolve_operator', AsyncMock(side_effect=lambda _: deepcopy(resolution)))
+    return app, db, customer, relay, resolution
 
 async def request(system, method, path, headers=ADMIN, **kwargs):
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=system[0]), base_url='http://test') as client:
         return await client.request(method, '/api/admin/registration' + path, headers=headers, **kwargs)
 
 async def approve(system, **changes):
+    provider = changes.pop('provider', system[4]['provider'])
+    system[4].update(provider=provider, operator={'id':{'nrm':'7376','enm':'350','mainzer':'405','enetz':'134'}[provider], 'name':provider})
     data = (await request(system, 'GET', '/customers/123/plants/0/preview')).json()
-    body = {'provider': 'enm', 'target': 'local', 'expected_hash': data['snapshot_hash'],
+    body = {'expected_operator_id': system[4]['operator']['id'], 'target': 'local', 'expected_hash': data['snapshot_hash'],
             'review_note': 'Daten und Umfang geprueft', 'data_checked': True, 'scope_accepted': True, **changes}
     return await request(system, 'POST', '/customers/123/plants/0/review', json=body)
 
@@ -175,3 +179,72 @@ async def test_unexpected_submission_response_is_uncertain(system):
     assert (await request(system,'POST',f"/jobs/{job['id']}/start")).status_code == 502
     stored = await system[1]['registration_jobs'].find_one({'_id':job['id']})
     assert stored['state'] == 'uncertain'
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('status',[None, 'offen', 'unbekannt'])
+async def test_status_below_review_blocks_registration(system,status):
+    system[2]['plants'][0]['status'] = status
+    assert (await request(system,'GET','/customers/123/plants/0/preview')).status_code == 409
+    system[3].assert_not_awaited()
+
+@pytest.mark.asyncio
+async def test_status_change_after_review_blocks_start(system):
+    job = (await approve(system)).json()
+    system[2]['plants'][0]['status'] = 'angemeldet'
+    assert (await request(system,'POST',f"/jobs/{job['id']}/start")).status_code == 409
+    system[3].assert_not_awaited()
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('status',['not_found','ambiguous_address','ambiguous_operator','unsupported'])
+async def test_unresolved_operator_blocks_review(system,status):
+    system[4]['status'] = status
+    r = await approve(system)
+    assert r.status_code == 409
+    system[3].assert_not_awaited()
+
+@pytest.mark.asyncio
+async def test_caller_cannot_choose_provider(system):
+    p = (await request(system,'GET','/customers/123/plants/0/preview')).json()
+    body = {'provider':'nrm', 'expected_operator_id':'350', 'expected_hash':p['snapshot_hash'],
+            'data_checked':True,'scope_accepted':True,'review_note':'Test'}
+    assert (await request(system,'POST','/customers/123/plants/0/review',json=body)).status_code == 422
+
+@pytest.mark.asyncio
+async def test_operator_change_blocks_review_and_start(system):
+    assert (await approve(system,expected_operator_id='405')).status_code == 409
+    job = (await approve(system)).json()
+    system[4].update(provider='nrm',operator={'id':'7376','name':'NRM'})
+    assert (await request(system,'POST',f"/jobs/{job['id']}/start")).status_code == 409
+    system[3].assert_not_awaited()
+
+@pytest.mark.asyncio
+async def test_real_resolution_uses_only_selected_installation_address(system,monkeypatch):
+    # Exercise real resolver, not the fixture's lookup double.
+    from src.services.registration import site_for
+    data = await reg.snapshot('123',0)
+    assert site_for(data)['street'] == 'Testweg'
+    data['plant'].update(address_from_customer=False,address_street='Andere Straße 9',address_plz='54321',address_city='Andernorts')
+    assert site_for(data)=={'street':'Andere Straße','house_number':'9','postal_code':'54321','city':'Andernorts'}
+
+
+def test_admin_status_is_not_dropped_from_update():
+    from src.models.entities import AdminCustomerUpdate
+    body = AdminCustomerUpdate(plants=[{'anlagetyp':'pv','status':'in_pruefung'}])
+    assert body.model_dump()['plants'][0]['status'] == 'in_pruefung'
+
+@pytest.mark.asyncio
+async def test_status_changed_during_lookup_blocks_start(system,monkeypatch):
+    job = (await approve(system)).json()
+    async def lookup(_):
+        system[2]['plants'][0]['status'] = 'angemeldet'
+        return deepcopy(system[4])
+    monkeypatch.setattr(reg, 'resolve_operator', lookup)
+    assert (await request(system,'POST',f"/jobs/{job['id']}/start")).status_code == 409
+    system[3].assert_not_awaited()
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('status',['in_pruefung','angemeldet','abgeschlossen'])
+async def test_registration_available_from_review_onwards(system,status):
+    system[2]['plants'][0]['status'] = status
+    assert (await request(system,'GET','/customers/123/plants/0/preview')).status_code == 200
+    assert (await approve(system)).status_code == 201

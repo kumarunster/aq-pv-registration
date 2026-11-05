@@ -1,3 +1,17 @@
+# =============================================================================
+# Amelanq Netz-Anmeldung - Docker Compose (Base)
+#
+# HARTE REGEL: NUR na-nginx bekommt ein Host-Port-Mapping (ueber die
+# Dev-Override). Alle anderen Services laufen NUR im internen Netz
+# na-intranet.
+#
+# Start:
+#   docker compose -f docker-compose.yml up -d                 # Produktion
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d  # Dev
+#
+# Prefix: na-  (Netz-Anmeldung)
+# =============================================================================
+
 services:
 
   # ===========================================
@@ -49,10 +63,10 @@ services:
         max-file: "5"
 
   # ===========================================
-  # BLOB STORAGE - MinIO (S3-kompatibel)
+  # BLOB STORAGE - Silo (MinIO-Nachfolger, minio/minio ist eingestellt)
   # ===========================================
   na-minio:
-    image: minio/minio:latest
+    image: docker.io/pgsty/silo:RELEASE.2026-10-26T00-00-00Z
     container_name: na-minio
     command: server /data --console-address ":9001"
     environment:
@@ -60,12 +74,14 @@ services:
       - MINIO_ROOT_PASSWORD=${MINIO_PASSWORD:-naadmin123}
     volumes:
       - ./minio/volume:/data
+    # 🔒 KEIN ports-Mapping
     networks:
       - na-intranet
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD", "silo", "healthcheck", "ready"]
       interval: 30s
       timeout: 10s
+      start_period: 2m
       retries: 3
     logging:
       options:
@@ -99,6 +115,55 @@ services:
         max-size: "30m"
         max-file: "5"
 
+  # ==================== KRATOS-CONFIG-INIT (envsubst) ====================
+  # Substituiert ${PUBLIC_BASE_URL} im Template -> kratos-config-substituted/kratos.yml
+  # ====================
+  na-kratos-config-init:
+    image: alpine:3.20
+    restart: "no"
+    depends_on:
+      na-kratos-pgdb:
+        condition: service_healthy
+    environment:
+      - PUBLIC_BASE_URL=${PUBLIC_BASE_URL:-http://localhost:8092}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -eu
+        apk add --no-cache gettext >/dev/null 2>&1
+        envsubst < /config/kratos.yml.template > /config-out/kratos.yml
+        echo "kratos.yml substituiert (PUBLIC_BASE_URL=$$PUBLIC_BASE_URL)"
+    volumes:
+      - type: bind
+        source: ./auth-kratos/kratos-config
+        target: /config
+      - type: bind
+        source: ./auth-kratos/kratos-config-substituted
+        target: /config-out
+    networks:
+      - na-intranet
+
+  # ==================== EINMALIGER KRATOS-MIGRATIONSLAUF ====================
+  # Legt die Kratos-Tabellen an (neu oder nach Upgrade). NICHT persistent.
+  # Aufruf: docker compose run --rm na-kratos-migrate
+  # Danach: docker compose up -d
+  # =====================================================
+  na-kratos-migrate:
+    image: oryd/kratos:v1.1.0
+    restart: "no"
+    depends_on:
+      na-kratos-pgdb:
+        condition: service_healthy
+    environment:
+      - DSN=postgres://${KRATOS_DB_USER}:***}@na-kratos-pgdb:5432/${KRATOS_DB_NAME}?sslmode=disable
+    entrypoint: ["kratos", "migrate", "sql", "-e", "-y"]
+    volumes:
+      - type: bind
+        source: ./auth-kratos/kratos-config
+        target: /etc/config/kratos
+    networks:
+      - na-intranet
+
   na-kratos:
     image: oryd/kratos:v1.1.0
     container_name: 'na-kratos'
@@ -106,13 +171,25 @@ services:
     depends_on:
       na-kratos-pgdb:
         condition: service_healthy
+      na-kratos-config-init:
+        condition: service_completed_successfully
+      na-kratos-migrate:
+        condition: service_completed_successfully
     environment:
       - DSN=postgres://${KRATOS_DB_USER}:${KRATOS_DB_PASSWORD}@na-kratos-pgdb:5432/${KRATOS_DB_NAME}?sslmode=disable&max_conns=20&max_idle_conns=4
-    command: serve -c /etc/config/kratos/kratos.yml --dev --watch-courier
+    command: serve -c /etc/config/kratos/kratos.yml
     volumes:
+      # kratos.yml kommt aus dem substituierten Template (na-kratos-config-init)
       - type: bind
-        source: ./auth-kratos/kratos-config
-        target: /etc/config/kratos
+        source: ./auth-kratos/kratos-config-substituted/kratos.yml
+        target: /etc/config/kratos/kratos.yml
+      # Identity-Schemas direkt aus dem Repo
+      - type: bind
+        source: ./auth-kratos/kratos-config/identity.admin.schema.json
+        target: /etc/config/kratos/identity.admin.schema.json
+      - type: bind
+        source: ./auth-kratos/kratos-config/identity.installer.schema.json
+        target: /etc/config/kratos/identity.installer.schema.json
     # 🔒 KEIN ports-Mapping (4433/4434 intern)
     networks:
       - na-intranet
@@ -212,7 +289,7 @@ services:
     volumes:
       # Dev: Quellcode bind-mounten, damit --reload greift.
       - ../backend/src:/app/src
-    # Backend is the only member shared with the portal service.
+    # 🔒 KEIN ports-Mapping - nur ueber nginx erreichbar
     networks:
       - na-intranet
       - na-kataster-private
@@ -241,7 +318,7 @@ services:
         max-file: "5"
 
   # ===========================================
-  # NGINX - einziger externer Einstiegspunkt
+  # 🌐 REVERSE PROXY - EINZIGER OEFFENTLICHER PORT
   # ===========================================
   na-nginx:
     image: nginx:1.27-alpine
@@ -250,24 +327,29 @@ services:
     depends_on:
       - na-backend
       - na-frontend
-    ports:
-      - "${PUBLIC_HTTP_PORT:-8092}:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    environment:
+      # Reverse Proxy in Produktion: externer nginx-proxy + acme-companion
+      # erkennt diesen Container ueber diese Variablen und uebernimmt TLS.
+      # Im Dev bleiben sie leer (${VAR:-}) - ohne externen Proxy ohne Wirkung.
+      # na-nginx lauscht auf Port 80 -> kein VIRTUAL_PORT noetig.
+      VIRTUAL_HOST: ${VIRTUAL_HOST:-}
+      LETSENCRYPT_HOST: ${LETSENCRYPT_HOST:-}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:-}
+    # Produktion: KEIN Host-Port - der externe Proxy erreicht na-nginx ueber das
+    #   gemeinsame Netz 'proxy'. TLS macht der Proxy.
+    # Lokales Dev: docker-compose.dev.yml als Override nutzen.
     networks:
       - na-intranet
+      - proxy
     logging:
       options:
         max-size: "30m"
         max-file: "5"
 
-
   # ===========================================
   # WEASYPRINT - PDF-Rendering fuer den Lageplan-Editor
-  # ===========================================
-  # Eigenstaendiger, duenner Service: rendert HTML (mit eingebetteten
-  # SVG-Vektoren) zu PDF. NUR intern erreichbar (kein Host-Port-Mapping),
-  # wird ausschliesslich vom na-backend aufgerufen.
   # ===========================================
   na-weasyprint:
     build:
@@ -287,7 +369,6 @@ services:
   # ===========================================
   # KATASTER - Adresssuche, 60-m-Karte und Grundstuecksdaten
   # Nur das Backend hat Zugriff auf das private Service-Netz.
-  # Ein separates Netz erlaubt ausgehende Abfragen der Landesdienste.
   # ===========================================
   na-kataster:
     build:
@@ -299,7 +380,6 @@ services:
     restart: unless-stopped
     expose:
       - "8765"
-    # Kein ports-Mapping und keine direkte Nginx-Route.
     environment:
       - KATASTER_PHOTON_URL=${KATASTER_PHOTON_URL:-https://photon.komoot.io/api/}
       - KATASTER_BY_USER=${KATASTER_BY_USER:-}
@@ -320,24 +400,30 @@ services:
       options:
         max-size: "30m"
         max-file: "5"
-  # Separate portal integration. No nginx route and no published host port.
+
+  # ===========================================
+  # NETZPORTAL - separate Integration, kein nginx-Route
+  # ===========================================
   na-netzportal:
     build:
       context: ../netzportal
-    image: na-netzportal:0.3.0
+    image: na-netzportal:0.4.0
     restart: unless-stopped
     env_file:
       - ./na-netzportal/.env
     environment:
-      NRM_API_KEY: ${NETZPORTAL_API_KEY:?Set NETZPORTAL_API_KEY}
+      NETZPORTAL_API_KEY: ${NETZPORTAL_API_KEY:?Set NETZPORTAL_API_KEY}
       NRM_HOST: 0.0.0.0
       NRM_PORT: "8080"
       PV_DATA_DIR: /data
     volumes:
       - ./na-netzportal/volume:/data
+    # 🔒 KEIN ports-Mapping - nur na-backend erreicht diesen Service
     networks:
       - na-netzportal-relay
     read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
     init: true
@@ -356,8 +442,12 @@ networks:
     driver: bridge
   na-netzportal-relay:
     driver: bridge
-    # Outbound Internet is required for portal login; no host ports are exposed.
+  # Externes Netz des nginx-proxy (liegt auf dem Prod-Host bereits vor).
+  proxy:
+    external: true
+    name: proxy
 
 volumes:
   na-redis-data:
   na-kataster-data:
+

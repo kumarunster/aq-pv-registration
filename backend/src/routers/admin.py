@@ -14,7 +14,7 @@ from src.models.entities import (
     CompanyCreate,
     CompanyUpdate,
     CustomerCreate,
-    CustomerUpdate,
+    AdminCustomerUpdate as CustomerUpdate,
 )
 from src.services import companies as company_repo
 from src.services import customers as customer_repo

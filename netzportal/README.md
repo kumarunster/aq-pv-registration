@@ -1,6 +1,6 @@
 # PV-Netzanmeldung – Multi-Provider API
 
-**Version 0.3.0 · Stand: 2. November 2026**
+**Version 0.4.0 · Stand: 4. November 2026**
 
 Dieses Projekt ist die technische Grundlage für eine betreiberübergreifende Automatisierung von PV-Netzanmeldungen. Es bindet **NRM**, **Energienetze Mittelrhein (ENM)**, **Mainzer Netze** und **e-netz Südhessen** über getrennte Adapter an eine gemeinsame HTTP-API an.
 
@@ -9,6 +9,12 @@ Die Anmeldung erfolgt serverseitig mit den konfigurierten Zugangsdaten. API-Aufr
 **Aktueller Umfang:** automatischer Login, Vorgangslisten, ausgewählte Lesefunktionen und eine erste API für Entwürfe. NRM/ENM: leerer Produktentwurf im Warenkorb; e-netz: initiale Strommeldung mit Standort; Mainzer: ausschließlich lokale JSON-Vorbereitung. Technische PV-Daten werden derzeit nur lokal gespeichert. **Kein endgültiges Absenden ist implementiert.** Portal-Schreibvorgänge sind synthetisch getestet, aber ohne reale Anlagendaten noch nicht live verifiziert. Die Integration ist inoffiziell.
 
 Das JSON-Format, alle neuen Endpunkte und die genauen Grenzen stehen in **[Entwurfs-API](docs/DRAFTS.md)**.
+
+## Automatische Netzbetreibersuche
+
+`POST /api/v1/network-operators/resolve` ermittelt über die öffentliche VNBdigital-Adresssuche den Niederspannungsnetzbetreiber. Der Endpunkt verlangt den Service-Bearer. Er überträgt ausschließlich Straße, Hausnummer, PLZ und Ort; keine Betreiber-/Komponentendaten. Details und verifizierte Live-Beispiele: [VNBdigital](docs/VNBDIGITAL.md).
+
+In der integrierten Anwendung erscheint die Netzanmeldung im eigenen Tab „Netzanmeldung“ der PV-Anlagenmaske, nur für Admins ab Status „In Prüfung“ (einschließlich „Angemeldet“ und „Abgeschlossen“). Die Betreiberauswahl erfolgt automatisch; Mehrdeutigkeiten oder nicht angebundene Betreiber sperren den Start.
 
 ## Verifizierter Funktionsumfang
 
@@ -65,7 +71,7 @@ Für einen neuen Installationsort `.env.example` nach `.env` kopieren und ausfü
 | `ENM_USERNAME`, `ENM_PASSWORD` | ENM-Zugang |
 | `MAINZER_USERNAME`, `MAINZER_PASSWORD` | Mainzer-Netze-Zugang |
 | `ENETZ_USERNAME`, `ENETZ_PASSWORD` | e-netz-Südhessen-Zugang |
-| `NRM_API_KEY` | Gemeinsamer API-Bearer-Schlüssel, mindestens 32 Zeichen; historischer Name bleibt kompatibel |
+| `NETZPORTAL_API_KEY` | Gemeinsamer API-Bearer-Schlüssel, mindestens 32 Zeichen; identischer Name in Backend, Service und Compose |
 | `PV_DATA_DIR` | Persistentes Verzeichnis für SQLite-Entwurfsjournal; Standard `.state` im Projekt, Docker `/data` |
 | `NRM_HOST` | Listenadresse, Standard `127.0.0.1` |
 | `NRM_PORT` | Port, Standard `8080` |
@@ -87,11 +93,11 @@ Authorization: Bearer YOUR_API_KEY
 
 In Swagger UI unter **Authorize** nur den Schlüsselwert eintragen. Die Dokumentationsseiten und `/health` sind ohne Bearer erreichbar; Kundendaten nicht.
 
-Beispiel, wenn `NRM_API_KEY` bereits im Terminal exportiert ist:
+Beispiel, wenn `NETZPORTAL_API_KEY` bereits im Terminal exportiert ist:
 
 ```bash
 curl --fail-with-body \
-  -H "Authorization: Bearer ${NRM_API_KEY}" \
+  -H "Authorization: Bearer ${NETZPORTAL_API_KEY}" \
   http://127.0.0.1:8080/api/v1/providers/enm/applications
 ```
 
@@ -222,7 +228,7 @@ Die Live-Ergebnisse unten stammen aus der vorausgehenden Einzelservice-Analyse v
 python -m pytest -q
 ```
 
-Derzeit **34 automatisierte Tests** mit synthetischen Daten. Sie prüfen unter anderem:
+Derzeit **57 automatisierte Tests** mit synthetischen Daten. Sie prüfen unter anderem:
 
 - Bestehenden NRM-SAML-Ablauf und Rückwärtskompatibilität.
 - ENM-Anmeldung, anbietergebundene Host-/Token-Verwendung und Sitzungswiederverwendung.

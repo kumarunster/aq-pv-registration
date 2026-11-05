@@ -23,7 +23,7 @@ export function katasterStale(plant, customer) {
 }
 
 export function backgroundFound(plant, customer) {
-  return Boolean(plant?.kataster?.hintergrund_uebernommen && plant?.lageplan?.background_image_url && !katasterStale(plant, customer))
+  return Boolean(plant?.kataster?.hintergrund_uebernommen && plant?.kataster?.background_image_url && !katasterStale(plant, customer))
 }
 
 export function buildKatasterUpdate(plant, result, background, adresse) {
@@ -41,13 +41,19 @@ export function buildKatasterUpdate(plant, result, background, adresse) {
     grundstueck_status: parcel ? 'ok' : (result.grundstueck_status === 'ok' ? 'unvollstaendig' : result.grundstueck_status || 'nicht_verfuegbar'),
     bild_status: background ? result.bild?.status || 'ok' : 'nicht_verfuegbar',
     hintergrund_uebernommen: Boolean(background),
+    background_image_url: background ? background.dataUrl : plant.kataster?.background_image_url || null,
+    background_image_width: background ? background.width : plant.kataster?.background_image_width || null,
+    background_image_height: background ? background.height : plant.kataster?.background_image_height || null,
     gemarkung: parcel ? field(parcel.gemarkung) : null,
     flur: parcel ? field(parcel.flur) || null : null,
     flurstueck: parcel ? field(parcel.flurstueck) : null,
     flurstueckskennzeichen: parcel?.flurstueckskennzeichen || null,
     amtliche_flaeche_m2: parcel?.amtliche_flaeche_m2 ?? null,
   }
-  if (background || plant.lageplan) {
+  // Nur "erfasst" wenn der Nutzer selbst Elemente gezeichnet hat.
+  // Hintergrundbild allein reicht nicht – das liegt in plant.kataster.
+  const hasUserContent = Array.isArray(plant.lageplan?.elements) && plant.lageplan.elements.length > 0
+  if (hasUserContent) {
     const previous = plant.lageplan ? JSON.parse(JSON.stringify(plant.lageplan)) : { title: 'Lageplan', elements: [], metadata: {} }
     update.lageplan = {
       ...previous,

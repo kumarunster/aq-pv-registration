@@ -38,7 +38,7 @@ chmod 600 .env
 python -c 'import secrets; print(secrets.token_urlsafe(32))'
 ```
 
-Edit `.env`, set the NRM username/password, and paste the generated key into `NRM_API_KEY`. For Compose, single-quote passwords containing `$`, spaces, or `#` so they are treated literally (for example, `NRM_PASSWORD='literal$password'`). Never commit the real file or put it in a shared archive.
+Edit `.env`, set the NRM username/password, and paste the generated key into `NETZPORTAL_API_KEY`. For Compose, single-quote passwords containing `$`, spaces, or `#` so they are treated literally (for example, `NRM_PASSWORD='literal$password'`). Never commit the real file or put it in a shared archive.
 
 Start the service:
 
@@ -55,7 +55,7 @@ The default address is `http://127.0.0.1:8080`.
 - Live schema: [OpenAPI JSON](http://127.0.0.1:8080/openapi.json)
 - Process health: [health](http://127.0.0.1:8080/health)
 
-In Swagger UI, click **Authorize** and enter only the value of `NRM_API_KEY`.
+In Swagger UI, click **Authorize** and enter only the value of `NETZPORTAL_API_KEY`.
 
 The server fails at startup if the username/password are missing, the bearer key is shorter than 32 characters, or the configured timeout is outside its supported range. NRM credentials are checked lazily on the first authorized installations request, rather than by the health endpoint.
 
@@ -176,14 +176,14 @@ Fetch a fresh list from NRM using the server's configured account. The service r
 Header:
 
 ```http
-Authorization: Bearer YOUR_NRM_API_KEY
+Authorization: Bearer YOUR_NETZPORTAL_API_KEY
 ```
 
 Example with curl (the environment variable is your service key, not the NRM password):
 
 ```bash
 curl --fail-with-body \
-  -H "Authorization: Bearer ${NRM_API_KEY}" \
+  -H "Authorization: Bearer ${NETZPORTAL_API_KEY}" \
   http://127.0.0.1:8080/api/v1/installations
 ```
 
@@ -305,7 +305,7 @@ Raw upstream bodies, passwords, tokens, assertions, and customer data are not in
 |---|---|---|
 | `NRM_USERNAME` | Required | NRM account username |
 | `NRM_PASSWORD` | Required | Existing NRM password |
-| `NRM_API_KEY` | Required, minimum 32 characters | Separate secret used by callers of this API |
+| `NETZPORTAL_API_KEY` | Required, minimum 32 characters | Separate secret used by callers of this API |
 | `NRM_HOST` | `127.0.0.1` | Listen address when started via `nrm-api` / `python -m nrm_api` |
 | `NRM_PORT` | `8080` | Listen port |
 | `NRM_TIMEOUT_SECONDS` | `30`, allowed 1–120 | Timeout per upstream HTTP exchange |

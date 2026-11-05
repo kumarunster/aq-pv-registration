@@ -9,6 +9,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 RUN pip install --no-cache-dir weasyprint
 
-COPY server.py .
+COPY weasyprint/server.py .
 EXPOSE 8012
 CMD ["python", "server.py"]
