@@ -130,7 +130,8 @@ services:
     command:
       - |
         set -eu
-        apk add --no-cache gettext >/dev/null 2>&1
+        echo "Installiere gettext fuer die Kratos-Konfiguration ..."
+        timeout 90 apk add --no-cache gettext
         envsubst '$${PUBLIC_BASE_URL}' < /config/kratos.yml.template > /config-out/kratos.yml.tmp
         test -s /config-out/kratos.yml.tmp
         chmod 644 /config-out/kratos.yml.tmp
@@ -159,7 +160,7 @@ services:
       na-kratos-pgdb:
         condition: service_healthy
     environment:
-      - DSN=postgres://${KRATOS_DB_USER}:***}@na-kratos-pgdb:5432/${KRATOS_DB_NAME}?sslmode=disable
+      - DSN=postgres://${KRATOS_DB_USER}:${KRATOS_DB_PASSWORD}@na-kratos-pgdb:5432/${KRATOS_DB_NAME}?sslmode=disable
     entrypoint: ["kratos", "migrate", "sql", "-e", "-y"]
     volumes:
       - type: bind
