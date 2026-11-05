@@ -1,8 +1,23 @@
 # Arbeitsstand: UX/UI-Improvement-Roadmap
 
-**Stand:** 02.11.2026 19:45
-**Auftrag:** Alle Punkte aus `UX_UI_IMPROVEMENT_ROADMAP.md` umsetzen; App muss weiterlaufen.
-**Status: 🟢 P2-10 + P2-11 + TASK-010 umgesetzt und live verifiziert; Test-IDs vergeben; Puppeteer-Anlauf grün**
+**Stand:** 05.11.2026 15:45
+**Status: ✅ Kratos-Infrastruktur vollständig gelöst (05.11.2026) — Remote-Stand übernommen, Dev-Stack komplett up**
+
+## 🔧 Kratos-Infrastruktur gelöst (05.11.2026)
+
+**Problem:** Init-Service schrieb `kratos.yml` in `kratos-config-substituted/`, aber das Verzeichnis existierte im Checkout nicht → Bind-Mount fehlgeschlagen.
+
+**Lösung (Remote-Stand `fbba60d`):**
+- `kratos-config-substituted/` + `.gitkeep` im Repo
+- Init-Service bindet `kratos-config/` read-only → `kratos-config-substituted/` → `kratos.yml` wird dort erzeugt
+- Kratos bindet `kratos-config-substituted/` read-only → `/etc/config/kratos-generated`
+- Migrate-Service liest DSN aus Env (DSN-Fix `d06aec0`)
+
+**Verifiziert (05.11.2026 15:31):**
+- Init-Service: Exited (0) ✅
+- Migrate-Service: Exited (0), "Successfully applied SQL migrations!" ✅
+- `na-kratos`: Up (4433/4434 intern, kein Host-Port) ✅
+- Dev-Stack komplett: nginx, oathkeeper, kratos, pgdb, backend, frontend, mongodb, redis, minio, weasyprint — alle up/healthy
 
 **Fortschritt 09:01–10:05:**
 - ✅ TASK-004 Lade-/Fehler-States in Listen (FirmenView + admin/KundenView + installer/KundenView)

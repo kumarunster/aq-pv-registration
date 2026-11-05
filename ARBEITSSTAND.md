@@ -1,8 +1,8 @@
 # ARBEITSSTAND - Amelanq Netz-Anmeldung
 
-**Stand: 02.11.2026, 19:45 · v0.3.0 · Branch `main`**
+**Stand: 05.11.2026, 15:45 · v0.3.0 · Branch `main`**
 
-> **UX-Phase (02.11.2026, aktuell):** P2-10/P2-11/TASK-010 umgesetzt und **live verifiziert**; Test-IDs vergeben; frischer Puppeteer-Anlauf grün. → Details in [ARBEITSSTAND-UX-ROADMAP.md](ARBEITSSTAND-UX-ROADMAP.md)
+> **Kratos-Infrastruktur vollständig gelöst (05.11.2026):** Remote-Stand übernommen (`fbba60d`), Dev-Stack komplett up. Init + Migrate + Kratos laufen sauber. → Details in [ARBEITSSTAND-UX-ROADMAP.md](ARBEITSSTAND-UX-ROADMAP.md)
 
 ---
 
@@ -48,10 +48,12 @@ und via Playwright-Browser verifiziert (JS: NONE in jedem View).
 4. **Lageplan-Eckfall bei 45°-Kanten:** Kante parallel zu Schraffurlinie wird übersprungen — bei exakt 45° fehlt eine Randlinie.
 5. **Dokumente an Anlage hängen:** PDF-Export als `DocumentRef` speichern (Upload-Service + `documents`-feld).
 6. **Kolya-Test der Lageplan-Integration:** Kunde anlegen → PV-Anlage → Adresse/Grundstück ausfüllen → Lageplan erstellen → speichern → Mongo prüfen + PDF exportieren.
+7. ~~**Kratos-DSN-Fix + Init-Flow**~~ — ✅ GELÖST (05.11.2026): Remote-Stand mit `kratos-config-substituted` + read-only Bind funktioniert, Init + Migrate + Kratos starten sauber.
 
 ## 4. Infrastruktur-Zustand
 
-- Dev-Stack Port 8092 (na-*): nginx, oathkeeper, kratos, kratos-pgdb, backend, frontend, mongodb, redis, weasyprint — alle up.
+- Dev-Stack Port 8092 (na-*): nginx, oathkeeper, kratos, kratos-pgdb, backend, frontend, mongodb, redis, weasyprint — alle up (05.11.2026 15:31).
+- **Kratos-Infrastruktur:** `kratos-config-substituted`-Verzeichnis + read-only Bind funktioniert. Init-Service erzeugt `kratos.yml`, Migrate-Service legt DB-Tabellen an, Kratos startet sauber.
 - **na-backend:** Bind-Mount (`backend/src` → `/app/src`), Uvicorn `--reload` — Datei-Änderung = sofort aktiv.
 - **na-frontend:** `docker compose build` + `up -d` nach jeder Änderung. BUILD_TIME im Bundle verifizieren.
 - **na-weasyprint:** intern (kein Host-Port), `POST /render` mit `{html}` → A4-PDF.
