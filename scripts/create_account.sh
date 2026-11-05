@@ -7,6 +7,9 @@
 # das Passwort hash't Kratos selbst. NIEMALS Credentials direkt in der DB setzen!
 set -euo pipefail
 
+# Debug: DEBUG=1 bash create_account.sh ...  zeigt jeden ausgefuehrten Befehl.
+# NA_KRATOS_CONTAINER: Name des Kratos-Containers (Standard: na-kratos).
+
 EMAIL="${1:?Aufruf: create_account.sh <email> <passwort> [name] [admin|installer] [firma]}"
 PASSWORD="${2:?Passwort fehlt}"
 NAME="${3:-}"
@@ -24,15 +27,46 @@ fi
 
 COMPOSE_DIR="$(cd "$(dirname "$0")/../_infrastructure" && pwd)"
 cd "$COMPOSE_DIR"
+KRATOS_CONTAINER="${NA_KRATOS_CONTAINER:-na-kratos}"
+DEBUG="${DEBUG:-0}"
+
+debug() {
+  if [ "${DEBUG}" = "1" ]; then
+    echo "DEBUG: $*" >&2
+  fi
+}
+
+kratos_container() {
+  local c
+  c="$(docker ps --format '{{.Names}}' | grep -E "^${KRATOS_CONTAINER}$" | head -1)"
+  if [ -z "$c" ]; then
+    c="$(docker ps -a --format '{{.Names}}' | grep -E "^${KRATOS_CONTAINER}$" | head -1)"
+  fi
+  if [ -z "$c" ]; then
+    echo "Kein Kratos-Container mit Namen '${KRATOS_CONTAINER}' gefunden. Laufende Container:" >&2
+    docker ps --format '{{.Names}}' >&2
+    echo "Setze NA_KRATOS_CONTAINER auf den korrekten Namen und versuche erneut." >&2
+    exit 1
+  fi
+  if ! docker ps -q --filter "name=^${c}$" | grep -q .; then
+    echo "Kratos-Container '${c}' laeuft nicht (Status: $(docker inspect -f '{{.State.Status}}' "$c" 2>/dev/null || echo unbekannt))." >&2
+    echo "Starte ihn mit: docker compose -f docker-compose.yml up -d na-kratos" >&2
+    exit 1
+  fi
+  KRATOS_CONTAINER="$c"
+  debug "Kratos-Container: ${KRATOS_CONTAINER}"
+}
 
 curl_json() {
   local method="$1" url="$2" data="${3:-}"
+  kratos_container
+  debug "METHOD=${method} URL=${url} NETWORK=container:${KRATOS_CONTAINER}"
   if [ -n "$data" ]; then
-    printf '%s' "$data" | docker run --rm -i --network container:na-kratos \
+    printf '%s' "$data" | docker run --rm -i --network "container:${KRATOS_CONTAINER}" \
       curlimages/curl:latest -fsS -X "$method" \
       "$url" -H "Content-Type: application/json" --data-binary @-
   else
-    docker run --rm --network container:na-kratos \
+    docker run --rm --network "container:${KRATOS_CONTAINER}" \
       curlimages/curl:latest -fsS -X "$method" "$url"
   fi
 }
@@ -41,9 +75,9 @@ WORKDIR="$(mktemp -d "${COMPOSE_DIR}/.na-ident-XXXXXX")"
 trap 'rm -rf "$WORKDIR"' EXIT
 
 echo "Suche Identity: $EMAIL"
-curl_json GET "http://localhost:4434/admin/identities?per_page=250" > "$WORKDIR/all.json" 2>&1 || {
+curl_json GET "http://localhost:4434/admin/identities?per_page=250" 1>"$WORKDIR/all.json" 2>"$WORKDIR/curl.err" || {
   echo "Fehler beim Abrufen der Identities:" >&2
-  cat "$WORKDIR/all.json" >&2
+  cat "$WORKDIR/curl.err" >&2
   exit 1
 }
 
@@ -61,9 +95,9 @@ if [ -n "$IDENT_ID" ]; then
   echo "Bestehende Identity gefunden: $IDENT_ID"
   echo "Setze neues Passwort ..."
 
-  curl_json GET "http://localhost:4434/admin/identities/$IDENT_ID" > "$WORKDIR/current.json" 2>&1 || {
+  curl_json GET "http://localhost:4434/admin/identities/$IDENT_ID" 1>"$WORKDIR/current.json" 2>"$WORKDIR/curl.err" || {
     echo "Fehler beim Lesen der Identity:" >&2
-    cat "$WORKDIR/current.json" >&2
+    cat "$WORKDIR/curl.err" >&2
     exit 1
   }
 
