@@ -29,6 +29,11 @@ COMPOSE_DIR="$(cd "$(dirname "$0")/../_infrastructure" && pwd)"
 cd "$COMPOSE_DIR"
 KRATOS_CONTAINER="${NA_KRATOS_CONTAINER:-na-kratos}"
 DEBUG="${DEBUG:-0}"
+if [ "${DEBUG}" = "1" ]; then
+  # Vollständiger Trace: zeigt jeden ausgeführten Bash-Befehl (inkl. docker run)
+  set -x
+  # bash -x schreibt auf stderr; das ist die gewünschte Debug-Ausgabe
+fi
 
 debug() {
   if [ "${DEBUG}" = "1" ]; then
@@ -62,10 +67,12 @@ curl_json() {
   kratos_container
   debug "METHOD=${method} URL=${url} NETWORK=container:${KRATOS_CONTAINER}"
   if [ -n "$data" ]; then
+    debug "docker run --rm -i --network container:${KRATOS_CONTAINER} curlimages/curl:latest -fsS -X ${method} ${url} -H 'Content-Type: application/json' --data-binary @-"
     printf '%s' "$data" | docker run --rm -i --network "container:${KRATOS_CONTAINER}" \
       curlimages/curl:latest -fsS -X "$method" \
       "$url" -H "Content-Type: application/json" --data-binary @-
   else
+    debug "docker run --rm --network container:${KRATOS_CONTAINER} curlimages/curl:latest -fsS -X ${method} ${url}"
     docker run --rm --network "container:${KRATOS_CONTAINER}" \
       curlimages/curl:latest -fsS -X "$method" "$url"
   fi
