@@ -124,7 +124,7 @@ services:
         condition: service_healthy
     environment:
       - DSN=postgres://${KRATOS_DB_USER}:${KRATOS_DB_PASSWORD}@na-kratos-pgdb:5432/${KRATOS_DB_NAME}?sslmode=disable&max_conns=20&max_idle_conns=4
-    command: serve -c /etc/config/kratos/kratos.yml --dev --watch-courier
+    command: serve -c /etc/config/kratos/kratos.yml
     volumes:
       - type: bind
         source: ./auth-kratos/kratos-config
